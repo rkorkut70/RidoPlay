@@ -196,13 +196,14 @@ fun NowPlayingPanel(
                         .clip(RoundedCornerShape(50))
                         .background(Color(0xFF0B0F17).copy(alpha = 0.88f))
                         .border(1.6.dp, Color(0xFFFFB300).copy(alpha = 0.95f), RoundedCornerShape(50))
-                        .padding(horizontal = if (isCompact) 10.dp else 14.dp, vertical = if (isCompact) 6.dp else 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(if (isCompact) 8.dp else 12.dp),
+                        .padding(horizontal = if (isCompact) 8.dp else 10.dp, vertical = if (isCompact) 4.dp else 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(if (isCompact) 6.dp else 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // %50 Büyütülmüş Buton Boyutları
-                    val pillBtnSize = if (isCompact) 50.dp else 64.dp
+                    // Tüm butonlar için kesin ve eşit çap (Tam simetrik 6 buton)
+                    val pillBtnSize = if (isCompact) 46.dp else 56.dp
                     val pillBorderCyan = Color(0xFF00E5FF)
+                    val iconInnerSize = if (isCompact) 22.dp else 27.dp
 
                     // 1. EQ Butonu
                     Box(
@@ -216,7 +217,7 @@ fun NowPlayingPanel(
                     ) {
                         Text(
                             text = "EQ",
-                            fontSize = if (isCompact) 17.sp else 22.sp,
+                            fontSize = if (isCompact) 14.sp else 18.sp,
                             fontWeight = FontWeight.Black,
                             color = pillBorderCyan
                         )
@@ -234,7 +235,7 @@ fun NowPlayingPanel(
                     ) {
                         Text(
                             text = "🎤",
-                            fontSize = if (isCompact) 22.sp else 28.sp
+                            fontSize = if (isCompact) 18.sp else 23.sp
                         )
                     }
 
@@ -252,7 +253,7 @@ fun NowPlayingPanel(
                             painter = painterResource(id = R.drawable.ic_queue),
                             contentDescription = "Sıra",
                             tint = pillBorderCyan,
-                            modifier = Modifier.size(if (isCompact) 26.dp else 32.dp)
+                            modifier = Modifier.size(iconInnerSize)
                         )
                     }
 
@@ -268,7 +269,7 @@ fun NowPlayingPanel(
                     ) {
                         Text(
                             text = "ℹ",
-                            fontSize = if (isCompact) 24.sp else 30.sp,
+                            fontSize = if (isCompact) 20.sp else 26.sp,
                             fontWeight = FontWeight.Bold,
                             color = pillBorderCyan
                         )
@@ -286,11 +287,11 @@ fun NowPlayingPanel(
                     ) {
                         Text(
                             text = "✏️",
-                            fontSize = if (isCompact) 20.sp else 26.sp
+                            fontSize = if (isCompact) 17.sp else 22.sp
                         )
                     }
 
-                    // 6. Favori Butonu (Amber/Altın Çerçeve)
+                    // 6. Favori Butonu (Amber/Altın Çerçeve - Diğerleriyle Kesinlikle Aynı Boyutta)
                     Box(
                         modifier = Modifier
                             .size(pillBtnSize)
@@ -304,7 +305,7 @@ fun NowPlayingPanel(
                             painter = painterResource(id = R.drawable.ic_favorite),
                             contentDescription = "Favori",
                             tint = if (isFavorite) CarAmber else Color(0xFFFFB300),
-                            modifier = Modifier.size(if (isCompact) 26.dp else 32.dp)
+                            modifier = Modifier.size(iconInnerSize)
                         )
                     }
                 }
@@ -506,8 +507,8 @@ fun ThreeDimensionalBrandText(
     isCompact: Boolean = false,
     modifier: Modifier = Modifier
 ) {
-    val fontSize = if (isCompact) 21.sp else 29.sp
-    val letterSpacing = if (isCompact) 1.5.sp else 2.2.sp
+    val fontSize = if (isCompact) 15.sp else 19.sp
+    val letterSpacing = if (isCompact) 1.0.sp else 1.4.sp
 
     Box(
         modifier = modifier,
@@ -519,15 +520,15 @@ fun ThreeDimensionalBrandText(
             fontSize = fontSize,
             fontWeight = FontWeight.Black,
             letterSpacing = letterSpacing,
-            color = Color.Black.copy(alpha = 0.90f),
+            color = Color.Black.copy(alpha = 0.85f),
             style = TextStyle(
                 shadow = Shadow(
                     color = Color.Black,
-                    offset = Offset(4f, 6f),
-                    blurRadius = 10f
+                    offset = Offset(2f, 3f),
+                    blurRadius = 6f
                 )
             ),
-            modifier = Modifier.offset(x = 3.dp, y = 4.dp)
+            modifier = Modifier.offset(x = 1.5.dp, y = 2.dp)
         )
 
         // 2. Orta Yan Cephe Katmanı: Koyu Metalik Ekstrüzyon (3D Bevel Edge)
@@ -537,7 +538,7 @@ fun ThreeDimensionalBrandText(
             fontWeight = FontWeight.Black,
             letterSpacing = letterSpacing,
             color = Color(0xFF1E293B),
-            modifier = Modifier.offset(x = 1.5.dp, y = 2.dp)
+            modifier = Modifier.offset(x = 0.8.dp, y = 1.dp)
         )
 
         // 3. Işık Yansıma Katmanı: Hafif Neon Cyan/Turkuaz Işıma
@@ -546,8 +547,8 @@ fun ThreeDimensionalBrandText(
             fontSize = fontSize,
             fontWeight = FontWeight.Black,
             letterSpacing = letterSpacing,
-            color = Color(0xFF00E5FF).copy(alpha = 0.50f),
-            modifier = Modifier.offset(x = (-0.5).dp, y = (-0.5).dp)
+            color = Color(0xFF00E5FF).copy(alpha = 0.45f),
+            modifier = Modifier.offset(x = (-0.3).dp, y = (-0.3).dp)
         )
 
         // 4. Ön Parlak Yüzey Katmanı: Beyaz-Gümüş Degrade ve Neon Işıma
@@ -566,9 +567,9 @@ fun ThreeDimensionalBrandText(
                     )
                 ),
                 shadow = Shadow(
-                    color = Color(0xFF00E5FF).copy(alpha = 0.45f),
+                    color = Color(0xFF00E5FF).copy(alpha = 0.40f),
                     offset = Offset(0f, 0f),
-                    blurRadius = 12f
+                    blurRadius = 8f
                 )
             )
         )
