@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">RidoPlay</string>
+    <string name="channel_name">RidoPlay Araç Müzik Çalar</string>
+    <string name="channel_description">Arka planda müzik çalma ve direksiyon tuşları kontrolü</string>
+    <string name="unknown_title">Bilinmeyen Parça</string>
+    <string name="unknown_artist">Bilinmeyen Sanatçı</string>
+    <string name="tab_folders">📁 Klasörler / USB</string>
+    <string name="tab_all_songs">🎵 Tüm Şarkılar</string>
+    <string name="tab_favorites">❤️ Favoriler</string>
+    <string name="play_folder">Bu Klasörü Çal</string>
+    <string name="search_hint">Şarkı veya sanatçı ara…</string>
+    <string name="no_songs_found">Müzik dosyası bulunamadı</string>
+    <string name="storage_permission_required">USB ve depolamadaki müzikleri çalabilmek için erişim izni gereklidir.</string>
+    <string name="grant_permission">İzin Ver</string>
+</resources>

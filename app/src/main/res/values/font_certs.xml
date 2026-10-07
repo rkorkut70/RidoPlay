@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Google Fonts sertifikaları -->
+    <array name="com_google_android_gms_fonts_certs">
+        <item>@array/com_google_android_gms_fonts_certs_dev</item>
+        <item>@array/com_google_android_gms_fonts_certs_prod</item>
+    </array>
+
+    <string-array name="com_google_android_gms_fonts_certs_dev">
+        <item>
+            MIIEqDCCA5CgAwIBAgIJANWFuGx90071MA0GCSqGSIb3DQEBBAUAMIGUMQswCQYD
+            VQQGEwJVUzETMBEGA1UECBMKQ2FsaWZvcm5pYTEWMBQGA1UEBxMNU2FuIEZyYW5j
+            aXNjbzETMBEGA1UEChMKR29vZ2xlIEluYzEMMAoGA1UECxMDRW5nMQwwCgYDVQQL
+            EwNEZXYxFzAVBgNVBAMTDkdvb2dsZSBUZXN0IENBMB4XDTE1MDIxOTIzNTMwNVoX
+            DTQ1MDIxMTIzNTMwNVowgZQxCzAJBgNVBAYTAlVTMRMwEQYDVQQIEwpDYWxpZm9y
+            bmlhMRYwFBYDVQQHEw1TYW4gRnJhbmNpc2NvMRMwEQYDVQQKEwpHb29nbGUgSW5j
+            MQwwCgYDVQQLEwNFbmcxDDAKBgNVBAsTA0RldjEXMBUGA1UEAxMOR29vZ2xlIFRl
+            c3QgQ0EwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC0oTW9LMGXQEJZ
+            8gQGCAcUjF+MjFUg9LEHbPlVMhVKLEVSBK7b8yVfE6t30vqHFvE01EGfM8yx+3D1
+            lTelX8ZWbgGEd3fN+f+nRm8RNBjGtBvTqGVHD5L4gq3TRmScSAUXY7QJpBkwYyM4
+            HhU+C7gfbXRGEe+a5bvRw4f5M3cjlKbr2bEY0p+f9ePw6hBB2HtMzRG2qOIXPm7N
+            hkYUMi1fLtFxJbGP4SRpZqmRc8LMVGJYLa2WgTGgkqFY+c6dPGIU4mJkFwzq3LMH
+            eDJpq0YVBqFqI3R3E0mPq1ZpKSxf7vHJuUq2fWw8bWtCW/8fL6HMKBMJhD7ufXhH
+            AgMBAAGjgfYwgfMwHQYDVR0OBBYEFJcdToNSTcOjhNUMSwuRVbJ9IK4tMIHDBgNV
+            HSMEgbswgbiAFJcdToNSTcOjhNUMSwuRVbJ9IK4toYGapIGXMIGUMQswCQYDVQQG
+            EwJVUzETMBEGA1UECBMKQ2FsaWZvcm5pYTEWMBQGA1UEBxMNU2FuIEZyYW5jaXNj
+            bzETMBEGA1UEChMKR29vZ2xlIEluYzEMMAoGA1UECxMDRW5nMQwwCgYDVQQLEwNE
+            ZXYxFzAVBgNVBAMTDkdvb2dsZSBUZXN0IENBggkA1YW4bH3TjjEwDAYDVR0TBAUw
+            AwEB/zANBgkqhkiG9w0BAQQFAAOCAQEAgsWOFGzl7ePvDdUMOuG2x44uIEgCBBiJ
+            jCPhBhXTKcr2hmyEGSmzLvxOWgRtTGtxBEIlkOQJUTiDkz2C0nNiDy5TRxK1e5X6
+            dHRCH3V5t0I2bVm8HsVgJ3+M0JMZdl91bwfMoG/+6l5UgHBbH1UPHl1PGQ0nFiHn
+            m9z9cTL9W0gXDFSFh4Aig2I4I7ghbEPsWvqGSbB00LF7Cza0kVx4xKv5fjBzRMSP
+            7N/hJ7kCpTK8n/PUlJSwqDKLKYkU/3dxkZ5UfNcTbFzwFU5oujxDIkWtMnY7S+8v
+            mGa1c6Mf5LQWZ7TqT+jrqEK/OQ3Z/m9j7RpKWxJ4FbTKoNZlQ==
+        </item>
+    </string-array>
+
+    <string-array name="com_google_android_gms_fonts_certs_prod">
+        <item>
+            MIIEQzCCAyugAwIBAgIJAMLgh0ZkSjCNMA0GCSqGSIb3DQEBBAUAMHQxCzAJBgNV
+            BAYTAlVTMRMwEQYDVQQIEwpDYWxpZm9ybmlhMRYwFBYDVQQHEw1Nb3VudGFpbiBW
+            aWV3MRQwEgYDVQQKEwtHb29nbGUgSW5jLjEQMA4GA1UECxMHQW5kcm9pZDEQMA4G
+            A1UEAxMHQW5kcm9pZDAeFw0wODA4MjEyMzEzMzRaFw0zNjAxMDcyMzEzMzRaMHQx
+            CzAJBgNVBAYTAlVTMRMwEQYDVQQIEwpDYWxpZm9ybmlhMRYwFBYDVQQHEw1Nb3Vu
+            dGFpbiBWaWV3MRQwEgYDVQQKEwtHb29nbGUgSW5jLjEQMA4GA1UECxMHQW5kcm9p
+            ZDEQMA4GA1UEAxMHQW5kcm9pZDCCASAwDQYJKoZIhvcNAQEBBQADggENADCCAQgC
+            ggEBAKtWLgDYO6IIrgqWbxJOKdoR8qtW0I9Y4sypEwPpt1TTcvZApxsdyxMJsczh
+            UO9vzms4T6+oCBgmSZ/jHsXqIu8rEUMO3d0Z6kGi0YCQF94EH6yx3tNFJ2EBT3C0
+            emqf9I7ItFJZ98M5kAjDGxvpZ8h8CRkxjhA2JNNuaFTxHiCLYVqGy/6o5DJXp9K6
+            QDRUhZy4BWRM6kXKIi1ox9VfKmxIlP5CKH8JdpItG73A+b3lW2m1I3IeWbUgZHPr
+            XAE6LRD7/kcJ7K3zBPM8dSjWTAk0w3oS1tEuH4xw5fJH7yRVlhJ2BYJh0aJEBuKh
+            GCL7iFGMCdp/zBPLMB0CAwEAAaOBljCBkzAdBgNVHQ4EFgQUmNH4bhDrz5vsYJ8Y
+            kBug630J/SswYAYDVR0jBFkwV4AUmNH4bhDrz5vsYJ8YkBug630J/SuhOKQ2MDQx
+            CzAJBgNVBAYTAlVTMRMwEQYDVQQIEwpDYWxpZm9ybmlhMQ4wDAYDVQQKEwVBcHBs
+            ZYIJAMLgh0ZkSjCNMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEEBQADggEBAHmO
+            LnbFVdCoMkMcPEfF1Y8mTQH//sL6E5jFmb//2P5l3xCPxW/zzn3wO8xGJijLDWkY
+            8rLWnfKQ+gF8+sBpkFJgJLCT6+UrfbLSiqaJXNkfO0ib6HkIL8RRGr+S/RDt9II0
+            WD49UxuVGOuY6VTtDGJZf6kd4crFEkFYJ5YSyMVqf2HaONk6hs5oVgCIAUwYGfKC
+            7RHrFTLVMJhwkVQS5J0kLBGAJmfWHerNHI40mZqD3JZ8N4NjAzO1U3X6tP5IKQLT
+            DQGV5b+B+eTbHRH8bRTB5EZpDvqQjrXVqxRHFf+s2qlS7qTNR6sRHR2vRLfWiFAQ
+            qjWJicK5B+0=
+        </item>
+    </string-array>
+</resources>

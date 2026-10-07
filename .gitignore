@@ -1,0 +1,23 @@
+*.iml
+.gradle
+/local.properties
+/.idea
+.DS_Store
+/build
+/app/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Build artifacts & APKs
+*.apk
+*.aab
+.kotlin
+*.hprof
+*.orig
+
+# Temporary scripts
+find_*.ps1
+sample_*.ps1
+test_*.ps1
