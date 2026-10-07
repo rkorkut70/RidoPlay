@@ -196,11 +196,12 @@ fun NowPlayingPanel(
                         .clip(RoundedCornerShape(50))
                         .background(Color(0xFF0B0F17).copy(alpha = 0.88f))
                         .border(1.6.dp, Color(0xFFFFB300).copy(alpha = 0.95f), RoundedCornerShape(50))
-                        .padding(horizontal = if (isCompact) 8.dp else 12.dp, vertical = if (isCompact) 5.dp else 7.dp),
-                    horizontalArrangement = Arrangement.spacedBy(if (isCompact) 6.dp else 10.dp),
+                        .padding(horizontal = if (isCompact) 10.dp else 14.dp, vertical = if (isCompact) 6.dp else 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(if (isCompact) 8.dp else 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    val pillBtnSize = if (isCompact) 36.dp else 44.dp
+                    // %50 Büyütülmüş Buton Boyutları
+                    val pillBtnSize = if (isCompact) 50.dp else 64.dp
                     val pillBorderCyan = Color(0xFF00E5FF)
 
                     // 1. EQ Butonu
@@ -209,13 +210,13 @@ fun NowPlayingPanel(
                             .size(pillBtnSize)
                             .clip(CircleShape)
                             .background(Color(0xFF0F172A))
-                            .border(1.5.dp, pillBorderCyan, CircleShape)
+                            .border(1.8.dp, pillBorderCyan, CircleShape)
                             .clickable { onOpenEqualizer() },
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = "EQ",
-                            fontSize = if (isCompact) 12.sp else 15.sp,
+                            fontSize = if (isCompact) 17.sp else 22.sp,
                             fontWeight = FontWeight.Black,
                             color = pillBorderCyan
                         )
@@ -227,13 +228,13 @@ fun NowPlayingPanel(
                             .size(pillBtnSize)
                             .clip(CircleShape)
                             .background(if (showCoverLyrics) pillBorderCyan.copy(alpha = 0.25f) else Color(0xFF0F172A))
-                            .border(1.5.dp, pillBorderCyan, CircleShape)
+                            .border(1.8.dp, pillBorderCyan, CircleShape)
                             .clickable { onToggleCoverLyrics() },
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = "🎤",
-                            fontSize = if (isCompact) 16.sp else 20.sp
+                            fontSize = if (isCompact) 22.sp else 28.sp
                         )
                     }
 
@@ -243,7 +244,7 @@ fun NowPlayingPanel(
                             .size(pillBtnSize)
                             .clip(CircleShape)
                             .background(Color(0xFF0F172A))
-                            .border(1.5.dp, pillBorderCyan, CircleShape)
+                            .border(1.8.dp, pillBorderCyan, CircleShape)
                             .clickable { onOpenQueue() },
                         contentAlignment = Alignment.Center
                     ) {
@@ -251,7 +252,7 @@ fun NowPlayingPanel(
                             painter = painterResource(id = R.drawable.ic_queue),
                             contentDescription = "Sıra",
                             tint = pillBorderCyan,
-                            modifier = Modifier.size(if (isCompact) 18.dp else 22.dp)
+                            modifier = Modifier.size(if (isCompact) 26.dp else 32.dp)
                         )
                     }
 
@@ -261,13 +262,13 @@ fun NowPlayingPanel(
                             .size(pillBtnSize)
                             .clip(CircleShape)
                             .background(Color(0xFF0F172A))
-                            .border(1.5.dp, pillBorderCyan, CircleShape)
+                            .border(1.8.dp, pillBorderCyan, CircleShape)
                             .clickable { onOpenId3Info() },
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = "ℹ",
-                            fontSize = if (isCompact) 18.sp else 22.sp,
+                            fontSize = if (isCompact) 24.sp else 30.sp,
                             fontWeight = FontWeight.Bold,
                             color = pillBorderCyan
                         )
@@ -279,13 +280,13 @@ fun NowPlayingPanel(
                             .size(pillBtnSize)
                             .clip(CircleShape)
                             .background(Color(0xFF0F172A))
-                            .border(1.5.dp, pillBorderCyan, CircleShape)
+                            .border(1.8.dp, pillBorderCyan, CircleShape)
                             .clickable { onOpenLyrics() },
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = "✏️",
-                            fontSize = if (isCompact) 15.sp else 19.sp
+                            fontSize = if (isCompact) 20.sp else 26.sp
                         )
                     }
 
@@ -295,7 +296,7 @@ fun NowPlayingPanel(
                             .size(pillBtnSize)
                             .clip(CircleShape)
                             .background(Color(0xFF0F172A))
-                            .border(1.5.dp, if (isFavorite) CarAmber else Color(0xFFFFB300), CircleShape)
+                            .border(1.8.dp, if (isFavorite) CarAmber else Color(0xFFFFB300), CircleShape)
                             .clickable { onToggleFavorite() },
                         contentAlignment = Alignment.Center
                     ) {
@@ -303,7 +304,7 @@ fun NowPlayingPanel(
                             painter = painterResource(id = R.drawable.ic_favorite),
                             contentDescription = "Favori",
                             tint = if (isFavorite) CarAmber else Color(0xFFFFB300),
-                            modifier = Modifier.size(if (isCompact) 18.dp else 22.dp)
+                            modifier = Modifier.size(if (isCompact) 26.dp else 32.dp)
                         )
                     }
                 }
