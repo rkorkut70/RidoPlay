@@ -52,6 +52,7 @@ fun SettingsDialog(
     val stopOnTaskRemoved by viewModel.stopOnTaskRemoved.collectAsStateWithLifecycle()
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
     val themePalette by viewModel.themePalette.collectAsStateWithLifecycle()
+    val uiMode by viewModel.uiMode.collectAsStateWithLifecycle()
     val autoOpenQueueOnStart by viewModel.autoOpenQueueOnStart.collectAsStateWithLifecycle()
     val lyricsFontSize by viewModel.lyricsFontSize.collectAsStateWithLifecycle()
     val autoSaveId3Lyrics by viewModel.autoSaveId3Lyrics.collectAsStateWithLifecycle()
@@ -145,6 +146,17 @@ fun SettingsDialog(
                                 TabButton("Oto", "AUTO", themeMode) { viewModel.setThemeMode(it) }
                                 TabButton("Açık", "LIGHT", themeMode) { viewModel.setThemeMode(it) }
                                 TabButton("Koyu", "DARK", themeMode) { viewModel.setThemeMode(it) }
+                            }
+                        }
+                        Divider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+                        SettingactionRow(
+                            title = "Cihaz / Arayüz Modu",
+                            description = "Araç/Tablet veya Cep Telefonu ekran düzeni."
+                        ) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                TabButton("Oto", "AUTO", uiMode) { viewModel.setUiMode(it) }
+                                TabButton("Araç", "CAR", uiMode) { viewModel.setUiMode(it) }
+                                TabButton("Telefon", "PHONE", uiMode) { viewModel.setUiMode(it) }
                             }
                         }
                         Divider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)

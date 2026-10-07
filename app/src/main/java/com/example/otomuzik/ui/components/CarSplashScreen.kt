@@ -132,11 +132,11 @@ fun CarSplashScreen(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "Araç Müzik Çalar",
+                text = "Müzik Çalar",
                 color = CarTextMuted,
-                fontSize = 13.sp,
+                fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
-                letterSpacing = 1.sp
+                letterSpacing = 2.sp
             )
         }
 

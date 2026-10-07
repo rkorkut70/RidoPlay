@@ -926,16 +926,21 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
         }
     }
 
-    private fun updateMediaSessionMetadata(song: Song, duration: Long) {
+    private var currentNotificationArtwork: Bitmap? = null
+    private var currentArtworkSongPath: String? = null
+
+    private fun updateMediaSessionMetadata(song: Song, duration: Long, artwork: Bitmap? = null) {
         try {
-            val metadata = MediaMetadata.Builder()
+            val builder = MediaMetadata.Builder()
                 .putString(MediaMetadata.METADATA_KEY_TITLE, song.title)
                 .putString(MediaMetadata.METADATA_KEY_ARTIST, song.artist)
                 .putString(MediaMetadata.METADATA_KEY_ALBUM, song.album)
                 .putLong(MediaMetadata.METADATA_KEY_DURATION, duration)
-                .build()
-
-            mediaSession?.setMetadata(metadata)
+            if (artwork != null) {
+                builder.putBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART, artwork)
+                builder.putBitmap(MediaMetadata.METADATA_KEY_ART, artwork)
+            }
+            mediaSession?.setMetadata(builder.build())
         } catch (t: Throwable) {
             t.printStackTrace()
         }
@@ -1023,6 +1028,50 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
                 .addAction(playPauseIcon, if (isPlaying) "Duraklat" else "Oynat", playPausePending)
                 .addAction(R.drawable.ic_skip_next, "Sonraki", nextPending)
                 .setOngoing(isPlaying)
+
+            // Bildirimde albüm kapağını göster (LargeIcon)
+            if (currentArtworkSongPath == song.path && currentNotificationArtwork != null) {
+                builder.setLargeIcon(currentNotificationArtwork)
+            } else {
+                // Arka planda kapak resmini yükleyip bildirimi ve mediaSession'ı güncelle
+                serviceScope.launch(Dispatchers.IO) {
+                    val art = com.example.otomuzik.util.AlbumArtHelper.getArtwork(
+                        applicationContext,
+                        song.path,
+                        song.albumId,
+                        song.uriString
+                    )
+                    withContext(Dispatchers.Main) {
+                        if (_playerState.value.currentSong?.path == song.path) {
+                            currentNotificationArtwork = art
+                            currentArtworkSongPath = song.path
+                            updateMediaSessionMetadata(song, _playerState.value.durationMs, art)
+                            if (art != null) {
+                                val updatedMediaStyle = androidx.media.app.NotificationCompat.MediaStyle()
+                                    .setShowActionsInCompactView(0, 1, 2)
+                                sessionToken?.let { updatedMediaStyle.setMediaSession(it) }
+
+                                val updatedNotification = NotificationCompat.Builder(this@MusicService, CHANNEL_ID)
+                                    .setContentTitle(song.title)
+                                    .setContentText(song.artist)
+                                    .setSubText(song.album)
+                                    .setSmallIcon(R.drawable.ic_music_note)
+                                    .setContentIntent(openPendingIntent)
+                                    .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                                    .setLargeIcon(art)
+                                    .addAction(R.drawable.ic_skip_previous, "Önceki", prevPending)
+                                    .addAction(playPauseIcon, if (_playerState.value.isPlaying) "Duraklat" else "Oynat", playPausePending)
+                                    .addAction(R.drawable.ic_skip_next, "Sonraki", nextPending)
+                                    .setOngoing(_playerState.value.isPlaying)
+                                    .setStyle(updatedMediaStyle)
+                                    .build()
+                                val notificationManager = getSystemService(NotificationManager::class.java)
+                                notificationManager?.notify(NOTIFICATION_ID, updatedNotification)
+                            }
+                        }
+                    }
+                }
+            }
 
             try {
                 val mediaStyle = androidx.media.app.NotificationCompat.MediaStyle()

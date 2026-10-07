@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">RidoPlay</string>
-    <string name="channel_name">RidoPlay Araç Müzik Çalar</string>
-    <string name="channel_description">Arka planda müzik çalma ve direksiyon tuşları kontrolü</string>
+    <string name="channel_name">RidoPlay Müzik Çalar</string>
+    <string name="channel_description">Arka planda müzik çalma ve medya kontrolleri</string>
     <string name="unknown_title">Bilinmeyen Parça</string>
     <string name="unknown_artist">Bilinmeyen Sanatçı</string>
     <string name="tab_folders">📁 Klasörler / USB</string>

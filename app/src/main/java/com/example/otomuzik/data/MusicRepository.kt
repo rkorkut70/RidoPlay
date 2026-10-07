@@ -679,6 +679,13 @@ class MusicRepository(private val context: Context) {
 
     fun setAutoSaveId3Lyrics(enabled: Boolean) = prefs.edit().putBoolean("auto_save_id3_lyrics", enabled).apply()
     fun getAutoSaveId3Lyrics(): Boolean = prefs.getBoolean("auto_save_id3_lyrics", true)
+
+    // --- Cihaz ve Arayüz Modu (AUTO: Otomatik Algıla, CAR: Araç/Tablet, PHONE: Cep Telefonu) ---
+    fun setUiMode(mode: String) = prefs.edit().putString("uiMode", mode).apply()
+    fun getUiMode(): String = prefs.getString("uiMode", "AUTO") ?: "AUTO"
+
+    fun setIsUiModeConfigured(configured: Boolean) = prefs.edit().putBoolean("isUiModeConfigured", configured).apply()
+    fun getIsUiModeConfigured(): Boolean = prefs.getBoolean("isUiModeConfigured", false)
 }
 
 

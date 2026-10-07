@@ -160,6 +160,16 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
     private val _themePalette = MutableStateFlow(repository.getThemePalette())
     val themePalette: StateFlow<String> = _themePalette.asStateFlow()
 
+    // Arayüz Modu: "AUTO" (Otomatik Algıla), "CAR" (Araç / Tablet), "PHONE" (Cep Telefonu)
+    private val _uiMode = MutableStateFlow(repository.getUiMode())
+    val uiMode: StateFlow<String> = _uiMode.asStateFlow()
+
+    private val _isUiModeConfigured = MutableStateFlow(repository.getIsUiModeConfigured())
+    val isUiModeConfigured: StateFlow<Boolean> = _isUiModeConfigured.asStateFlow()
+
+    private val _showModeSelectDialog = MutableStateFlow(!repository.getIsUiModeConfigured())
+    val showModeSelectDialog: StateFlow<Boolean> = _showModeSelectDialog.asStateFlow()
+
     private val _autoOpenQueueOnStart = MutableStateFlow(repository.getAutoOpenQueueOnStart())
     val autoOpenQueueOnStart: StateFlow<Boolean> = _autoOpenQueueOnStart.asStateFlow()
 
@@ -1216,6 +1226,27 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
             repository.clearPlayHistory()
             loadPlaylists() // Playlists'i yenilemeli
         }
+    }
+
+    fun setUiMode(mode: String) {
+        _uiMode.value = mode
+        repository.setUiMode(mode)
+    }
+
+    fun confirmUiMode(mode: String) {
+        _uiMode.value = mode
+        repository.setUiMode(mode)
+        _isUiModeConfigured.value = true
+        repository.setIsUiModeConfigured(true)
+        _showModeSelectDialog.value = false
+    }
+
+    fun openModeSelectDialog() {
+        _showModeSelectDialog.value = true
+    }
+
+    fun closeModeSelectDialog() {
+        _showModeSelectDialog.value = false
     }
 }
 

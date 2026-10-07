@@ -66,6 +66,19 @@ class MainActivity : ComponentActivity() {
             val viewModel: com.example.otomuzik.ui.main.MainScreenViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
             val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
             val themePalette by viewModel.themePalette.collectAsStateWithLifecycle()
+            val uiMode by viewModel.uiMode.collectAsStateWithLifecycle()
+            val showModeSelectDialog by viewModel.showModeSelectDialog.collectAsStateWithLifecycle()
+
+            val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+            val isPortrait = configuration.orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT
+            val isSmallScreen = configuration.screenWidthDp < 600
+
+            val isPhoneMode = when (uiMode) {
+                "PHONE" -> true
+                "CAR" -> false
+                else -> isPortrait || isSmallScreen
+            }
+
             OtoMuzikTheme(
                 themeMode = themeMode,
                 themePalette = themePalette
@@ -84,11 +97,24 @@ class MainActivity : ComponentActivity() {
                                 viewModel.refreshAll()
                             }
                         }
-                        MainScreen(
-                            hasPermission = true,
-                            onRequestPermission = { requestRequiredPermissions() },
-                            viewModel = viewModel
-                        )
+
+                        if (isPhoneMode) {
+                            com.example.otomuzik.ui.phone.PhoneMainScreen(viewModel = viewModel)
+                        } else {
+                            MainScreen(
+                                hasPermission = true,
+                                onRequestPermission = { requestRequiredPermissions() },
+                                viewModel = viewModel
+                            )
+                        }
+
+                        if (showModeSelectDialog) {
+                            com.example.otomuzik.ui.components.ModeSelectDialog(
+                                currentMode = uiMode,
+                                onConfirm = { viewModel.confirmUiMode(it) },
+                                onDismiss = { viewModel.closeModeSelectDialog() }
+                            )
+                        }
                     } else {
                         PermissionScreen(
                             onRequestPermission = { requestRequiredPermissions() }
