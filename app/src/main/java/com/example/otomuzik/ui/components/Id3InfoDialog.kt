@@ -16,12 +16,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -51,6 +54,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -217,37 +221,37 @@ fun Id3InfoDialog(
         }
     }
 
+    val configuration = LocalConfiguration.current
+    val isPhone = configuration.screenWidthDp < 600
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnClickOutside = false)
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxWidth(0.92f)
-                .fillMaxHeight(0.92f)
+            modifier = (if (isPhone) {
+                Modifier
+                    .fillMaxWidth(0.96f)
+                    .fillMaxHeight(0.95f)
+                    .statusBarsPadding()
+                    .navigationBarsPadding()
+            } else {
+                Modifier
+                    .fillMaxWidth(0.92f)
+                    .fillMaxHeight(0.92f)
+            })
                 .clip(RoundedCornerShape(22.dp))
                 .background(CarSurfaceDark)
                 .border(1.5.dp, CarCyan, RoundedCornerShape(22.dp))
-                .padding(20.dp)
+                .padding(if (isPhone) 12.dp else 20.dp)
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
 
                 // ── ÜST BAR: Başlık, Sekmeler & Kapat ──────────────────────
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "✏️ Şarkı & Kapak Düzenle",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = CarCyan
-                    )
-
-                    // Sekme Butonları (Tabs)
+                val tabsRow = @Composable {
                     Row(
                         modifier = Modifier
+                            .then(if (isPhone) Modifier.fillMaxWidth() else Modifier)
                             .clip(RoundedCornerShape(12.dp))
                             .background(CarSurfaceVariant)
                             .border(1.dp, CarBorder, RoundedCornerShape(12.dp))
@@ -257,15 +261,16 @@ fun Id3InfoDialog(
                         // Sekme 0: ID3 Etiketleri
                         Box(
                             modifier = Modifier
+                                .then(if (isPhone) Modifier.weight(1f) else Modifier)
                                 .clip(RoundedCornerShape(9.dp))
                                 .background(if (selectedTab == 0) CarCyan else Color.Transparent)
                                 .clickable { selectedTab = 0 }
-                                .padding(horizontal = 16.dp, vertical = 7.dp),
+                                .padding(horizontal = if (isPhone) 8.dp else 16.dp, vertical = 7.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = "🏷️ ID3 Bilgileri",
-                                fontSize = 13.sp,
+                                fontSize = if (isPhone) 12.sp else 13.sp,
                                 fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Medium,
                                 color = if (selectedTab == 0) Color(0xFF0C0E12) else CarTextPrimary
                             )
@@ -275,6 +280,7 @@ fun Id3InfoDialog(
                         val coverBadge = if (coverSuggestions.isNotEmpty()) " (${coverSuggestions.size})" else ""
                         Box(
                             modifier = Modifier
+                                .then(if (isPhone) Modifier.weight(1f) else Modifier)
                                 .clip(RoundedCornerShape(9.dp))
                                 .background(if (selectedTab == 1) CarCyan else Color.Transparent)
                                 .clickable {
@@ -283,19 +289,20 @@ fun Id3InfoDialog(
                                         performCoverSearch()
                                     }
                                 }
-                                .padding(horizontal = 16.dp, vertical = 7.dp),
+                                .padding(horizontal = if (isPhone) 8.dp else 16.dp, vertical = 7.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "🖼️ Albüm Kapakları$coverBadge",
-                                fontSize = 13.sp,
+                                text = "🖼️ Kapaklar$coverBadge",
+                                fontSize = if (isPhone) 12.sp else 13.sp,
                                 fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Medium,
                                 color = if (selectedTab == 1) Color(0xFF0C0E12) else CarTextPrimary
                             )
                         }
                     }
+                }
 
-                    // Kapat Butonu
+                val closeBtn = @Composable {
                     Box(
                         modifier = Modifier
                             .size(34.dp)
@@ -309,7 +316,40 @@ fun Id3InfoDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                if (isPhone) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "✏️ Şarkı & Kapak Düzenle",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = CarCyan
+                        )
+                        closeBtn()
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    tabsRow()
+                } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "✏️ Şarkı & Kapak Düzenle",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = CarCyan
+                        )
+                        tabsRow()
+                        closeBtn()
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(if (isPhone) 10.dp else 14.dp))
 
                 // ── İÇERİK: SEÇİLİ SEKMENİN GÖRÜNÜMÜ ─────────────────────────
                 Box(
@@ -321,56 +361,42 @@ fun Id3InfoDialog(
                         // ──────────────────────────────────────────────────────
                         // SEKME 0: ID3 ETİKETLERİ VE DETAYLAR
                         // ──────────────────────────────────────────────────────
-                        Row(
-                            modifier = Modifier.fillMaxSize(),
-                            horizontalArrangement = Arrangement.spacedBy(20.dp)
-                        ) {
-                            // Sol Kolon: Albüm Kapağı Önizleme & Hızlı İşlemler
-                            Column(
+                        val coverPreviewBox = @Composable { sizeDp: Int ->
+                            Box(
                                 modifier = Modifier
-                                    .width(220.dp)
-                                    .fillMaxHeight(),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                                    .size(sizeDp.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(CarSurfaceVariant)
+                                    .border(2.dp, if (artworkBytes != null) CarCyan else CarBorder, RoundedCornerShape(16.dp)),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Text(
-                                    text = "Albüm Kapağı",
-                                    color = CarTextPrimary,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp
-                                )
-
-                                // Büyük Kapak Önizleme
-                                Box(
-                                    modifier = Modifier
-                                        .size(190.dp)
-                                        .clip(RoundedCornerShape(16.dp))
-                                        .background(CarSurfaceVariant)
-                                        .border(2.dp, if (artworkBytes != null) CarCyan else CarBorder, RoundedCornerShape(16.dp)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    if (artworkBytes != null) {
-                                        val bitmap = remember(artworkBytes) {
-                                            BitmapFactory.decodeByteArray(artworkBytes, 0, artworkBytes!!.size)
-                                        }
-                                        if (bitmap != null) {
-                                            Image(
-                                                bitmap = bitmap.asImageBitmap(),
-                                                contentDescription = "Albüm Kapağı",
-                                                contentScale = ContentScale.Crop,
-                                                modifier = Modifier.fillMaxSize()
-                                            )
-                                        }
-                                    } else {
-                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                            Text("🖼️", fontSize = 38.sp)
-                                            Spacer(modifier = Modifier.height(6.dp))
-                                            Text("Kapak Yok", color = CarTextMuted, fontSize = 12.sp)
-                                        }
+                                if (artworkBytes != null) {
+                                    val bitmap = remember(artworkBytes) {
+                                        BitmapFactory.decodeByteArray(artworkBytes, 0, artworkBytes!!.size)
+                                    }
+                                    if (bitmap != null) {
+                                        Image(
+                                            bitmap = bitmap.asImageBitmap(),
+                                            contentDescription = "Albüm Kapağı",
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier.fillMaxSize()
+                                        )
+                                    }
+                                } else {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text("🖼️", fontSize = if (sizeDp < 150) 28.sp else 38.sp)
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text("Kapak Yok", color = CarTextMuted, fontSize = 11.sp)
                                     }
                                 }
+                            }
+                        }
 
-                                // Kapak Bul Butonu (Kapak arama sekmesine geçirir)
+                        val coverButtons = @Composable {
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
                                 Button(
                                     onClick = {
                                         selectedTab = 1
@@ -380,22 +406,21 @@ fun Id3InfoDialog(
                                     },
                                     colors = ButtonDefaults.buttonColors(containerColor = CarCyan),
                                     shape = RoundedCornerShape(10.dp),
-                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Text("🔍 Kapak Bul (İnternet)", color = Color(0xFF0C0E12), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                    Text("🔍 Kapak Bul (İnternet)", color = Color(0xFF0C0E12), fontWeight = FontWeight.Bold, fontSize = 11.5.sp)
                                 }
 
-                                // Galeriden Seç
                                 Button(
                                     onClick = { imagePickerLauncher.launch("image/*") },
                                     colors = ButtonDefaults.buttonColors(containerColor = CarSurfaceVariant),
                                     shape = RoundedCornerShape(10.dp),
                                     border = BorderStroke(1.dp, CarBorder),
-                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Text("📁 Galeriden Seç", color = CarTextPrimary, fontWeight = FontWeight.Medium, fontSize = 12.sp)
+                                    Text("📁 Galeriden Seç", color = CarTextPrimary, fontWeight = FontWeight.Medium, fontSize = 11.5.sp)
                                 }
 
                                 if (artworkBytes != null) {
@@ -407,10 +432,10 @@ fun Id3InfoDialog(
                                         },
                                         colors = ButtonDefaults.buttonColors(containerColor = Color(0x33FF5252)),
                                         shape = RoundedCornerShape(10.dp),
-                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                                        modifier = Modifier.fillMaxWidth().height(32.dp)
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                        modifier = Modifier.fillMaxWidth().height(30.dp)
                                     ) {
-                                        Text("🗑️ Kapağı Kaldır", color = Color(0xFFFF5252), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                        Text("🗑️ Kapağı Kaldır", color = Color(0xFFFF5252), fontSize = 10.5.sp, fontWeight = FontWeight.SemiBold)
                                     }
                                 }
 
@@ -418,22 +443,17 @@ fun Id3InfoDialog(
                                     Text(
                                         text = coverSearchMessage,
                                         color = if (coverSearchMessage.startsWith("✅")) CarCyan else if (coverSearchMessage.startsWith("❌")) Color(0xFFFF5252) else CarAmber,
-                                        fontSize = 11.sp,
+                                        fontSize = 10.5.sp,
                                         textAlign = TextAlign.Center,
-                                        maxLines = 3,
+                                        maxLines = 2,
                                         overflow = TextOverflow.Ellipsis
                                     )
                                 }
                             }
+                        }
 
-                            // Sağ Kolon: ID3 Etiket Alanları & Teknik Bilgiler
-                            Column(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxHeight()
-                                    .verticalScroll(rememberScrollState()),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
+                        val id3Fields = @Composable {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Id3EditRow("📁 Dosya Adı (.${fileExt})", fileName) { fileName = it }
                                 Id3EditRow("🎵 Başlık (Title)", title) { title = it }
                                 Id3EditRow("👤 Sanatçı (Artist)", artist) { artist = it }
@@ -460,6 +480,69 @@ fun Id3InfoDialog(
                                     }
                                     if (song.fileSizeFormatted.isNotEmpty()) Id3ReadRow("Boyut", song.fileSizeFormatted)
                                     if (song.path.isNotEmpty()) Id3ReadRow("Yol", song.path, isMonospace = true)
+                                }
+                            }
+                        }
+
+                        if (isPhone) {
+                            // TELEFONDA: Dikey akıcı tek kolon, tüm alanlar geniş ve okunur
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .verticalScroll(rememberScrollState()),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                // Kapak kartı: Sol tarafta 115x115 kapak, sağ tarafta butonlar
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(CarSurfaceVariant.copy(alpha = 0.5f))
+                                        .border(1.dp, CarBorder, RoundedCornerShape(14.dp))
+                                        .padding(10.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    coverPreviewBox(115)
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        coverButtons()
+                                    }
+                                }
+
+                                // ID3 Metin Girişleri
+                                id3Fields()
+                            }
+                        } else {
+                            // TABLET/ARAÇTA: Çift kolonlu geniş düzen
+                            Row(
+                                modifier = Modifier.fillMaxSize(),
+                                horizontalArrangement = Arrangement.spacedBy(20.dp)
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .width(220.dp)
+                                        .fillMaxHeight(),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Text(
+                                        text = "Albüm Kapağı",
+                                        color = CarTextPrimary,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp
+                                    )
+                                    coverPreviewBox(190)
+                                    coverButtons()
+                                }
+
+                                Column(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxHeight()
+                                        .verticalScroll(rememberScrollState()),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    id3Fields()
                                 }
                             }
                         }
@@ -538,49 +621,36 @@ fun Id3InfoDialog(
                             }
 
                             // 2. Durum ve Sayfalama (Pagination) Kontrolleri (Önceki 10 / Sonraki 10)
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(CarSurfaceVariant.copy(alpha = 0.6f))
-                                    .border(1.dp, CarBorder, RoundedCornerShape(10.dp))
-                                    .padding(horizontal = 12.dp, vertical = 6.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                // Sol: Durum Bilgisi
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    if (isSearchingCover) {
-                                        CircularProgressIndicator(color = CarCyan, modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                                        Text("Resmi müzik veritabanlarında aranıyor...", color = CarCyan, fontSize = 12.sp)
-                                    } else if (isDownloadingCover) {
-                                        CircularProgressIndicator(color = CarAmber, modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                                        Text("Kapak tam boyutta indiriliyor...", color = CarAmber, fontSize = 12.sp)
-                                    } else {
-                                        val statusDisplayText = when {
-                                            selectedSuggestionId != null && coverSearchMessage.startsWith("✅ Kapak seçildi") -> coverSearchMessage
-                                            coverSuggestions.isNotEmpty() -> "✅ ${coverSuggestions.size} adet resmi müzik kapağı bulundu (Grup ${currentPage + 1} / $totalPages)"
-                                            else -> coverSearchMessage.ifEmpty { "Beğendiğiniz kapağa dokunarak seçebilirsiniz." }
-                                        }
-                                        Text(
-                                            text = statusDisplayText,
-                                            color = if (statusDisplayText.startsWith("✅")) CarCyan else CarTextPrimary,
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.Medium
-                                        )
+                            val statusIndicator = @Composable {
+                                if (isSearchingCover) {
+                                    CircularProgressIndicator(color = CarCyan, modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                                    Text("Resmi müzik veritabanlarında aranıyor...", color = CarCyan, fontSize = 11.5.sp)
+                                } else if (isDownloadingCover) {
+                                    CircularProgressIndicator(color = CarAmber, modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                                    Text("Kapak tam boyutta indiriliyor...", color = CarAmber, fontSize = 11.5.sp)
+                                } else {
+                                    val statusDisplayText = when {
+                                        selectedSuggestionId != null && coverSearchMessage.startsWith("✅ Kapak seçildi") -> coverSearchMessage
+                                        coverSuggestions.isNotEmpty() -> "✅ ${coverSuggestions.size} kapak bulundu (Grup ${currentPage + 1}/$totalPages)"
+                                        else -> coverSearchMessage.ifEmpty { "Beğendiğiniz kapağa dokunarak seçebilirsiniz." }
                                     }
+                                    Text(
+                                        text = statusDisplayText,
+                                        color = if (statusDisplayText.startsWith("✅")) CarCyan else CarTextPrimary,
+                                        fontSize = 11.5.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
                                 }
+                            }
 
-                                // Sağ: 10'lu Grup Sayfalama Butonları
+                            val paginationControls = @Composable {
                                 if (coverSuggestions.isNotEmpty()) {
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
-                                        // Önceki 10
                                         Button(
                                             onClick = { if (currentPage > 0) currentPage-- },
                                             enabled = currentPage > 0 && !isSearchingCover,
@@ -590,28 +660,26 @@ fun Id3InfoDialog(
                                             ),
                                             shape = RoundedCornerShape(8.dp),
                                             border = BorderStroke(1.dp, if (currentPage > 0) CarCyan else CarBorder),
-                                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                                            modifier = Modifier.height(32.dp)
+                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                            modifier = Modifier.height(30.dp)
                                         ) {
                                             Text(
-                                                text = "◀ Önceki 10",
+                                                text = "◀ Önceki",
                                                 color = if (currentPage > 0) CarCyan else CarTextMuted,
                                                 fontSize = 11.sp,
                                                 fontWeight = FontWeight.Bold
                                             )
                                         }
 
-                                        // Grup Göstergesi
                                         val startNum = currentPage * pageSize + 1
                                         val endNum = minOf((currentPage + 1) * pageSize, coverSuggestions.size)
                                         Text(
                                             text = "$startNum-$endNum / ${coverSuggestions.size}",
                                             color = CarTextPrimary,
-                                            fontSize = 12.sp,
+                                            fontSize = 11.sp,
                                             fontWeight = FontWeight.SemiBold
                                         )
 
-                                        // Sonraki 10
                                         val hasNext = currentPage < totalPages - 1
                                         Button(
                                             onClick = { if (hasNext) currentPage++ },
@@ -622,11 +690,11 @@ fun Id3InfoDialog(
                                             ),
                                             shape = RoundedCornerShape(8.dp),
                                             border = BorderStroke(1.dp, if (hasNext) CarCyan else CarBorder),
-                                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                                            modifier = Modifier.height(32.dp)
+                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                            modifier = Modifier.height(30.dp)
                                         ) {
                                             Text(
-                                                text = "Sonraki 10 ▶",
+                                                text = "Sonraki ▶",
                                                 color = if (hasNext) CarCyan else CarTextMuted,
                                                 fontSize = 11.sp,
                                                 fontWeight = FontWeight.Bold
@@ -636,7 +704,55 @@ fun Id3InfoDialog(
                                 }
                             }
 
-                            // 3. Büyük Kapak Kartları Izgarası (Grid: 5 sütun x 2 satır = 10 kart)
+                            if (isPhone) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(CarSurfaceVariant.copy(alpha = 0.6f))
+                                        .border(1.dp, CarBorder, RoundedCornerShape(10.dp))
+                                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        statusIndicator()
+                                    }
+                                    if (coverSuggestions.isNotEmpty()) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.Center,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            paginationControls()
+                                        }
+                                    }
+                                }
+                            } else {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(CarSurfaceVariant.copy(alpha = 0.6f))
+                                        .border(1.dp, CarBorder, RoundedCornerShape(10.dp))
+                                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        statusIndicator()
+                                    }
+                                    paginationControls()
+                                }
+                            }
+
+                            // 3. Büyük Kapak Kartları Izgarası (Grid: Telefonda 2 sütun, Tablette 5 sütun)
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -664,7 +780,7 @@ fun Id3InfoDialog(
                                     }
                                 } else {
                                     LazyVerticalGrid(
-                                        columns = GridCells.Fixed(5),
+                                        columns = GridCells.Fixed(if (isPhone) 2 else 5),
                                         contentPadding = PaddingValues(4.dp),
                                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                                         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -706,11 +822,11 @@ fun Id3InfoDialog(
                                                     .padding(7.dp),
                                                 horizontalAlignment = Alignment.CenterHorizontally
                                             ) {
-                                                // Büyük Resim Alanı (~145x145 dp)
+                                                // Büyük Resim Alanı (Kare en boy oranı)
                                                 Box(
                                                     modifier = Modifier
                                                         .fillMaxWidth()
-                                                        .height(130.dp)
+                                                        .aspectRatio(1f)
                                                         .clip(RoundedCornerShape(10.dp))
                                                         .background(Color.Black),
                                                     contentAlignment = Alignment.Center
@@ -794,12 +910,12 @@ fun Id3InfoDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(if (isPhone) 8.dp else 14.dp))
 
                 // ── ALT BAR: İptal / Kaydet veya Sekmeler Arası Geçiş ─────────
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     if (selectedTab == 1) {
@@ -809,11 +925,13 @@ fun Id3InfoDialog(
                             colors = ButtonDefaults.buttonColors(containerColor = CarSurfaceVariant),
                             shape = RoundedCornerShape(12.dp),
                             border = BorderStroke(1.dp, CarBorder),
-                            modifier = Modifier.height(44.dp)
+                            modifier = Modifier
+                                .then(if (isPhone) Modifier.weight(1f) else Modifier)
+                                .height(44.dp)
                         ) {
                             Text(
                                 text = "🏷️ ID3 Bilgilerine Dön",
-                                fontSize = 13.sp,
+                                fontSize = if (isPhone) 11.5.sp else 13.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = CarTextPrimary
                             )
@@ -824,7 +942,9 @@ fun Id3InfoDialog(
                             colors = ButtonDefaults.buttonColors(containerColor = CarSurfaceVariant),
                             shape = RoundedCornerShape(12.dp),
                             border = BorderStroke(1.dp, CarBorder),
-                            modifier = Modifier.width(130.dp).height(44.dp)
+                            modifier = Modifier
+                                .then(if (isPhone) Modifier.weight(1f) else Modifier.width(130.dp))
+                                .height(44.dp)
                         ) {
                             Text(
                                 text = "İptal",
@@ -843,12 +963,12 @@ fun Id3InfoDialog(
                         colors = ButtonDefaults.buttonColors(containerColor = CarCyan),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier
-                            .width(220.dp)
+                            .then(if (isPhone) Modifier.weight(1.3f) else Modifier.width(220.dp))
                             .height(44.dp)
                     ) {
                         Text(
                             text = "💾 Değişiklikleri Kaydet",
-                            fontSize = 14.sp,
+                            fontSize = if (isPhone) 12.5.sp else 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF0C0E12)
                         )
