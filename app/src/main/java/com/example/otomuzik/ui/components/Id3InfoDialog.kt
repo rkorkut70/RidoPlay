@@ -33,10 +33,13 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -52,10 +55,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
@@ -454,12 +460,19 @@ fun Id3InfoDialog(
 
                         val id3Fields = @Composable {
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Id3EditRow("📁 Dosya Adı (.${fileExt})", fileName) { fileName = it }
                                 Id3EditRow("🎵 Başlık (Title)", title) { title = it }
                                 Id3EditRow("👤 Sanatçı (Artist)", artist) { artist = it }
                                 Id3EditRow("💿 Albüm (Album)", album) { album = it }
-                                Id3EditRow("🎭 Tür (Genre)", genre) { genre = it }
-                                Id3EditRow("📅 Yıl (Year)", year) { year = it }
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Id3EditRow("🎭 Tür (Genre)", genre, modifier = Modifier.weight(1.2f)) { genre = it }
+                                    Id3EditRow("📅 Yıl (Year)", year, modifier = Modifier.weight(0.8f)) { year = it }
+                                }
+
+                                Id3EditRow("📁 Dosya Adı (.${fileExt})", fileName) { fileName = it }
 
                                 Spacer(modifier = Modifier.height(4.dp))
 
@@ -492,7 +505,7 @@ fun Id3InfoDialog(
                                     .verticalScroll(rememberScrollState()),
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                // Kapak kartı: Sol tarafta 115x115 kapak, sağ tarafta butonlar
+                                // Kapak kartı: Sol tarafta 105x105 kapak, sağ tarafta butonlar
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -503,7 +516,7 @@ fun Id3InfoDialog(
                                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    coverPreviewBox(115)
+                                    coverPreviewBox(105)
                                     Box(modifier = Modifier.weight(1f)) {
                                         coverButtons()
                                     }
@@ -554,39 +567,59 @@ fun Id3InfoDialog(
                             modifier = Modifier.fillMaxSize(),
                             verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            // 1. Arama Çubuğu ve Hızlı Arama Butonları
+                            // 1. Arama Çubuğu (Kırpılmayan, akıcı kapsül arama çubuğu)
                             Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(CarSurfaceVariant)
+                                    .border(1.dp, if (customSearchText.isNotBlank()) CarCyan else CarBorder, RoundedCornerShape(12.dp))
+                                    .padding(start = 12.dp, end = 6.dp, top = 4.dp, bottom = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                OutlinedTextField(
+                                Text("🔍", fontSize = 14.sp)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                BasicTextField(
                                     value = customSearchText,
                                     onValueChange = { customSearchText = it },
-                                    placeholder = { Text("Sanatçı, şarkı veya albüm adı yazın... (örn: Sezen Aksu Sen Ağlama)", fontSize = 12.sp, color = CarTextMuted) },
                                     singleLine = true,
-                                    modifier = Modifier.weight(1f).height(48.dp),
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        focusedContainerColor = CarSurfaceVariant,
-                                        unfocusedContainerColor = CarSurfaceVariant,
-                                        focusedTextColor = CarTextPrimary,
-                                        unfocusedTextColor = CarTextPrimary,
-                                        cursorColor = CarCyan,
-                                        focusedBorderColor = CarCyan,
-                                        unfocusedBorderColor = CarBorder
+                                    textStyle = TextStyle(
+                                        color = CarTextPrimary,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Medium
                                     ),
-                                    shape = RoundedCornerShape(10.dp)
+                                    cursorBrush = SolidColor(CarCyan),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .padding(vertical = 8.dp),
+                                    decorationBox = { innerTextField ->
+                                        if (customSearchText.isEmpty()) {
+                                            Text(
+                                                "Şarkı veya sanatçı adı...",
+                                                color = CarTextMuted,
+                                                fontSize = 13.sp
+                                            )
+                                        }
+                                        innerTextField()
+                                    }
                                 )
-
+                                if (customSearchText.isNotEmpty()) {
+                                    IconButton(
+                                        onClick = { customSearchText = "" },
+                                        modifier = Modifier.size(28.dp)
+                                    ) {
+                                        Text("✕", color = CarTextMuted, fontSize = 13.sp)
+                                    }
+                                }
                                 Button(
                                     onClick = { performCoverSearch(customSearchText) },
                                     colors = ButtonDefaults.buttonColors(containerColor = CarCyan),
-                                    shape = RoundedCornerShape(10.dp),
-                                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
+                                    shape = RoundedCornerShape(8.dp),
+                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
                                     enabled = !isSearchingCover && customSearchText.isNotBlank(),
-                                    modifier = Modifier.height(48.dp)
+                                    modifier = Modifier.height(36.dp)
                                 ) {
-                                    Text("🔍 Ara", color = Color(0xFF0C0E12), fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                    Text("Ara", color = Color(0xFF0C0E12), fontWeight = FontWeight.Bold, fontSize = 12.5.sp)
                                 }
                             }
 
@@ -636,7 +669,7 @@ fun Id3InfoDialog(
                                     }
                                     Text(
                                         text = statusDisplayText,
-                                        color = if (statusDisplayText.startsWith("✅")) CarCyan else CarTextPrimary,
+                                        color = if (statusDisplayText.startsWith("✅")) CarCyan else if (statusDisplayText.startsWith("⚠️")) CarAmber else CarTextPrimary,
                                         fontSize = 11.5.sp,
                                         fontWeight = FontWeight.Medium,
                                         maxLines = 1,
@@ -770,13 +803,24 @@ fun Id3InfoDialog(
                                     }
                                 } else if (coverSuggestions.isEmpty()) {
                                     Column(
-                                        modifier = Modifier.fillMaxSize(),
+                                        modifier = Modifier.fillMaxSize().padding(16.dp),
                                         horizontalAlignment = Alignment.CenterHorizontally,
                                         verticalArrangement = Arrangement.Center
                                     ) {
-                                        Text("🖼️", fontSize = 48.sp)
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        Text("Kapak aramak için yukarıdaki '🔍 Ara' butonuna basın.", color = CarTextMuted, fontSize = 13.sp)
+                                        Box(
+                                            modifier = Modifier
+                                                .size(64.dp)
+                                                .clip(CircleShape)
+                                                .background(CarSurfaceVariant)
+                                                .border(1.dp, CarBorder, CircleShape),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text("🖼️", fontSize = 30.sp)
+                                        }
+                                        Spacer(modifier = Modifier.height(12.dp))
+                                        Text("Resmi Albüm Kapakları Arayın", color = CarTextPrimary, fontSize = 14.5.sp, fontWeight = FontWeight.Bold)
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text("Yukarıdaki arama çubuğunu veya hızlı etiketleri kullanarak parça için yüksek çözünürlüklü kapaklar bulabilirsiniz.", color = CarTextMuted, fontSize = 12.sp, textAlign = TextAlign.Center)
                                     }
                                 } else {
                                     LazyVerticalGrid(
@@ -926,12 +970,12 @@ fun Id3InfoDialog(
                             shape = RoundedCornerShape(12.dp),
                             border = BorderStroke(1.dp, CarBorder),
                             modifier = Modifier
-                                .then(if (isPhone) Modifier.weight(1f) else Modifier)
-                                .height(44.dp)
+                                .weight(1f)
+                                .height(46.dp)
                         ) {
                             Text(
-                                text = "🏷️ ID3 Bilgilerine Dön",
-                                fontSize = if (isPhone) 11.5.sp else 13.sp,
+                                text = "🏷️ Bilgiler",
+                                fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = CarTextPrimary
                             )
@@ -943,8 +987,8 @@ fun Id3InfoDialog(
                             shape = RoundedCornerShape(12.dp),
                             border = BorderStroke(1.dp, CarBorder),
                             modifier = Modifier
-                                .then(if (isPhone) Modifier.weight(1f) else Modifier.width(130.dp))
-                                .height(44.dp)
+                                .weight(1f)
+                                .height(46.dp)
                         ) {
                             Text(
                                 text = "İptal",
@@ -963,12 +1007,12 @@ fun Id3InfoDialog(
                         colors = ButtonDefaults.buttonColors(containerColor = CarCyan),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier
-                            .then(if (isPhone) Modifier.weight(1.3f) else Modifier.width(220.dp))
-                            .height(44.dp)
+                            .weight(1.3f)
+                            .height(46.dp)
                     ) {
                         Text(
-                            text = "💾 Değişiklikleri Kaydet",
-                            fontSize = if (isPhone) 12.5.sp else 14.sp,
+                            text = "💾 Kaydet",
+                            fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF0C0E12)
                         )
@@ -995,17 +1039,25 @@ private fun QuickSearchChip(label: String, onClick: () -> Unit) {
 }
 
 @Composable
-private fun Id3EditRow(label: String, value: TextFieldValue, onValueChange: (TextFieldValue) -> Unit) {
+private fun Id3EditRow(
+    label: String,
+    value: TextFieldValue,
+    modifier: Modifier = Modifier.fillMaxWidth(),
+    onValueChange: (TextFieldValue) -> Unit
+) {
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label, color = CarTextMuted, fontSize = 12.sp) },
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = CarCyan,
             unfocusedBorderColor = CarBorder,
             focusedTextColor = CarTextPrimary,
-            unfocusedTextColor = CarTextPrimary
+            unfocusedTextColor = CarTextPrimary,
+            focusedContainerColor = CarSurfaceVariant.copy(alpha = 0.5f),
+            unfocusedContainerColor = CarSurfaceVariant.copy(alpha = 0.3f)
         ),
         singleLine = true
     )
