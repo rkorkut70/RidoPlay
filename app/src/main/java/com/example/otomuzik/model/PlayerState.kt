@@ -32,4 +32,29 @@ data class PlayerState(
             val seconds = totalSeconds % 60
             return "%02d:%02d".format(minutes, seconds)
         }
+
+    val previousSong: Song?
+        get() {
+            if (currentQueue.isEmpty()) return null
+            if (currentIndex > 0 && currentIndex < currentQueue.size) {
+                return currentQueue[currentIndex - 1]
+            }
+            if (repeatMode == RepeatMode.ALL && currentIndex == 0 && currentQueue.size > 1) {
+                return currentQueue.last()
+            }
+            return null
+        }
+
+    val nextSong: Song?
+        get() {
+            if (currentQueue.isEmpty()) return null
+            if (currentIndex >= 0 && currentIndex + 1 < currentQueue.size) {
+                return currentQueue[currentIndex + 1]
+            }
+            if (repeatMode == RepeatMode.ALL && currentIndex == currentQueue.size - 1 && currentQueue.size > 1) {
+                return currentQueue.first()
+            }
+            return null
+        }
 }
+

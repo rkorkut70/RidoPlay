@@ -26,7 +26,7 @@ import java.io.File
 import java.util.ArrayDeque
 
 enum class TabType {
-    FOLDERS, ALL_SONGS, PLAYLISTS, FAVORITES
+    HOME, FOLDERS, ALL_SONGS, PLAYLISTS, FAVORITES, QUEUE
 }
 
 @OptIn(FlowPreview::class)
@@ -36,7 +36,7 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
 
     val playerState: StateFlow<PlayerState> = MusicController.playerState
 
-    private val _activeTab = MutableStateFlow(TabType.FOLDERS)
+    private val _activeTab = MutableStateFlow(TabType.HOME)
     val activeTab: StateFlow<TabType> = _activeTab.asStateFlow()
 
     private val _allSongs = MutableStateFlow<List<Song>>(emptyList())
@@ -330,7 +330,7 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
         _activeTab.value = try {
             TabType.valueOf(defaultTabStr)
         } catch (e: Exception) {
-            TabType.FOLDERS
+            TabType.HOME
         }
         
         _favoritePaths.value = repository.getFavoritePaths()
@@ -684,16 +684,20 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
         MusicController.seekTo(positionMs)
     }
 
-    fun openQueue() { _isQueueVisible.value = true }
+    fun openQueue() {
+        onUserNavigated()
+        _activeTab.value = TabType.QUEUE
+        _isQueueVisible.value = true
+    }
     fun closeQueue() {
         onUserNavigated()
         _isQueueVisible.value = false
+        if (_activeTab.value == TabType.QUEUE) {
+            _activeTab.value = TabType.HOME
+        }
     }
-    fun openQueueDialog() { _isQueueVisible.value = true }
-    fun closeQueueDialog() {
-        onUserNavigated()
-        _isQueueVisible.value = false
-    }
+    fun openQueueDialog() { openQueue() }
+    fun closeQueueDialog() { closeQueue() }
     fun playAtQueueIndex(index: Int) = MusicController.playAtIndex(index)
 
     fun openSleepTimerDialog() { _showSleepTimerDialog.value = true }
@@ -711,10 +715,40 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
     fun setLoudnessEnhancerEnabled(enabled: Boolean) = MusicController.setLoudnessEnhancerEnabled(enabled)
 
     fun setTab(tab: TabType) {
-        _isQueueVisible.value = false
+        onUserNavigated()
+        if (tab == TabType.QUEUE) {
+            _isQueueVisible.value = true
+        } else {
+            _isQueueVisible.value = false
+        }
         _activeTab.value = tab
         if (tab == TabType.PLAYLISTS) {
             loadPlaylists()
+        }
+        if (tab == TabType.FOLDERS) {
+            loadFolderRootsIfNeeded()
+        }
+    }
+
+    /**
+     * Klasör dizinlerini yalnızca kullanıcı 'Klasörler' sekmesine girdiğinde yükler.
+     * Uygulamanın ilk açılışında disk/USB belleği taramasını engeller.
+     */
+    fun loadFolderRootsIfNeeded() {
+        if (_storageRoots.value.isNotEmpty()) return
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val roots = repository.getStorageRoots()
+                _storageRoots.value = roots
+
+                val currentPath = _currentFolderPath.value ?: repository.getLastFolder()
+                if (!currentPath.isNullOrEmpty()) {
+                    _currentFolderPath.value = currentPath
+                    _currentFolderItems.value = repository.getFolderContents(currentPath)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 
@@ -722,30 +756,36 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
         _searchQuery.value = query
     }
 
+    private var isRefreshing = false
+
     /**
-     * Ktphaneyi hızlıca veritabanından yükLER (Force refresh yapmaz, anında açılır).
+     * Açılışta ASLA dosya/disk taraması yapmaz.
+     * Bilgileri doğrudan SQLite veritabanı kütüphanesinden çeker (0ms disk beklemesi).
+     * Dosya taraması yalnızca kullanıcı "Kütüphaneyi Yeniden Tara" dediğinde veya kütüphane ilk kurulumda tamamen boşsa yapılır.
      */
-    fun refreshAll() {
+    fun refreshAll(forceRefresh: Boolean = false) {
+        if (isRefreshing && !forceRefresh) return
+        isRefreshing = true
         viewModelScope.launch {
             _isLoading.value = true
             try {
                 _keepScreenOn.value = repository.getKeepScreenOn()
-                // 1. Ktphanedeki önbellekli arkları SQLite'dan yükle
-                val songs = repository.getAllSongs(forceRefresh = false)
+                
+                // 1. Doğrudan SQLite kütüphanesinden oku - ASLA dosya tarama yapma
+                val songs = if (forceRefresh) {
+                    repository.scanAndIndexLibrary()
+                } else {
+                    val cached = repository.getSongsFromCacheOnly()
+                    if (cached.isEmpty()) {
+                        // Kütüphane tamamen boşsa (ilk kurulumda tek seferlik) tara
+                        repository.scanAndIndexLibrary()
+                    } else {
+                        cached
+                    }
+                }
                 _allSongs.value = songs
 
-                // 2. Kök dizinileri (USB / SD / Dahili Hafıza) yükle
-                val roots = repository.getStorageRoots()
-                _storageRoots.value = roots
-
-                // Eğer bir Klasrün içindeysek yenile, değilsek önceden kaydedilen son Klasrü aç
-                val currentPath = _currentFolderPath.value ?: repository.getLastFolder()
-                if (!currentPath.isNullOrEmpty()) {
-                    _currentFolderPath.value = currentPath
-                    _currentFolderItems.value = repository.getFolderContents(currentPath)
-                }
-
-                // Önceden çalınan parça varsa Listeye yükle
+                // Önceden çalınan parça varsa listeye yükle ve ana göstergeyi anında hazırla
                 if (MusicController.playerState.value.currentSong == null && songs.isNotEmpty()) {
                     val lastPath = repository.getLastPlayedPath()
                     val lastPos = repository.getLastPlayedPosition()
@@ -759,7 +799,6 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
                         MusicController.seekTo(lastPos)
                     }
                 }
-                // Eğer şarkılar yüklendiyse ve kullanıcı işlem yapmıyorsa 4 saniye sonra otomatik sıraya geç
                 if (songs.isNotEmpty()) {
                     scheduleAutoOpenQueue()
                 }
@@ -767,6 +806,7 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
                 e.printStackTrace()
             } finally {
                 _isLoading.value = false
+                isRefreshing = false
             }
         }
     }
@@ -818,12 +858,20 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
         val songs = _allSongs.value
         if (songs.isNotEmpty()) {
             MusicController.setQueue(songs, 0, autoPlay = true)
-            _isQueueVisible.value = true
+            _activeTab.value = TabType.HOME
+            _isQueueVisible.value = false
         }
     }
 
     fun goBackFolder(): Boolean {
-        val current = _currentFolderPath.value ?: return false
+        val current = _currentFolderPath.value
+        if (current == null) {
+            if (_activeTab.value != TabType.HOME) {
+                _activeTab.value = TabType.HOME
+                return true
+            }
+            return false
+        }
 
         val roots = _storageRoots.value
         fun normalizePath(p: String): String = java.io.File(p).absolutePath.trimEnd('/', '\\')
@@ -839,10 +887,11 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
 
         if (isAtRoot) {
             // Zaten bir depolama kök dizinindeyiz (örn. USB ana dizini veya Dahili Hafıza).
-            // Geri basılınca depolama seçim ekranına dönülür.
+            // Geri basılınca ana ekrana dönülür.
             _currentFolderPath.value = null
             _currentFolderItems.value = emptyList()
             repository.saveLastFolder("")
+            _activeTab.value = TabType.HOME
             return true
         }
 
@@ -852,6 +901,7 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
             _currentFolderPath.value = null
             _currentFolderItems.value = emptyList()
             repository.saveLastFolder("")
+            _activeTab.value = TabType.HOME
             return true
         }
 
@@ -860,6 +910,7 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
             _currentFolderPath.value = null
             _currentFolderItems.value = emptyList()
             repository.saveLastFolder("")
+            _activeTab.value = TabType.HOME
             return true
         }
 
@@ -875,7 +926,8 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
                 val songs = repository.getAllSongsInDirectory(folderPath)
                 if (songs.isNotEmpty()) {
                     MusicController.setQueue(songs, 0, autoPlay = true)
-                    _isQueueVisible.value = true
+                    _activeTab.value = TabType.HOME
+                    _isQueueVisible.value = false
                 }
             } finally {
                 _isLoading.value = false
@@ -887,7 +939,17 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
         val index = List.indexOfFirst { it.path == song.path || (it.id != 0L && it.id == song.id) }
         val startIdx = if (index != -1) index else 0
         MusicController.setQueue(List, startIdx, autoPlay = true)
-        _isQueueVisible.value = true
+        _activeTab.value = TabType.HOME
+        _isQueueVisible.value = false
+    }
+
+    fun playFavorites() {
+        val songs = favoriteSongs.value
+        if (songs.isNotEmpty()) {
+            MusicController.setQueue(songs, 0, autoPlay = true)
+            _activeTab.value = TabType.HOME
+            _isQueueVisible.value = false
+        }
     }
 
     fun toggleFavorite(song: Song) {
@@ -997,7 +1059,8 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
                 val songs = repository.getSongsForPlaylist(Playlist.id)
                 if (songs.isNotEmpty()) {
                     MusicController.setQueue(songs, 0, autoPlay = true)
-                    _isQueueVisible.value = true
+                    _activeTab.value = TabType.HOME
+                    _isQueueVisible.value = false
                 }
             } finally {
                 _isLoading.value = false

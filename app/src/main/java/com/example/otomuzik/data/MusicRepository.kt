@@ -37,6 +37,14 @@ class MusicRepository(private val context: Context) {
      * eğer kütüphane boşsa otomatik olarak ilk taramayı yapar ve veritabanına kaydeder.
      * Böylece yüzlerce dosya içeren dizinler her seferinde yeniden taranmaz.
      */
+    /**
+     * Kütüphanedeki şarkıları doğrudan SQLite veritabanından çeker.
+     * Disk veya dosya taraması kesinlikle yapmaz. Anında (milisaniyeler içinde) döner.
+     */
+    suspend fun getSongsFromCacheOnly(): List<Song> = withContext(Dispatchers.IO) {
+        dbHelper.getAllSongs()
+    }
+
     suspend fun getAllSongs(forceRefresh: Boolean = false): List<Song> = withContext(Dispatchers.IO) {
         if (!forceRefresh) {
             val cached = dbHelper.getAllSongs()
@@ -636,7 +644,7 @@ class MusicRepository(private val context: Context) {
     fun getGaplessPlayback(): Boolean = prefs.getBoolean("gaplessPlayback", false)
 
     fun setDefaultStartTab(tab: String) = prefs.edit().putString("defaultStartTab", tab).apply()
-    fun getDefaultStartTab(): String = prefs.getString("defaultStartTab", "FOLDERS") ?: "FOLDERS"
+    fun getDefaultStartTab(): String = prefs.getString("defaultStartTab", "HOME") ?: "HOME"
 
     fun setShowSmartPlaylists(show: Boolean) = prefs.edit().putBoolean("showSmartPlaylists", show).apply()
     fun getShowSmartPlaylists(): Boolean = prefs.getBoolean("showSmartPlaylists", true)
@@ -661,7 +669,7 @@ class MusicRepository(private val context: Context) {
     fun getThemePalette(): String = prefs.getString("themePalette", "NEON_CYAN") ?: "NEON_CYAN"
 
     fun setAutoOpenQueueOnStart(enabled: Boolean) = prefs.edit().putBoolean("autoOpenQueueOnStart", enabled).apply()
-    fun getAutoOpenQueueOnStart(): Boolean = prefs.getBoolean("autoOpenQueueOnStart", true)
+    fun getAutoOpenQueueOnStart(): Boolean = prefs.getBoolean("autoOpenQueueOnStart", false)
 
     fun setShowCoverLyrics(enabled: Boolean) = prefs.edit().putBoolean("showCoverLyrics", enabled).apply()
     fun getShowCoverLyrics(): Boolean = prefs.getBoolean("showCoverLyrics", false)

@@ -268,6 +268,7 @@ fun SettingsDialog(
                             description = "Uygulama açıldığında gösterilecek ana sayfa."
                         ) {
                             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                TabButton("Ana Panel", "HOME", defaultStartTab) { viewModel.setDefaultStartTab(it) }
                                 TabButton("Klasör", "FOLDERS", defaultStartTab) { viewModel.setDefaultStartTab(it) }
                                 TabButton("Şarkı", "ALL_SONGS", defaultStartTab) { viewModel.setDefaultStartTab(it) }
                                 TabButton("Liste", "PLAYLISTS", defaultStartTab) { viewModel.setDefaultStartTab(it) }

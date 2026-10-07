@@ -27,6 +27,7 @@ import com.example.otomuzik.ui.main.MainScreen
 class MainActivity : ComponentActivity() {
 
     private var hasStoragePermission by mutableStateOf(false)
+    private var showSplash by mutableStateOf(true)
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -40,6 +41,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Açılışta ve Compose yüklenirken oluşabilecek mikro parlamaları tamamen engelle
+        window.setBackgroundDrawableResource(R.color.car_bg_dark)
 
         // Otomatik klavye açılmasını engelle
         window.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN)
@@ -70,9 +74,15 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = androidx.compose.material3.MaterialTheme.colorScheme.background
                 ) {
-                    if (hasStoragePermission) {
-                        LaunchedEffect(Unit) {
-                            viewModel.refreshAll()
+                    if (showSplash) {
+                        com.example.otomuzik.ui.components.CarSplashScreen(
+                            onSplashFinished = { showSplash = false }
+                        )
+                    } else if (hasStoragePermission) {
+                        LaunchedEffect(hasStoragePermission) {
+                            if (viewModel.allSongs.value.isEmpty()) {
+                                viewModel.refreshAll()
+                            }
                         }
                         MainScreen(
                             hasPermission = true,

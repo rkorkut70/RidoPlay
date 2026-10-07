@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Tamamen koyu araç multimedya arka planı (#0C0E12) -->
+    <item android:drawable="@color/car_bg_dark" />
+
+    <!-- Ortada zarif RidoPlay araç müzik logosu -->
+    <item
+        android:width="96dp"
+        android:height="96dp"
+        android:gravity="center"
+        android:drawable="@drawable/ic_splash_logo" />
+</layer-list>

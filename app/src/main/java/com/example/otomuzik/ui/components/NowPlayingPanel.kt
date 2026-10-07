@@ -103,9 +103,9 @@ fun NowPlayingPanel(
     val panelPaddingH = if (isCompact) 12.dp else 18.dp
     val panelPaddingV = if (isCompact) 8.dp else 14.dp
 
-    val topBtnSize = if (isCompact) 36.dp else 44.dp
-    val topBtnSpacing = if (isCompact) 3.dp else 6.dp
-    val eqBtnSize = if (isCompact) 40.dp else 50.dp
+    val topBtnSize = if (isCompact) 56.dp else 68.dp
+    val topBtnSpacing = if (isCompact) 6.dp else 10.dp
+    val eqBtnSize = if (isCompact) 62.dp else 74.dp
 
     val playBtnSize = if (isCompact) 74.dp else 92.dp
     val playIconSize = if (isCompact) 38.dp else 48.dp
@@ -176,51 +176,40 @@ fun NowPlayingPanel(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = if (isCompact) 2.dp else 6.dp),
+                    .padding(bottom = if (isCompact) 4.dp else 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Sol üstte EQ butonu — aksan rengiyle çerçeveli
-                IconButton(
-                    onClick = onOpenEqualizer,
-                    modifier = Modifier
-                        .size(eqBtnSize)
-                        .background(topBtnBg, CircleShape)
-                        .border(1.5.dp, animatedaccent, CircleShape)
-                ) {
-                    Text(
-                        text = "EQ",
-                        fontSize = if (isCompact) 13.sp else 15.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = animatedaccent
-                    )
-                }
-
+                // En solda Program Adı (RidoPlay)
                 Text(
                     text = "RidoPlay",
-                    fontSize = if (isCompact) 12.sp else 14.sp,
-                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = if (isCompact) 18.sp else 24.sp,
+                    fontWeight = FontWeight.Black,
                     color = animatedaccent.copy(alpha = 0.95f),
-                    letterSpacing = if (isCompact) 1.sp else 2.sp
+                    letterSpacing = if (isCompact) 1.5.sp else 2.5.sp
                 )
 
-                // Sağ üstte Sleep Timer + Kapak Sözleri + Queue + ID3 + Favori butonları
-                Row(horizontalArrangement = Arrangement.spacedBy(topBtnSpacing)) {
+                // Sağ tarafta EQ ve tüm diğer menü butonları yan yana
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(topBtnSpacing),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // EQ butonu
                     IconButton(
-                        onClick = onOpenSleepTimer,
+                        onClick = onOpenEqualizer,
                         modifier = Modifier
                             .size(topBtnSize)
                             .background(topBtnBg, CircleShape)
-                            .border(1.dp, topBtnBorder, CircleShape)
+                            .border(2.dp, animatedaccent, CircleShape)
                     ) {
                         Text(
-                            text = "💤",
-                            fontSize = if (isCompact) 12.sp else 14.sp
+                            text = "EQ",
+                            fontSize = if (isCompact) 16.sp else 20.sp,
+                            fontWeight = FontWeight.Black,
+                            color = animatedaccent
                         )
                     }
-
-                    // Kapakta Şarkı Sözleri Butonu (Uyku zamanlayıcının hemen yanında)
-                    val hasLyrics = lyricsData != null && lyricsData.lines.isNotEmpty()
+                    // Kapakta Şarkı Sözleri Butonu
                     IconButton(
                         onClick = onToggleCoverLyrics,
                         modifier = Modifier
@@ -230,14 +219,14 @@ fun NowPlayingPanel(
                                 CircleShape
                             )
                             .border(
-                                if (showCoverLyrics) 1.5.dp else 1.dp,
+                                if (showCoverLyrics) 2.dp else 1.2.dp,
                                 if (showCoverLyrics) animatedaccent else topBtnBorder,
                                 CircleShape
                             )
                     ) {
                         Text(
                             text = "🎤",
-                            fontSize = if (isCompact) 13.sp else 16.sp
+                            fontSize = if (isCompact) 22.sp else 26.sp
                         )
                     }
 
@@ -246,13 +235,13 @@ fun NowPlayingPanel(
                         modifier = Modifier
                             .size(topBtnSize)
                             .background(topBtnBg, CircleShape)
-                            .border(1.dp, topBtnBorder, CircleShape)
+                            .border(1.2.dp, topBtnBorder, CircleShape)
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_queue),
                             contentDescription = "Sıra",
                             tint = animatedaccent,
-                            modifier = Modifier.size(if (isCompact) 18.dp else 22.dp)
+                            modifier = Modifier.size(if (isCompact) 28.dp else 34.dp)
                         )
                     }
 
@@ -261,11 +250,11 @@ fun NowPlayingPanel(
                         modifier = Modifier
                             .size(topBtnSize)
                             .background(topBtnBg, CircleShape)
-                            .border(1.dp, topBtnBorder, CircleShape)
+                            .border(1.2.dp, topBtnBorder, CircleShape)
                     ) {
                         Text(
                             text = "ℹ",
-                            fontSize = if (isCompact) 16.sp else 20.sp,
+                            fontSize = if (isCompact) 24.sp else 30.sp,
                             fontWeight = FontWeight.Bold,
                             color = animatedaccent
                         )
@@ -276,11 +265,11 @@ fun NowPlayingPanel(
                         modifier = Modifier
                             .size(topBtnSize)
                             .background(topBtnBg, CircleShape)
-                            .border(1.dp, topBtnBorder, CircleShape)
+                            .border(1.2.dp, topBtnBorder, CircleShape)
                     ) {
                         Text(
                             text = "📝",
-                            fontSize = if (isCompact) 16.sp else 20.sp
+                            fontSize = if (isCompact) 22.sp else 28.sp
                         )
                     }
 
@@ -290,7 +279,7 @@ fun NowPlayingPanel(
                             .size(topBtnSize)
                             .background(topBtnBg, CircleShape)
                             .border(
-                                1.5.dp,
+                                2.dp,
                                 if (isFavorite) CarAmber else topBtnBorder,
                                 CircleShape
                             )
@@ -299,7 +288,7 @@ fun NowPlayingPanel(
                             painter = painterResource(id = R.drawable.ic_favorite),
                             contentDescription = "Favori",
                             tint = if (isFavorite) CarAmber else CarTextMuted,
-                            modifier = Modifier.size(if (isCompact) 20.dp else 26.dp)
+                            modifier = Modifier.size(if (isCompact) 28.dp else 36.dp)
                         )
                     }
                 }

@@ -1,0 +1,17 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="96dp"
+    android:height="96dp"
+    android:viewportWidth="96"
+    android:viewportHeight="96">
+    <!-- Dış neon daire / halka -->
+    <path
+        android:fillColor="#14181F"
+        android:strokeColor="#00E5FF"
+        android:strokeWidth="2.5"
+        android:pathData="M48,8 A40,40 0 1,0 48,88 A40,40 0 1,0 48,8 Z" />
+
+    <!-- Müzik Notası Simgesi -->
+    <path
+        android:fillColor="#00E5FF"
+        android:pathData="M50,26 v26.37 c-1.48,-0.85 -3.18,-1.37 -5,-1.37 c-5.52,0 -10,4.48 -10,10 s4.48,10 10,10 s10,-4.48 10,-10 V36 h10 v-10 H50 z" />
+</vector>

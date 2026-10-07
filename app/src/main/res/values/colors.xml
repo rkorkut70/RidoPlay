@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="car_bg_dark">#0C0E12</color>
+    <color name="car_surface_dark">#14181F</color>
+    <color name="car_cyan">#00E5FF</color>
+</resources>

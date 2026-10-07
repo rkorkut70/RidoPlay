@@ -1,13 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources>
 
     <style name="Theme.OtoMuzik" parent="android:Theme.Material.NoActionBar">
-        <!-- Soğuk açılışta beyaz ekran parlamasını önleyen koyu araba arka planı -->
         <item name="android:windowBackground">@drawable/splash_background</item>
         <item name="android:colorBackground">@color/car_bg_dark</item>
         <item name="android:statusBarColor">@color/car_bg_dark</item>
         <item name="android:navigationBarColor">@color/car_bg_dark</item>
         <item name="android:windowLightStatusBar">false</item>
-        <item name="android:windowLightNavigationBar" tools:targetApi="27">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <!-- Android 12+ (API 31+) Sistem Başlangıç Splash Ayarları -->
+        <item name="android:windowSplashScreenBackground">@color/car_bg_dark</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_splash_logo</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">@color/car_bg_dark</item>
     </style>
 </resources>

@@ -9,22 +9,8 @@ import androidx.compose.ui.text.googlefonts.Font
 import androidx.compose.ui.unit.sp
 import com.example.otomuzik.R
 
-// Google Fonts sağlayıcısı
-private val provider = GoogleFont.Provider(
-    providerAuthority = "com.google.android.gms.fonts",
-    providerPackage = "com.google.android.gms",
-    certificates = R.array.com_google_android_gms_fonts_certs
-)
-
-// Nunito — Araç içi ekranlar için yuvarlak ve okunaklı
-val NunitoFont = FontFamily(
-    Font(googleFont = GoogleFont("Nunito"), fontProvider = provider, weight = FontWeight.Normal),
-    Font(googleFont = GoogleFont("Nunito"), fontProvider = provider, weight = FontWeight.Medium),
-    Font(googleFont = GoogleFont("Nunito"), fontProvider = provider, weight = FontWeight.SemiBold),
-    Font(googleFont = GoogleFont("Nunito"), fontProvider = provider, weight = FontWeight.Bold),
-    Font(googleFont = GoogleFont("Nunito"), fontProvider = provider, weight = FontWeight.ExtraBold),
-    Font(googleFont = GoogleFont("Nunito"), fontProvider = provider, weight = FontWeight.Black)
-)
+// Araç içi ekranlar için anında (0ms) yüklenen, çevrimdışı ve yüksek okunurluklu sistem fontu
+val NunitoFont = FontFamily.SansSerif
 
 // Uygulama tipografisi
 val AppTypography = Typography(

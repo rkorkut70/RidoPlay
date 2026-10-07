@@ -93,12 +93,13 @@ fun MainScreen(
         }
     }
 
-    // Geri tuşu kontrolü (Sıra, Çalma Listesi veya Klasör açıksa kademeli geri döner)
-    BackHandler(enabled = isQueueVisible || selectedPlaylist != null || currentFolderPath != null) {
+    // Geri tuşu kontrolü (Sıra, Çalma Listesi, Klasör veya Alt Sekmeler açıksa kademeli geri döner)
+    BackHandler(enabled = isQueueVisible || selectedPlaylist != null || currentFolderPath != null || activeTab != TabType.HOME) {
         when {
             isQueueVisible -> viewModel.closeQueue()
             selectedPlaylist != null -> viewModel.closePlaylist()
-            else -> viewModel.goBackFolder()
+            currentFolderPath != null -> viewModel.goBackFolder()
+            activeTab != TabType.HOME -> viewModel.setTab(TabType.HOME)
         }
     }
 
@@ -238,6 +239,12 @@ fun MainScreen(
                         onOpenSettings = { viewModel.openSettingsDialog() },
                         isLoading = isLoading,
                         showBlurredBackground = showBlurredBackground,
+                        currentSong = playerState.currentSong,
+                        previousSong = playerState.previousSong,
+                        nextSong = playerState.nextSong,
+                        isPlaying = playerState.isPlaying,
+                        onPlayPause = { viewModel.togglePlayPause() },
+                        onPlayFavorites = { viewModel.playFavorites() },
                         modifier = Modifier
                             .weight(0.54f)
                             .fillMaxHeight()
@@ -321,6 +328,12 @@ fun MainScreen(
                         onOpenSettings = { viewModel.openSettingsDialog() },
                         isLoading = isLoading,
                         showBlurredBackground = showBlurredBackground,
+                        currentSong = playerState.currentSong,
+                        previousSong = playerState.previousSong,
+                        nextSong = playerState.nextSong,
+                        isPlaying = playerState.isPlaying,
+                        onPlayPause = { viewModel.togglePlayPause() },
+                        onPlayFavorites = { viewModel.playFavorites() },
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(0.52f)
