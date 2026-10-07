@@ -15,7 +15,7 @@ Android tabanlı, özellikle araç içi multimedya (Android Automotive / tablet)
   * Sayfalanmış (10'lu gruplar) görsel sonuç listesi.
   * ID3 etiketleri düzenleme ve gerekirse şarkı dosya adını doğrudan uygulama içinden yeniden adlandırma.
 * **Jest Kontrolleri:** Albüm kapağı üzerinde sol taraftan yukarı/aşağı kaydırarak sezgisel ses seviyesi kontrolü.
-* **Ekolayzır & Uyku Zamanlayıcısı:** Araç akustiğine uygun ses ayarları ve otomatik durdurma zamanlayıcısı.
+* **Ekolayzır:** Araç akustiğine uygun ses ayarları.
 * **Arka Plan Servisi & Medya Butonları:** Android Media3 entegrasyonu ve direksiyon kumandası medya tuşları uyumluluğu.
 
 ## 🛠️ Teknolojiler
