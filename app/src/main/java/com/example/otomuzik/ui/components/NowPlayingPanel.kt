@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -30,11 +31,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -180,115 +184,126 @@ fun NowPlayingPanel(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // En solda Program Adı (RidoPlay)
-                Text(
+                // En solda 3 Boyutlu Tasarımlı Program Adı (RidoPlay)
+                ThreeDimensionalBrandText(
                     text = "RidoPlay",
-                    fontSize = if (isCompact) 18.sp else 24.sp,
-                    fontWeight = FontWeight.Black,
-                    color = animatedaccent.copy(alpha = 0.95f),
-                    letterSpacing = if (isCompact) 1.5.sp else 2.5.sp
+                    isCompact = isCompact
                 )
 
-                // Sağ tarafta EQ ve tüm diğer menü butonları yan yana
+                // Sağ tarafta EQ ve menü butonları (Şık Altın/Amber Kapsül Container)
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(topBtnSpacing),
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(Color(0xFF0B0F17).copy(alpha = 0.88f))
+                        .border(1.6.dp, Color(0xFFFFB300).copy(alpha = 0.95f), RoundedCornerShape(50))
+                        .padding(horizontal = if (isCompact) 8.dp else 12.dp, vertical = if (isCompact) 5.dp else 7.dp),
+                    horizontalArrangement = Arrangement.spacedBy(if (isCompact) 6.dp else 10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // EQ butonu
-                    IconButton(
-                        onClick = onOpenEqualizer,
+                    val pillBtnSize = if (isCompact) 36.dp else 44.dp
+                    val pillBorderCyan = Color(0xFF00E5FF)
+
+                    // 1. EQ Butonu
+                    Box(
                         modifier = Modifier
-                            .size(topBtnSize)
-                            .background(topBtnBg, CircleShape)
-                            .border(2.dp, animatedaccent, CircleShape)
+                            .size(pillBtnSize)
+                            .clip(CircleShape)
+                            .background(Color(0xFF0F172A))
+                            .border(1.5.dp, pillBorderCyan, CircleShape)
+                            .clickable { onOpenEqualizer() },
+                        contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = "EQ",
-                            fontSize = if (isCompact) 16.sp else 20.sp,
+                            fontSize = if (isCompact) 12.sp else 15.sp,
                             fontWeight = FontWeight.Black,
-                            color = animatedaccent
-                        )
-                    }
-                    // Kapakta Şarkı Sözleri Butonu
-                    IconButton(
-                        onClick = onToggleCoverLyrics,
-                        modifier = Modifier
-                            .size(topBtnSize)
-                            .background(
-                                if (showCoverLyrics) animatedaccent.copy(alpha = 0.25f) else topBtnBg,
-                                CircleShape
-                            )
-                            .border(
-                                if (showCoverLyrics) 2.dp else 1.2.dp,
-                                if (showCoverLyrics) animatedaccent else topBtnBorder,
-                                CircleShape
-                            )
-                    ) {
-                        Text(
-                            text = "🎤",
-                            fontSize = if (isCompact) 22.sp else 26.sp
+                            color = pillBorderCyan
                         )
                     }
 
-                    IconButton(
-                        onClick = onOpenQueue,
+                    // 2. Şarkı Sözleri (Mikrofon) Butonu
+                    Box(
                         modifier = Modifier
-                            .size(topBtnSize)
-                            .background(topBtnBg, CircleShape)
-                            .border(1.2.dp, topBtnBorder, CircleShape)
+                            .size(pillBtnSize)
+                            .clip(CircleShape)
+                            .background(if (showCoverLyrics) pillBorderCyan.copy(alpha = 0.25f) else Color(0xFF0F172A))
+                            .border(1.5.dp, pillBorderCyan, CircleShape)
+                            .clickable { onToggleCoverLyrics() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "🎤",
+                            fontSize = if (isCompact) 16.sp else 20.sp
+                        )
+                    }
+
+                    // 3. Sıra Butonu
+                    Box(
+                        modifier = Modifier
+                            .size(pillBtnSize)
+                            .clip(CircleShape)
+                            .background(Color(0xFF0F172A))
+                            .border(1.5.dp, pillBorderCyan, CircleShape)
+                            .clickable { onOpenQueue() },
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_queue),
                             contentDescription = "Sıra",
-                            tint = animatedaccent,
-                            modifier = Modifier.size(if (isCompact) 28.dp else 34.dp)
+                            tint = pillBorderCyan,
+                            modifier = Modifier.size(if (isCompact) 18.dp else 22.dp)
                         )
                     }
 
-                    IconButton(
-                        onClick = onOpenId3Info,
+                    // 4. Bilgi (Info) Butonu
+                    Box(
                         modifier = Modifier
-                            .size(topBtnSize)
-                            .background(topBtnBg, CircleShape)
-                            .border(1.2.dp, topBtnBorder, CircleShape)
+                            .size(pillBtnSize)
+                            .clip(CircleShape)
+                            .background(Color(0xFF0F172A))
+                            .border(1.5.dp, pillBorderCyan, CircleShape)
+                            .clickable { onOpenId3Info() },
+                        contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = "ℹ",
-                            fontSize = if (isCompact) 24.sp else 30.sp,
+                            fontSize = if (isCompact) 18.sp else 22.sp,
                             fontWeight = FontWeight.Bold,
-                            color = animatedaccent
+                            color = pillBorderCyan
                         )
                     }
 
-                    IconButton(
-                        onClick = onOpenLyrics,
+                    // 5. Şarkı Sözleri / Düzenle Butonu
+                    Box(
                         modifier = Modifier
-                            .size(topBtnSize)
-                            .background(topBtnBg, CircleShape)
-                            .border(1.2.dp, topBtnBorder, CircleShape)
+                            .size(pillBtnSize)
+                            .clip(CircleShape)
+                            .background(Color(0xFF0F172A))
+                            .border(1.5.dp, pillBorderCyan, CircleShape)
+                            .clickable { onOpenLyrics() },
+                        contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "📝",
-                            fontSize = if (isCompact) 22.sp else 28.sp
+                            text = "✏️",
+                            fontSize = if (isCompact) 15.sp else 19.sp
                         )
                     }
 
-                    IconButton(
-                        onClick = onToggleFavorite,
+                    // 6. Favori Butonu (Amber/Altın Çerçeve)
+                    Box(
                         modifier = Modifier
-                            .size(topBtnSize)
-                            .background(topBtnBg, CircleShape)
-                            .border(
-                                2.dp,
-                                if (isFavorite) CarAmber else topBtnBorder,
-                                CircleShape
-                            )
+                            .size(pillBtnSize)
+                            .clip(CircleShape)
+                            .background(Color(0xFF0F172A))
+                            .border(1.5.dp, if (isFavorite) CarAmber else Color(0xFFFFB300), CircleShape)
+                            .clickable { onToggleFavorite() },
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_favorite),
                             contentDescription = "Favori",
-                            tint = if (isFavorite) CarAmber else CarTextMuted,
-                            modifier = Modifier.size(if (isCompact) 28.dp else 36.dp)
+                            tint = if (isFavorite) CarAmber else Color(0xFFFFB300),
+                            modifier = Modifier.size(if (isCompact) 18.dp else 22.dp)
                         )
                     }
                 }
@@ -478,6 +493,84 @@ fun NowPlayingPanel(
                 }
             }
         }
+    }
+}
+
+/**
+ * 3 Boyutlu, metalik gümüş ve neon cyan derinlik efektli RidoPlay başlığı.
+ */
+@Composable
+fun ThreeDimensionalBrandText(
+    text: String = "RidoPlay",
+    isCompact: Boolean = false,
+    modifier: Modifier = Modifier
+) {
+    val fontSize = if (isCompact) 21.sp else 29.sp
+    val letterSpacing = if (isCompact) 1.5.sp else 2.2.sp
+
+    Box(
+        modifier = modifier,
+        contentAlignment = Alignment.CenterStart
+    ) {
+        // 1. En Arka Katman: Derin Ortam Gölgesi (Ambient 3D Shadow)
+        Text(
+            text = text,
+            fontSize = fontSize,
+            fontWeight = FontWeight.Black,
+            letterSpacing = letterSpacing,
+            color = Color.Black.copy(alpha = 0.90f),
+            style = TextStyle(
+                shadow = Shadow(
+                    color = Color.Black,
+                    offset = Offset(4f, 6f),
+                    blurRadius = 10f
+                )
+            ),
+            modifier = Modifier.offset(x = 3.dp, y = 4.dp)
+        )
+
+        // 2. Orta Yan Cephe Katmanı: Koyu Metalik Ekstrüzyon (3D Bevel Edge)
+        Text(
+            text = text,
+            fontSize = fontSize,
+            fontWeight = FontWeight.Black,
+            letterSpacing = letterSpacing,
+            color = Color(0xFF1E293B),
+            modifier = Modifier.offset(x = 1.5.dp, y = 2.dp)
+        )
+
+        // 3. Işık Yansıma Katmanı: Hafif Neon Cyan/Turkuaz Işıma
+        Text(
+            text = text,
+            fontSize = fontSize,
+            fontWeight = FontWeight.Black,
+            letterSpacing = letterSpacing,
+            color = Color(0xFF00E5FF).copy(alpha = 0.50f),
+            modifier = Modifier.offset(x = (-0.5).dp, y = (-0.5).dp)
+        )
+
+        // 4. Ön Parlak Yüzey Katmanı: Beyaz-Gümüş Degrade ve Neon Işıma
+        Text(
+            text = text,
+            fontSize = fontSize,
+            fontWeight = FontWeight.Black,
+            letterSpacing = letterSpacing,
+            style = TextStyle(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFFFFFFFF), // Parlak üst ışık
+                        Color(0xFFF8FAFC),
+                        Color(0xFFE2E8F0), // Metalik gümüş
+                        Color(0xFF94A3B8)  // Alt gölge
+                    )
+                ),
+                shadow = Shadow(
+                    color = Color(0xFF00E5FF).copy(alpha = 0.45f),
+                    offset = Offset(0f, 0f),
+                    blurRadius = 12f
+                )
+            )
+        )
     }
 }
 

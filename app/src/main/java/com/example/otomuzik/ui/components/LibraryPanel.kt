@@ -33,6 +33,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.painterResource
@@ -545,23 +546,26 @@ fun CarMenuGrid(
 ) {
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val isCompact = configuration.screenHeightDp < 580 || configuration.screenWidthDp < 980
-    // %50 Büyütülmüş hızlı sürüş butonları (Sürüş esnasında kolay dokunma için)
-    val btnHeight = if (isCompact) 80.dp else 98.dp
+    // %50 Büyütülmüş hızlı sürüş ve tablet butonları
+    val btnHeight = if (isCompact) 115.dp else 145.dp
+    val gridSpacing = if (isCompact) 10.dp else 14.dp
+
+    val cyanBorder = Color(0xFF00E5FF)
+    val amberBorder = Color(0xFFFFD54F)
 
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(if (isCompact) 8.dp else 12.dp)
+        verticalArrangement = Arrangement.spacedBy(gridSpacing)
     ) {
         // Satır 1: Klasörler, Şarkılar, Listeler
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(if (isCompact) 8.dp else 12.dp)
+            horizontalArrangement = Arrangement.spacedBy(gridSpacing)
         ) {
             CarBigMenuButton(
                 icon = "📁",
                 title = "Klasörler",
-                subtitle = "Klasör Seç",
-                accentColor = accentColor,
+                borderColor = cyanBorder,
                 onClick = { onNavigate(TabType.FOLDERS) },
                 modifier = Modifier
                     .weight(1f)
@@ -570,8 +574,7 @@ fun CarMenuGrid(
             CarBigMenuButton(
                 icon = "🎵",
                 title = "Şarkılar",
-                subtitle = "Tüm Liste",
-                accentColor = accentColor,
+                borderColor = cyanBorder,
                 onClick = { onNavigate(TabType.ALL_SONGS) },
                 modifier = Modifier
                     .weight(1f)
@@ -580,8 +583,7 @@ fun CarMenuGrid(
             CarBigMenuButton(
                 icon = "📑",
                 title = "Listeler",
-                subtitle = "Çalma Listesi",
-                accentColor = accentColor,
+                borderColor = amberBorder,
                 onClick = { onNavigate(TabType.PLAYLISTS) },
                 modifier = Modifier
                     .weight(1f)
@@ -592,13 +594,12 @@ fun CarMenuGrid(
         // Satır 2: Favoriler, Çalma Sırası, Ayarlar
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(if (isCompact) 8.dp else 12.dp)
+            horizontalArrangement = Arrangement.spacedBy(gridSpacing)
         ) {
             CarBigMenuButton(
-                icon = "❤️",
+                icon = "🩵",
                 title = "Favoriler",
-                subtitle = "Beğenilenler",
-                accentColor = CarAmber,
+                borderColor = cyanBorder,
                 onClick = { onNavigate(TabType.FAVORITES) },
                 modifier = Modifier
                     .weight(1f)
@@ -607,8 +608,7 @@ fun CarMenuGrid(
             CarBigMenuButton(
                 icon = "🎧",
                 title = if (queueCount > 0) "Sıra ($queueCount)" else "Sıra",
-                subtitle = "Çalma Sırası",
-                accentColor = accentColor,
+                borderColor = amberBorder,
                 onClick = { onNavigate(TabType.QUEUE) },
                 modifier = Modifier
                     .weight(1f)
@@ -617,8 +617,7 @@ fun CarMenuGrid(
             CarBigMenuButton(
                 icon = "⚙️",
                 title = "Ayarlar",
-                subtitle = "Yapılandırma",
-                accentColor = CarTextSecondary,
+                borderColor = cyanBorder,
                 onClick = onOpenSettings,
                 modifier = Modifier
                     .weight(1f)
@@ -632,54 +631,49 @@ fun CarMenuGrid(
 private fun CarBigMenuButton(
     icon: String,
     title: String,
-    subtitle: String,
-    accentColor: Color,
+    borderColor: Color,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val isCompact = configuration.screenHeightDp < 580 || configuration.screenWidthDp < 980
-    val shape = RoundedCornerShape(if (isCompact) 16.dp else 22.dp)
+    // Yumuşak kıvrımlı köşeler
+    val shape = RoundedCornerShape(if (isCompact) 22.dp else 28.dp)
 
     Box(
         modifier = modifier
             .clip(shape)
-            .background(CarSurfaceVariant)
-            .border(1.5.dp, CarBorder, shape)
+            .background(
+                brush = Brush.radialGradient(
+                    colors = listOf(borderColor.copy(alpha = 0.12f), Color.Transparent),
+                    radius = 320f
+                )
+            )
+            .background(Color(0xFF0B101B).copy(alpha = 0.90f))
+            .border(2.dp, borderColor, shape)
             .clickable { onClick() }
-            .padding(horizontal = if (isCompact) 8.dp else 14.dp, vertical = if (isCompact) 6.dp else 10.dp),
+            .padding(horizontal = 8.dp, vertical = 10.dp),
         contentAlignment = Alignment.Center
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center,
-            modifier = Modifier.fillMaxWidth()
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.fillMaxSize()
         ) {
             Text(
                 text = icon,
-                fontSize = if (isCompact) 28.sp else 36.sp
+                fontSize = if (isCompact) 32.sp else 40.sp
             )
-            Spacer(modifier = Modifier.width(if (isCompact) 8.dp else 12.dp))
-            Column {
-                Text(
-                    text = title,
-                    fontSize = if (isCompact) 17.sp else 22.sp,
-                    fontWeight = FontWeight.Black,
-                    color = CarTextPrimary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                if (!isCompact) {
-                    Text(
-                        text = subtitle,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = CarTextMuted,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
+            Spacer(modifier = Modifier.height(if (isCompact) 6.dp else 10.dp))
+            Text(
+                text = title,
+                fontSize = if (isCompact) 17.sp else 21.sp,
+                fontWeight = FontWeight.Bold,
+                color = CarTextPrimary,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }
@@ -697,45 +691,44 @@ fun CarTrackFlowCard(
 ) {
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val isCompact = configuration.screenHeightDp < 580 || configuration.screenWidthDp < 980
+    val cardShape = RoundedCornerShape(if (isCompact) 20.dp else 26.dp)
+    val neonCyan = Color(0xFF00E5FF)
 
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(if (isCompact) 14.dp else 18.dp))
-            .background(CarSurfaceDark.copy(alpha = 0.70f))
-            .border(1.2.dp, CarBorder, RoundedCornerShape(if (isCompact) 14.dp else 18.dp))
+            .clip(cardShape)
+            .background(Color(0xFF0B101B).copy(alpha = 0.90f))
+            .border(2.dp, neonCyan, cardShape)
             .padding(if (isCompact) 8.dp else 12.dp),
         verticalArrangement = Arrangement.spacedBy(if (isCompact) 6.dp else 8.dp)
     ) {
         // 1. ÖNCEKİ PARÇA
         TrackFlowRow(
-            label = "ÖNCEKİ PARÇA",
+            leadSymbol = "⏮",
+            trailSymbol = "⏭",
             song = previousSong,
             emptyText = "Listenin başındasınız",
-            iconRes = R.drawable.ic_skip_previous,
-            accentColor = accentColor,
             isCurrent = false,
             onClick = if (previousSong != null) onPlayPrevious else null
         )
 
-        // 2. ŞU AN ÇALAN PARÇA (Vurgulu)
+        // 2. ŞU AN ÇALAN PARÇA (Vurgulu & Amber)
         TrackFlowRow(
-            label = if (isPlaying) "ŞU AN ÇALIYOR" else "DURAKLATILDI",
+            leadSymbol = "❮",
+            trailSymbol = if (isPlaying) "🔊" else "⏸",
             song = currentSong,
             emptyText = "Henüz parça seçilmedi",
-            iconRes = if (isPlaying) R.drawable.ic_play else R.drawable.ic_pause,
-            accentColor = accentColor,
             isCurrent = true,
             onClick = null
         )
 
         // 3. SIRADAKİ PARÇA
         TrackFlowRow(
-            label = "SIRADAKİ PARÇA",
+            leadSymbol = "❯",
+            trailSymbol = "⏭",
             song = nextSong,
             emptyText = "Sıranın sonundasınız",
-            iconRes = R.drawable.ic_skip_next,
-            accentColor = accentColor,
             isCurrent = false,
             onClick = if (nextSong != null) onPlayNext else null
         )
@@ -744,96 +737,89 @@ fun CarTrackFlowCard(
 
 @Composable
 private fun TrackFlowRow(
-    label: String,
+    leadSymbol: String,
+    trailSymbol: String,
     song: Song?,
     emptyText: String,
-    iconRes: Int,
-    accentColor: Color,
     isCurrent: Boolean,
     onClick: (() -> Unit)?
 ) {
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val isCompact = configuration.screenHeightDp < 580 || configuration.screenWidthDp < 980
-    val rowShape = RoundedCornerShape(if (isCompact) 10.dp else 14.dp)
+    val rowShape = RoundedCornerShape(if (isCompact) 12.dp else 16.dp)
 
     val rowBg = if (isCurrent) {
-        accentColor.copy(alpha = 0.16f)
+        Color(0xFFFFB300).copy(alpha = 0.12f)
     } else {
-        CarSurfaceVariant.copy(alpha = 0.70f)
+        Color.Transparent
     }
 
     val rowBorder = if (isCurrent) {
-        accentColor.copy(alpha = 0.85f)
+        Color(0xFFFFD54F).copy(alpha = 0.40f)
     } else {
-        CarBorder.copy(alpha = 0.50f)
+        Color.Transparent
     }
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(if (isCompact) 50.dp else 60.dp)
+            .height(if (isCompact) 48.dp else 58.dp)
             .clip(rowShape)
             .background(rowBg)
-            .border(if (isCurrent) 1.5.dp else 1.dp, rowBorder, rowShape)
+            .border(if (isCurrent) 1.dp else 0.dp, rowBorder, rowShape)
             .then(
                 if (onClick != null) Modifier.clickable { onClick() } else Modifier
             )
             .padding(horizontal = if (isCompact) 10.dp else 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // Sol sembol (❮ / ❯ / ⏮)
+        Text(
+            text = leadSymbol,
+            fontSize = if (isCompact) 14.sp else 17.sp,
+            fontWeight = FontWeight.Bold,
+            color = if (isCurrent) Color(0xFFFFD54F) else CarTextMuted
+        )
+
+        Spacer(modifier = Modifier.width(if (isCompact) 10.dp else 14.dp))
+
+        // Albüm Kapağı Minyatürü
         Box(
             modifier = Modifier
-                .size(if (isCompact) 34.dp else 40.dp)
-                .clip(CircleShape)
-                .background(if (isCurrent) accentColor else CarSurfaceDark)
-                .border(1.dp, if (isCurrent) accentColor else CarBorder, CircleShape),
+                .size(if (isCompact) 32.dp else 38.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(Color(0xFF1E293B)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                painter = painterResource(id = iconRes),
-                contentDescription = label,
-                tint = if (isCurrent) Color(0xFF0C0E12) else (if (song != null) CarTextPrimary else CarTextMuted),
-                modifier = Modifier.size(if (isCompact) 18.dp else 22.dp)
+            Text(
+                text = "🎵",
+                fontSize = if (isCompact) 16.sp else 20.sp
             )
         }
 
         Spacer(modifier = Modifier.width(if (isCompact) 10.dp else 14.dp))
 
+        // Parça Başlığı ve Sanatçı
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = label,
-                fontSize = if (isCompact) 10.sp else 11.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = if (isCurrent) accentColor else CarTextMuted,
-                letterSpacing = 1.sp
-            )
-            Text(
-                text = if (song != null) "${song.title} • ${song.artist}" else emptyText,
-                fontSize = if (isCompact) 13.sp else 15.sp,
-                fontWeight = if (isCurrent) FontWeight.ExtraBold else (if (song != null) FontWeight.SemiBold else FontWeight.Normal),
-                color = if (song != null) CarTextPrimary else CarTextMuted,
+                text = if (song != null) "${song.title} - ${song.artist}" else emptyText,
+                fontSize = if (isCompact) 14.sp else 16.sp,
+                fontWeight = if (isCurrent) FontWeight.ExtraBold else FontWeight.Medium,
+                color = if (isCurrent) Color(0xFFFFD54F) else (if (song != null) CarTextPrimary else CarTextMuted),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
         }
 
-        if (onClick != null && song != null) {
-            Spacer(modifier = Modifier.width(8.dp))
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(CarSurfaceDark)
-                    .border(0.5.dp, CarBorder, RoundedCornerShape(8.dp))
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
-            ) {
-                Text(
-                    text = "Geç ➔",
-                    fontSize = if (isCompact) 11.sp else 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = accentColor
-                )
-            }
-        }
+        Spacer(modifier = Modifier.width(8.dp))
+
+        // Sağ sembol (🔊 / ⏭)
+        Text(
+            text = trailSymbol,
+            fontSize = if (isCompact) 14.sp else 17.sp,
+            fontWeight = FontWeight.Bold,
+            color = if (isCurrent) Color(0xFFFFD54F) else CarTextMuted
+        )
     }
 }
 
@@ -941,25 +927,28 @@ internal fun FixedCarSearchBar(
 ) {
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val isCompact = configuration.screenHeightDp < 580 || configuration.screenWidthDp < 980
+    val pillShape = RoundedCornerShape(50)
+    val neonCyan = Color(0xFF00E5FF)
+    val amberGold = Color(0xFFFFD54F)
 
     Row(
         modifier = modifier
             .height(if (isCompact) 52.dp else 64.dp)
-            .clip(RoundedCornerShape(if (isCompact) 14.dp else 18.dp))
-            .background(CarSurfaceVariant)
+            .clip(pillShape)
+            .background(Color(0xFF0B101B).copy(alpha = 0.90f))
             .border(
-                width = if (query.isNotEmpty()) 2.dp else 1.2.dp,
-                color = if (query.isNotEmpty()) CarCyan else CarBorder,
-                shape = RoundedCornerShape(if (isCompact) 14.dp else 18.dp)
+                width = 2.dp,
+                color = neonCyan,
+                shape = pillShape
             )
-            .padding(horizontal = if (isCompact) 14.dp else 18.dp),
+            .padding(horizontal = if (isCompact) 16.dp else 22.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             painter = painterResource(id = R.drawable.ic_search),
-            contentDescription = "ara",
-            tint = if (query.isNotEmpty()) CarCyan else CarTextMuted,
-            modifier = Modifier.size(if (isCompact) 26.dp else 30.dp)
+            contentDescription = "Ara",
+            tint = amberGold,
+            modifier = Modifier.size(if (isCompact) 24.dp else 28.dp)
         )
 
         Spacer(modifier = Modifier.width(14.dp))
@@ -972,13 +961,13 @@ internal fun FixedCarSearchBar(
                 fontSize = if (isCompact) 16.sp else 19.sp,
                 fontWeight = FontWeight.SemiBold
             ),
-            cursorBrush = SolidColor(CarCyan),
+            cursorBrush = SolidColor(neonCyan),
             singleLine = true,
             modifier = Modifier.weight(1f),
             decorationBox = { innerTextField ->
                 if (query.isEmpty()) {
                     Text(
-                        text = "Şarkı, Sanatçı veya Albüm ara…",
+                        text = "Search...",
                         color = CarTextMuted,
                         fontSize = if (isCompact) 15.sp else 18.sp,
                         fontWeight = FontWeight.Medium
