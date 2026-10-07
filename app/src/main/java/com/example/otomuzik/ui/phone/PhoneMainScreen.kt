@@ -37,6 +37,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.otomuzik.R
 import com.example.otomuzik.model.FolderItem
@@ -112,10 +115,10 @@ fun PhoneMainScreen(
     val autoSaveId3Lyrics by viewModel.autoSaveId3Lyrics.collectAsStateWithLifecycle()
     val lyricsData by viewModel.lyricsData.collectAsStateWithLifecycle()
 
-    var showFullscreenPlayer by remember { mutableStateOf(false) }
+    var showFullscreenPlayer by rememberSaveable { mutableStateOf(true) }
     var isSearchExpanded by remember { mutableStateOf(false) }
 
-    val currentSong = playerState.currentSong
+    val currentSong = playerState.currentSong ?: allSongs.firstOrNull()
     val isFavorite = currentSong != null && favoritePaths.contains(currentSong.path)
 
     Box(
@@ -123,7 +126,12 @@ fun PhoneMainScreen(
             .fillMaxSize()
             .background(BaseCarBgDark)
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+        ) {
             // ── 1. ÜST BAŞLIK (Brand & Eylemler) ───────────────────────────
             Row(
                 modifier = Modifier

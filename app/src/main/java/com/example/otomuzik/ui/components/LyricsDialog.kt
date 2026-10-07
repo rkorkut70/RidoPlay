@@ -9,7 +9,9 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -25,6 +27,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -175,355 +178,451 @@ fun LyricsDialog(
         }
     }
 
-    // Font Boyutu Hesaplaması
-    val baseNormalSp = 23 + fontSizeDelta
-    val baseActiveSp = 30 + fontSizeDelta
+    val configuration = LocalConfiguration.current
+    val isPhone = configuration.screenWidthDp < 600
+
+    // Font Boyutu Hesaplaması: Telefonda ekran genişliğine uygun, tablette ferah
+    val baseNormalSp = if (isPhone) 16 + fontSizeDelta else 23 + fontSizeDelta
+    val baseActiveSp = if (isPhone) 20 + fontSizeDelta else 30 + fontSizeDelta
 
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxSize(0.95f) // Araç/tablet ekranının %95'i
-                .clip(RoundedCornerShape(24.dp))
+            modifier = (if (isPhone) {
+                Modifier
+                    .fillMaxWidth(0.98f)
+                    .fillMaxHeight(0.96f)
+                    .statusBarsPadding()
+                    .navigationBarsPadding()
+            } else {
+                Modifier.fillMaxSize(0.95f)
+            })
+                .clip(RoundedCornerShape(22.dp))
                 .background(CarSurfaceDark)
                 .border(
                     BorderStroke(1.5.dp, if (isDark) effectiveAccent.copy(alpha = 0.35f) else Color(0xFFCBD5E1)),
-                    RoundedCornerShape(24.dp)
+                    RoundedCornerShape(22.dp)
                 )
-                .padding(20.dp)
+                .padding(if (isPhone) 12.dp else 20.dp)
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
 
-                // --- ÜST BAŞLIK ALANI ---
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                // --- Rozet ve Aksiyon Butonları Ortak Tanımları ---
+                val badgeComposable = @Composable {
+                    if (isSynced) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = effectiveAccent.copy(alpha = if (isDark) 0.2f else 0.14f),
+                            border = BorderStroke(1.dp, effectiveAccent.copy(alpha = if (isDark) 0.5f else 0.8f))
+                        ) {
                             Text(
-                                text = songTitle.ifBlank { "Şarkı Sözleri" },
-                                fontSize = 22.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = CarTextPrimary,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f, fill = false)
+                                text = "⚡ Senkronize LRC",
+                                color = effectiveAccent,
+                                fontSize = if (isPhone) 11.sp else 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                             )
-
-                            Spacer(modifier = Modifier.width(10.dp))
-
-                            // Senkronize / Düz Metin Rozeti
-                            if (isSynced) {
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = effectiveAccent.copy(alpha = if (isDark) 0.2f else 0.14f),
-                                    border = BorderStroke(1.dp, effectiveAccent.copy(alpha = if (isDark) 0.5f else 0.8f))
-                                ) {
-                                    Text(
-                                        text = "⚡ Senkronize LRC",
-                                        color = effectiveAccent,
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                    )
-                                }
-                            } else if (lyricsData != null) {
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = CarSurfaceVariant,
-                                    border = BorderStroke(1.dp, if (isDark) CarBorder else Color(0xFFCBD5E1))
-                                ) {
-                                    Text(
-                                        text = "📄 Düz Metin",
-                                        color = CarTextSecondary,
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                    )
-                                }
-                            }
                         }
-
-                        Spacer(modifier = Modifier.height(2.dp))
-
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                    } else if (lyricsData != null) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = CarSurfaceVariant,
+                            border = BorderStroke(1.dp, if (isDark) CarBorder else Color(0xFFCBD5E1))
+                        ) {
                             Text(
-                                text = artistName.ifBlank { "Bilinmeyen Sanatçı" },
-                                fontSize = 15.sp,
+                                text = "📄 Düz Metin",
                                 color = CarTextSecondary,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                fontSize = if (isPhone) 11.sp else 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                             )
-
-                            if (lyricsData != null) {
-                                val sourceLabel = when (lyricsData.source) {
-                                    LyricsSource.ONLINE_LRCLIB -> "• LRCLIB"
-                                    LyricsSource.ONLINE_OVH -> "• lyrics.ovh"
-                                    LyricsSource.MANUAL_CLIPBOARD -> "• Panodan Eklendi"
-                                    LyricsSource.LOCAL_LRC -> "• Yerel .lrc"
-                                    LyricsSource.LOCAL_TXT -> "• Yerel .txt"
-                                    LyricsSource.EMBEDDED_ID3 -> "• ID3 Gömülü"
-                                    LyricsSource.NONE -> ""
-                                }
-                                if (sourceLabel.isNotEmpty()) {
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = sourceLabel,
-                                        fontSize = 13.sp,
-                                        color = CarTextMuted
-                                    )
-                                }
-                            }
                         }
                     }
+                }
 
-                    // Aksiyon Butonları
+                val searchBtn = @Composable {
+                    IconButton(
+                        onClick = { showSearchBar = !showSearchBar },
+                        modifier = Modifier
+                            .background(
+                                if (showSearchBar) effectiveAccent.copy(alpha = if (isDark) 0.25f else 0.15f) else CarSurfaceVariant,
+                                RoundedCornerShape(12.dp)
+                            )
+                            .border(
+                                BorderStroke(1.dp, if (showSearchBar) effectiveAccent else (if (isDark) CarBorder else Color(0xFFCBD5E1))),
+                                RoundedCornerShape(12.dp)
+                            )
+                            .size(if (isPhone) 38.dp else 42.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_search),
+                            contentDescription = "Söz Ara",
+                            tint = if (showSearchBar) effectiveAccent else CarTextPrimary,
+                            modifier = Modifier.size(if (isPhone) 18.dp else 20.dp)
+                        )
+                    }
+                }
+
+                val fontControlBtn = @Composable {
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier
+                            .background(CarSurfaceVariant, RoundedCornerShape(12.dp))
+                            .border(BorderStroke(1.dp, if (isDark) CarBorder else Color(0xFFCBD5E1)), RoundedCornerShape(12.dp)),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Arama Çubuğunu Aç/Kapat Butonu
                         IconButton(
-                            onClick = { showSearchBar = !showSearchBar },
-                            modifier = Modifier
-                                .background(
-                                    if (showSearchBar) effectiveAccent.copy(alpha = if (isDark) 0.25f else 0.15f) else CarSurfaceVariant,
-                                    RoundedCornerShape(12.dp)
-                                )
-                                .border(
-                                    BorderStroke(1.dp, if (showSearchBar) effectiveAccent else (if (isDark) CarBorder else Color(0xFFCBD5E1))),
-                                    RoundedCornerShape(12.dp)
-                                )
-                                .size(42.dp)
+                            onClick = {
+                                if (fontSizeDelta > -6) {
+                                    fontSizeDelta -= 2
+                                    prefs.edit().putInt("lyrics_font_delta", fontSizeDelta).apply()
+                                }
+                            },
+                            enabled = fontSizeDelta > -6,
+                            modifier = Modifier.size(if (isPhone) 36.dp else 38.dp)
                         ) {
-                            Icon(
-                                painter = painterResource(R.drawable.ic_search),
-                                contentDescription = "Söz Ara",
-                                tint = if (showSearchBar) effectiveAccent else CarTextPrimary,
-                                modifier = Modifier.size(20.dp)
+                            Text(
+                                text = "A⁻",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (fontSizeDelta > -6) CarTextPrimary else CarTextMuted
                             )
                         }
 
-                        // Font Büyüklüğü Ayarı (A- / A+)
-                        Row(
+                        Box(
                             modifier = Modifier
-                                .background(CarSurfaceVariant, RoundedCornerShape(12.dp))
-                                .border(BorderStroke(1.dp, if (isDark) CarBorder else Color(0xFFCBD5E1)), RoundedCornerShape(12.dp)),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            IconButton(
-                                onClick = {
-                                    if (fontSizeDelta > -6) {
-                                        fontSizeDelta -= 2
-                                        prefs.edit().putInt("lyrics_font_delta", fontSizeDelta).apply()
-                                    }
-                                },
-                                enabled = fontSizeDelta > -6,
-                                modifier = Modifier.size(38.dp)
-                            ) {
-                                Text(
-                                    text = "A⁻",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (fontSizeDelta > -6) CarTextPrimary else CarTextMuted
-                                )
-                            }
+                                .width(1.dp)
+                                .height(18.dp)
+                                .background(if (isDark) CarBorder else Color(0xFFCBD5E1))
+                        )
 
-                            Box(
-                                modifier = Modifier
-                                    .width(1.dp)
-                                    .height(20.dp)
-                                    .background(if (isDark) CarBorder else Color(0xFFCBD5E1))
+                        IconButton(
+                            onClick = {
+                                if (fontSizeDelta < 14) {
+                                    fontSizeDelta += 2
+                                    prefs.edit().putInt("lyrics_font_delta", fontSizeDelta).apply()
+                                }
+                            },
+                            enabled = fontSizeDelta < 14,
+                            modifier = Modifier.size(if (isPhone) 36.dp else 38.dp)
+                        ) {
+                            Text(
+                                text = "A⁺",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (fontSizeDelta < 14) CarTextPrimary else CarTextMuted
                             )
-
-                            IconButton(
-                                onClick = {
-                                    if (fontSizeDelta < 14) {
-                                        fontSizeDelta += 2
-                                        prefs.edit().putInt("lyrics_font_delta", fontSizeDelta).apply()
-                                    }
-                                },
-                                enabled = fontSizeDelta < 14,
-                                modifier = Modifier.size(38.dp)
-                            ) {
-                                Text(
-                                    text = "A⁺",
-                                    fontSize = 17.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (fontSizeDelta < 14) CarTextPrimary else CarTextMuted
-                                )
-                            }
                         }
+                    }
+                }
 
-                        // 🌐 Google Butonu
-                        Button(
-                            onClick = openGoogleSearch,
-                            colors = ButtonDefaults.buttonColors(containerColor = CarSurfaceVariant),
-                            border = BorderStroke(1.dp, if (isDark) CarBorder else Color(0xFFCBD5E1)),
-                            shape = RoundedCornerShape(12.dp),
-                            contentPadding = PaddingValues(horizontal = 9.dp, vertical = 6.dp),
-                            modifier = Modifier.height(42.dp)
-                        ) {
-                            Text(text = "🌐", fontSize = 14.sp)
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(text = "Google", color = CarTextPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                        }
+                val googleBtn = @Composable {
+                    Button(
+                        onClick = openGoogleSearch,
+                        colors = ButtonDefaults.buttonColors(containerColor = CarSurfaceVariant),
+                        border = BorderStroke(1.dp, if (isDark) CarBorder else Color(0xFFCBD5E1)),
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 9.dp, vertical = 6.dp),
+                        modifier = Modifier.height(if (isPhone) 38.dp else 42.dp)
+                    ) {
+                        Text(text = "🌐", fontSize = 13.sp)
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(text = "Google", color = CarTextPrimary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                }
 
-                        // 🎵 Musixmatch Butonu
-                        Button(
-                            onClick = openMusixmatchSearch,
-                            colors = ButtonDefaults.buttonColors(containerColor = CarSurfaceVariant),
-                            border = BorderStroke(1.dp, if (isDark) CarBorder else Color(0xFFCBD5E1)),
-                            shape = RoundedCornerShape(12.dp),
-                            contentPadding = PaddingValues(horizontal = 9.dp, vertical = 6.dp),
-                            modifier = Modifier.height(42.dp)
-                        ) {
-                            Text(text = "🎵", fontSize = 14.sp)
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(text = "Musixmatch", color = CarTextPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                        }
+                val musixmatchBtn = @Composable {
+                    Button(
+                        onClick = openMusixmatchSearch,
+                        colors = ButtonDefaults.buttonColors(containerColor = CarSurfaceVariant),
+                        border = BorderStroke(1.dp, if (isDark) CarBorder else Color(0xFFCBD5E1)),
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 9.dp, vertical = 6.dp),
+                        modifier = Modifier.height(if (isPhone) 38.dp else 42.dp)
+                    ) {
+                        Text(text = "🎵", fontSize = 13.sp)
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(text = "Musixmatch", color = CarTextPrimary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                }
 
-                        // 📋 Panodan Yapıştır Butonu
-                        Button(
-                            onClick = pasteFromClipboard,
-                            colors = ButtonDefaults.buttonColors(containerColor = CarSurfaceVariant),
-                            border = BorderStroke(1.dp, effectiveAccent.copy(alpha = 0.5f)),
-                            shape = RoundedCornerShape(12.dp),
-                            contentPadding = PaddingValues(horizontal = 9.dp, vertical = 6.dp),
-                            modifier = Modifier.height(42.dp)
-                        ) {
-                            Text(text = "📋", fontSize = 14.sp)
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(text = "Yapıştır", color = effectiveAccent, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                        }
+                val pasteBtn = @Composable {
+                    Button(
+                        onClick = pasteFromClipboard,
+                        colors = ButtonDefaults.buttonColors(containerColor = CarSurfaceVariant),
+                        border = BorderStroke(1.dp, effectiveAccent.copy(alpha = 0.5f)),
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 9.dp, vertical = 6.dp),
+                        modifier = Modifier.height(if (isPhone) 38.dp else 42.dp)
+                    ) {
+                        Text(text = "📋", fontSize = 13.sp)
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(text = "Yapıştır", color = effectiveAccent, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                }
 
-                        // 🏷️ Oto ID3 Aç/Kapat Butonu
+                val id3Btn = @Composable {
+                    Button(
+                        onClick = {
+                            val nextState = !autoSaveId3Lyrics
+                            onToggleAutoSaveId3(nextState)
+                            Toast.makeText(
+                                context,
+                                if (nextState) "✓ Şarkı sözleri otomatik ID3 tag'e kaydedilecek" else "Otomatik ID3 kaydı kapatıldı",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (autoSaveId3Lyrics) effectiveAccent.copy(alpha = if (isDark) 0.2f else 0.15f) else CarSurfaceVariant
+                        ),
+                        border = BorderStroke(
+                            1.dp,
+                            if (autoSaveId3Lyrics) effectiveAccent.copy(alpha = 0.5f) else (if (isDark) CarBorder else Color(0xFFCBD5E1))
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
+                        modifier = Modifier.height(if (isPhone) 38.dp else 42.dp)
+                    ) {
+                        Text(text = "🏷️", fontSize = 12.sp)
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = if (autoSaveId3Lyrics) "ID3: Açık" else "ID3: Kapalı",
+                            color = if (autoSaveId3Lyrics) effectiveAccent else CarTextMuted,
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+
+                val saveBtn = @Composable {
+                    if (lyricsData != null) {
                         Button(
                             onClick = {
-                                val nextState = !autoSaveId3Lyrics
-                                onToggleAutoSaveId3(nextState)
-                                Toast.makeText(
-                                    context,
-                                    if (nextState) "✓ Şarkı sözleri otomatik ID3 tag'e kaydedilecek" else "Otomatik ID3 kaydı kapatıldı",
-                                    Toast.LENGTH_SHORT
-                                ).show()
+                                if (!isSaved && !isSaving) {
+                                    isSaving = true
+                                    onSaveLyrics { success, msg ->
+                                        isSaving = false
+                                        if (success) {
+                                            isSaved = true
+                                        }
+                                        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                    }
+                                }
                             },
+                            enabled = !isSaved && !isSaving,
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if (autoSaveId3Lyrics) effectiveAccent.copy(alpha = if (isDark) 0.2f else 0.15f) else CarSurfaceVariant
+                                containerColor = if (isSaved) CarSurfaceVariant.copy(alpha = 0.6f) else CarSurfaceVariant,
+                                disabledContainerColor = CarSurfaceVariant.copy(alpha = 0.6f)
                             ),
                             border = BorderStroke(
                                 1.dp,
-                                if (autoSaveId3Lyrics) effectiveAccent.copy(alpha = 0.5f) else (if (isDark) CarBorder else Color(0xFFCBD5E1))
+                                if (isSaved) Color(0xFF10B981).copy(alpha = 0.5f) else (if (isDark) CarBorder else Color(0xFFCBD5E1))
                             ),
                             shape = RoundedCornerShape(12.dp),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
-                            modifier = Modifier.height(42.dp)
+                            contentPadding = PaddingValues(horizontal = 9.dp, vertical = 6.dp),
+                            modifier = Modifier.height(if (isPhone) 38.dp else 42.dp)
                         ) {
-                            Text(text = "🏷️", fontSize = 13.sp)
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = if (autoSaveId3Lyrics) "ID3: Açık" else "ID3: Kapalı",
-                                color = if (autoSaveId3Lyrics) effectiveAccent else CarTextMuted,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
+                            if (isSaving) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(14.dp),
+                                    strokeWidth = 2.dp,
+                                    color = effectiveAccent
+                                )
+                                Spacer(modifier = Modifier.width(5.dp))
+                                Text(
+                                    text = "Kaydediliyor...",
+                                    color = effectiveAccent,
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            } else if (isSaved) {
+                                Text(text = "✓", fontSize = 13.sp, color = Color(0xFF10B981), fontWeight = FontWeight.Bold)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Kaydedildi",
+                                    color = Color(0xFF10B981),
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            } else {
+                                Text(text = "💾", fontSize = 13.sp)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Kaydet",
+                                    color = effectiveAccent,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
                         }
+                    }
+                }
 
-                        // "Kaydet" Butonu - Anında Toast geri bildirimi verir ve kaydedilince pasif hale gelir
-                        if (lyricsData != null) {
-                            Button(
-                                onClick = {
-                                    if (!isSaved && !isSaving) {
-                                        isSaving = true
-                                        onSaveLyrics { success, msg ->
-                                            isSaving = false
-                                            if (success) {
-                                                isSaved = true
-                                            }
-                                            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
-                                        }
+                val autoScrollBtn = @Composable {
+                    Button(
+                        onClick = { autoScrollEnabled = !autoScrollEnabled },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (autoScrollEnabled) effectiveAccent.copy(alpha = if (isDark) 0.2f else 0.15f) else CarSurfaceVariant
+                        ),
+                        border = BorderStroke(1.dp, if (autoScrollEnabled) effectiveAccent.copy(alpha = 0.5f) else (if (isDark) CarBorder else Color(0xFFCBD5E1))),
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
+                        modifier = Modifier.height(if (isPhone) 38.dp else 42.dp)
+                    ) {
+                        Text(
+                            text = if (autoScrollEnabled) "⇅ Oto: Açık" else "⇅ Oto: Kapalı",
+                            color = if (autoScrollEnabled) effectiveAccent else CarTextMuted,
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+
+                val closeBtn = @Composable {
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier
+                            .background(CarSurfaceVariant, RoundedCornerShape(12.dp))
+                            .border(BorderStroke(1.dp, if (isDark) CarBorder else Color(0xFFCBD5E1)), RoundedCornerShape(12.dp))
+                            .size(if (isPhone) 38.dp else 42.dp)
+                    ) {
+                        Text(text = "✕", color = CarTextPrimary, fontSize = if (isPhone) 17.sp else 20.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                // --- ÜST BAŞLIK ALANI (TELEFON VE TABLET UYUMLU) ---
+                if (isPhone) {
+                    // Telefonda 1. Satır: Şarkı Bilgisi + Kapat Butonu
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+                            Text(
+                                text = songTitle.ifBlank { "Şarkı Sözleri" },
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = CarTextPrimary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = artistName.ifBlank { "Bilinmeyen Sanatçı" },
+                                    fontSize = 13.sp,
+                                    color = CarTextSecondary,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                if (lyricsData != null) {
+                                    val sourceLabel = when (lyricsData.source) {
+                                        LyricsSource.ONLINE_LRCLIB -> "• LRCLIB"
+                                        LyricsSource.ONLINE_OVH -> "• lyrics.ovh"
+                                        LyricsSource.MANUAL_CLIPBOARD -> "• Panodan"
+                                        LyricsSource.LOCAL_LRC -> "• .lrc"
+                                        LyricsSource.LOCAL_TXT -> "• .txt"
+                                        LyricsSource.EMBEDDED_ID3 -> "• ID3"
+                                        LyricsSource.NONE -> ""
                                     }
-                                },
-                                enabled = !isSaved && !isSaving,
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (isSaved) CarSurfaceVariant.copy(alpha = 0.6f) else CarSurfaceVariant,
-                                    disabledContainerColor = CarSurfaceVariant.copy(alpha = 0.6f)
-                                ),
-                                border = BorderStroke(
-                                    1.dp,
-                                    if (isSaved) Color(0xFF10B981).copy(alpha = 0.5f) else (if (isDark) CarBorder else Color(0xFFCBD5E1))
-                                ),
-                                shape = RoundedCornerShape(12.dp),
-                                contentPadding = PaddingValues(horizontal = 9.dp, vertical = 6.dp),
-                                modifier = Modifier.height(42.dp)
-                            ) {
-                                if (isSaving) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(14.dp),
-                                        strokeWidth = 2.dp,
-                                        color = effectiveAccent
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = "Kaydediliyor...",
-                                        color = effectiveAccent,
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                } else if (isSaved) {
-                                    Text(text = "✓", fontSize = 14.sp, color = Color(0xFF10B981), fontWeight = FontWeight.Bold)
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(
-                                        text = "Kaydedildi",
-                                        color = Color(0xFF10B981),
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                } else {
-                                    Text(text = "💾", fontSize = 14.sp)
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(
-                                        text = "Kaydet",
-                                        color = effectiveAccent,
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
+                                    if (sourceLabel.isNotEmpty()) {
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(text = sourceLabel, fontSize = 11.sp, color = CarTextMuted)
+                                    }
                                 }
                             }
                         }
 
-                        // Senkronize veya Düz Metin ise Oto-Kaydır Aç/Kapa Butonu
-                        Button(
-                            onClick = { autoScrollEnabled = !autoScrollEnabled },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (autoScrollEnabled) effectiveAccent.copy(alpha = if (isDark) 0.2f else 0.15f) else CarSurfaceVariant
-                            ),
-                            border = BorderStroke(1.dp, if (autoScrollEnabled) effectiveAccent.copy(alpha = 0.5f) else (if (isDark) CarBorder else Color(0xFFCBD5E1))),
-                            shape = RoundedCornerShape(12.dp),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
-                            modifier = Modifier.height(42.dp)
-                        ) {
-                            Text(
-                                text = if (autoScrollEnabled) "⇅ Oto: Açık" else "⇅ Oto: Kapalı",
-                                color = if (autoScrollEnabled) effectiveAccent else CarTextMuted,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
+                        closeBtn()
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Telefonda 2. Satır: Yatay Kaydırılabilir Araçlar Çubuğu
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        badgeComposable()
+                        searchBtn()
+                        fontControlBtn()
+                        saveBtn()
+                        googleBtn()
+                        musixmatchBtn()
+                        pasteBtn()
+                        id3Btn()
+                        autoScrollBtn()
+                    }
+                } else {
+                    // Tablet/Araç Modu: Geniş ekran için tek satır
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = songTitle.ifBlank { "Şarkı Sözleri" },
+                                    fontSize = 22.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = CarTextPrimary,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f, fill = false)
+                                )
+
+                                Spacer(modifier = Modifier.width(10.dp))
+                                badgeComposable()
+                            }
+
+                            Spacer(modifier = Modifier.height(2.dp))
+
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = artistName.ifBlank { "Bilinmeyen Sanatçı" },
+                                    fontSize = 15.sp,
+                                    color = CarTextSecondary,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+
+                                if (lyricsData != null) {
+                                    val sourceLabel = when (lyricsData.source) {
+                                        LyricsSource.ONLINE_LRCLIB -> "• LRCLIB"
+                                        LyricsSource.ONLINE_OVH -> "• lyrics.ovh"
+                                        LyricsSource.MANUAL_CLIPBOARD -> "• Panodan Eklendi"
+                                        LyricsSource.LOCAL_LRC -> "• Yerel .lrc"
+                                        LyricsSource.LOCAL_TXT -> "• Yerel .txt"
+                                        LyricsSource.EMBEDDED_ID3 -> "• ID3 Gömülü"
+                                        LyricsSource.NONE -> ""
+                                    }
+                                    if (sourceLabel.isNotEmpty()) {
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(text = sourceLabel, fontSize = 13.sp, color = CarTextMuted)
+                                    }
+                                }
+                            }
                         }
 
-                        // Kapat Butonu
-                        IconButton(
-                            onClick = onDismiss,
-                            modifier = Modifier
-                                .background(CarSurfaceVariant, RoundedCornerShape(12.dp))
-                                .border(BorderStroke(1.dp, if (isDark) CarBorder else Color(0xFFCBD5E1)), RoundedCornerShape(12.dp))
-                                .size(42.dp)
+                        // Aksiyon Butonları
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(text = "✕", color = CarTextPrimary, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                            searchBtn()
+                            fontControlBtn()
+                            googleBtn()
+                            musixmatchBtn()
+                            pasteBtn()
+                            id3Btn()
+                            saveBtn()
+                            autoScrollBtn()
+                            closeBtn()
                         }
                     }
                 }
@@ -939,6 +1038,7 @@ fun LyricsDialog(
 
                                 // 2. Sıra: Servis Arama Butonları (Google, Musixmatch, LyricFind, Genius)
                                 Row(
+                                    modifier = Modifier.horizontalScroll(rememberScrollState()),
                                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
@@ -1024,13 +1124,13 @@ fun LyricsDialog(
                             modifier = Modifier
                                 .background(CarSurfaceVariant, CircleShape)
                                 .border(BorderStroke(1.dp, if (isDark) CarBorder else Color(0xFFCBD5E1)), CircleShape)
-                                .size(42.dp)
+                            .size(if (isPhone) 38.dp else 42.dp)
                         ) {
                             Icon(
                                 painter = painterResource(R.drawable.ic_skip_previous),
                                 contentDescription = "Önceki",
                                 tint = CarTextPrimary,
-                                modifier = Modifier.size(22.dp)
+                                modifier = Modifier.size(20.dp)
                             )
                         }
 
@@ -1038,13 +1138,13 @@ fun LyricsDialog(
                             onClick = onPlayPause,
                             modifier = Modifier
                                 .background(effectiveAccent, CircleShape)
-                                .size(48.dp)
+                                .size(if (isPhone) 44.dp else 48.dp)
                         ) {
                             Icon(
                                 painter = painterResource(if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play),
                                 contentDescription = if (isPlaying) "Duraklat" else "Çal",
                                 tint = if (effectiveAccent.luminance() > 0.5f) Color.Black else Color.White,
-                                modifier = Modifier.size(26.dp)
+                                modifier = Modifier.size(24.dp)
                             )
                         }
 
@@ -1053,30 +1153,32 @@ fun LyricsDialog(
                             modifier = Modifier
                                 .background(CarSurfaceVariant, CircleShape)
                                 .border(BorderStroke(1.dp, if (isDark) CarBorder else Color(0xFFCBD5E1)), CircleShape)
-                                .size(42.dp)
+                            .size(if (isPhone) 38.dp else 42.dp)
                         ) {
                             Icon(
                                 painter = painterResource(R.drawable.ic_skip_next),
                                 contentDescription = "Sonraki",
                                 tint = CarTextPrimary,
-                                modifier = Modifier.size(22.dp)
+                                modifier = Modifier.size(20.dp)
                             )
                         }
                     }
 
-                    // Şarkı sözü satırına dokunma ipucu
-                    if (isSynced) {
-                        Text(
-                            text = "💡 Satıra dokunarak atlayın",
-                            fontSize = 12.sp,
-                            color = CarTextMuted
-                        )
-                    } else {
-                        Text(
-                            text = "⇅ Otomatik kaydırılıyor",
-                            fontSize = 12.sp,
-                            color = CarTextMuted
-                        )
+                    // Şarkı sözü satırına dokunma ipucu (Sadece tablette gösterilir)
+                    if (!isPhone) {
+                        if (isSynced) {
+                            Text(
+                                text = "💡 Satıra dokunarak atlayın",
+                                fontSize = 12.sp,
+                                color = CarTextMuted
+                            )
+                        } else {
+                            Text(
+                                text = "⇅ Otomatik kaydırılıyor",
+                                fontSize = 12.sp,
+                                color = CarTextMuted
+                            )
+                        }
                     }
                 }
             }
