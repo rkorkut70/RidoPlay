@@ -6,6 +6,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -109,13 +111,41 @@ fun EqualizerDialog(
     val gains10Band = remember { mutableStateMapOf<Int, Float>().apply { repeat(10) { put(it, 0f) } } }
     val gains15Band = remember { mutableStateMapOf<Int, Float>().apply { repeat(15) { put(it, 0f) } } }
 
-    // Donanım bantlarından ilk açılışta 5 band değerlerini senkronize et
+    // Donanım bantlarından ilk açılışta değerleri senkronize et
     LaunchedEffect(eqState.bands) {
-        if (eqState.bands.isNotEmpty()) {
-            eqState.bands.forEachIndexed { i, band ->
-                val db = (band.levelMb / 100f).coerceIn(-15f, 15f)
-                if (i < 5) gains5Band[i] = db
+        val bands = if (eqState.bands.isNotEmpty()) eqState.bands else com.example.otomuzik.model.DEFAULT_EQ_BANDS
+        // 5 Band senkronizasyonu
+        bands.forEachIndexed { i, band ->
+            val db = (band.levelMb / 100f).coerceIn(-15f, 15f)
+            if (i < 5) gains5Band[i] = db
+        }
+        // 3 Band senkronizasyonu (Bass, Mid, Treble)
+        if (bands.isNotEmpty()) {
+            gains3Band[0] = (bands[0].levelMb / 100f).coerceIn(-15f, 15f)
+            val midBand = bands.getOrNull(2) ?: bands.getOrNull(1) ?: bands[0]
+            gains3Band[1] = (midBand.levelMb / 100f).coerceIn(-15f, 15f)
+            val trebleBand = bands.last()
+            gains3Band[2] = (trebleBand.levelMb / 100f).coerceIn(-15f, 15f)
+        }
+        // 10 ve 15 band interpolasyonu
+        if (bands.size >= 2) {
+            val logHw = bands.map { log10(it.centerFreqHz.toDouble().coerceAtLeast(10.0)) }
+            val hwGains = bands.map { it.levelMb / 100f }
+            fun interp(f: Int): Float {
+                val lf = log10(f.toDouble().coerceAtLeast(10.0))
+                return when {
+                    lf <= logHw.first() -> hwGains.first()
+                    lf >= logHw.last() -> hwGains.last()
+                    else -> {
+                        var k = 0
+                        while (k < logHw.size - 1 && logHw[k + 1] < lf) k++
+                        val t = (lf - logHw[k]) / (logHw[k + 1] - logHw[k])
+                        ((1.0 - t) * hwGains[k] + t * hwGains[k + 1]).toFloat()
+                    }
+                }
             }
+            EqBandMode.TEN_BAND.frequencies.forEachIndexed { i, f -> gains10Band[i] = interp(f) }
+            EqBandMode.FIFTEEN_BAND.frequencies.forEachIndexed { i, f -> gains15Band[i] = interp(f) }
         }
     }
 
@@ -128,11 +158,11 @@ fun EqualizerDialog(
 
     // Sanal fader hareket ettiğinde donanım bantlarına logaritmik interpolasyon ile uygula
     fun applyGainsToHardware() {
-        if (eqState.bands.isEmpty()) return
         val virtFreqs = activeMode.frequencies
         val virtGains = virtFreqs.indices.map { currentGains[it] ?: 0f }
+        val targetBands = if (eqState.bands.isNotEmpty()) eqState.bands else com.example.otomuzik.model.DEFAULT_EQ_BANDS
 
-        eqState.bands.forEach { hwBand ->
+        targetBands.forEach { hwBand ->
             val hwFreq = hwBand.centerFreqHz.toDouble().coerceAtLeast(10.0)
             val logHw = log10(hwFreq)
 
@@ -361,7 +391,35 @@ fun EqualizerDialog(
                                     shape = RoundedCornerShape(10.dp)
                                 )
                                 .clickable {
+                                    val oldMode = activeMode
+                                    val oldFreqs = oldMode.frequencies
+                                    val oldGains = oldFreqs.indices.map { currentGains[it] ?: 0f }
                                     activeMode = mode
+
+                                    val targetGains = when (mode) {
+                                        EqBandMode.THREE_BAND -> gains3Band
+                                        EqBandMode.FIVE_BAND -> gains5Band
+                                        EqBandMode.TEN_BAND -> gains10Band
+                                        EqBandMode.FIFTEEN_BAND -> gains15Band
+                                    }
+                                    val hasNonZero = mode.frequencies.indices.any { (targetGains[it] ?: 0f) != 0f }
+                                    if (!hasNonZero && oldGains.any { it != 0f }) {
+                                        val logOld = oldFreqs.map { log10(it.toDouble().coerceAtLeast(10.0)) }
+                                        mode.frequencies.forEachIndexed { i, f ->
+                                            val lf = log10(f.toDouble().coerceAtLeast(10.0))
+                                            val valDb = when {
+                                                lf <= logOld.first() -> oldGains.first()
+                                                lf >= logOld.last() -> oldGains.last()
+                                                else -> {
+                                                    var k = 0
+                                                    while (k < logOld.size - 1 && logOld[k + 1] < lf) k++
+                                                    val t = (lf - logOld[k]) / (logOld[k + 1] - logOld[k])
+                                                    ((1.0 - t) * oldGains[k] + t * oldGains[k + 1]).toFloat()
+                                                }
+                                            }
+                                            targetGains[i] = valDb
+                                        }
+                                    }
                                     applyGainsToHardware()
                                 }
                                 .padding(vertical = 8.dp, horizontal = 4.dp),
@@ -473,6 +531,11 @@ fun EqualizerDialog(
                                 onGainChange = { newDb ->
                                     currentGains[index] = newDb
                                     applyGainsToHardware()
+                                },
+                                onInteractionStart = {
+                                    if (!eqState.isEnabled) {
+                                        onToggleEnable(true)
+                                    }
                                 }
                             )
                         }
@@ -668,7 +731,8 @@ private fun Studio3DFaderChannel(
     accentColor: Color,
     isEnabled: Boolean,
     isCompact: Boolean,
-    onGainChange: (Float) -> Unit
+    onGainChange: (Float) -> Unit,
+    onInteractionStart: () -> Unit = {}
 ) {
     val trackHeight = 130.dp
     val trackHeightPx = with(LocalDensity.current) { trackHeight.toPx() }
@@ -696,19 +760,37 @@ private fun Studio3DFaderChannel(
         Spacer(modifier = Modifier.height(4.dp))
 
         // Fader Yuvası & 3D Fader Başlığı (Handle)
+        // Geniş dokunma alanı: kanal boyunca parmakla sürükleme ve tıklama
         Box(
             modifier = Modifier
                 .height(trackHeight)
-                .width(if (isCompact) 28.dp else 36.dp)
-                .pointerInput(isEnabled) {
-                    if (!isEnabled) return@pointerInput
-                    detectVerticalDragGestures { change, dragAmount ->
-                        change.consume()
-                        val deltaDb = -(dragAmount / trackHeightPx) * 30f // -15 to +15 dB range
-                        val newDb = (currentDb + deltaDb).coerceIn(-15f, 15f)
-                        // 0 dB yakınında manyetik yakalama
-                        val snappedDb = if (kotlin.math.abs(newDb) < 0.4f) 0f else newDb
-                        onGainChange(snappedDb)
+                .width(if (isCompact) 36.dp else 48.dp)
+                .pointerInput(trackHeightPx) {
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        down.consume()
+                        onInteractionStart()
+
+                        fun updateFromY(y: Float) {
+                            val norm = 1f - (y / trackHeightPx).coerceIn(0f, 1f)
+                            val rawDb = (norm * 30f - 15f).coerceIn(-15f, 15f)
+                            val snappedDb = if (kotlin.math.abs(rawDb) < 0.4f) 0f else rawDb
+                            onGainChange(snappedDb)
+                        }
+
+                        updateFromY(down.position.y)
+
+                        var isDragging = true
+                        while (isDragging) {
+                            val event = awaitPointerEvent()
+                            val change = event.changes.firstOrNull()
+                            if (change == null || !change.pressed) {
+                                isDragging = false
+                            } else {
+                                change.consume()
+                                updateFromY(change.position.y)
+                            }
+                        }
                     }
                 },
             contentAlignment = Alignment.Center

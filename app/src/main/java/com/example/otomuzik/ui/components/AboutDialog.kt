@@ -53,9 +53,9 @@ fun AboutDialog(
                 @Suppress("DEPRECATION")
                 context.packageManager.getPackageInfo(context.packageName, 0)
             }
-            pInfo.versionName ?: "2.9"
+            pInfo.versionName ?: "3.0"
         } catch (e: Exception) {
-            "2.9"
+            "3.0"
         }
     }
 

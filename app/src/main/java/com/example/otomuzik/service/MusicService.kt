@@ -226,10 +226,16 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
             val eqPreset = repository.getEqPreset()
             val bassBoostStr = repository.getEqBassBoost()
             val loudnessEnhancerEnabled = repository.getEqLoudnessEnhancerEnabled()
+            val savedBands = repository.getEqBandLevels()
+            val initialBands = com.example.otomuzik.model.DEFAULT_EQ_BANDS.map { b ->
+                val saved = savedBands[b.index]
+                if (saved != null) b.copy(levelMb = saved) else b
+            }
             _equalizerState.update {
                 it.copy(
                     isEnabled = eqEnabled,
                     currentPreset = eqPreset,
+                    bands = initialBands,
                     bassBoostStrength = bassBoostStr,
                     isLoudnessEnhancerEnabled = loudnessEnhancerEnabled
                 )
@@ -1226,20 +1232,18 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
     }
 
     fun setBandLevel(bandIndex: Short, levelMb: Short) {
-        equalizer?.let { eq ->
-            try {
-                eq.setBandLevel(bandIndex, levelMb)
-                _equalizerState.update { state ->
-                    val updated = state.bands.map {
-                        if (it.index == bandIndex) it.copy(levelMb = levelMb) else it
-                    }
-                    state.copy(bands = updated, currentPreset = "Özel")
-                }
-                persistEq()
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+        try {
+            equalizer?.setBandLevel(bandIndex, levelMb)
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
+        _equalizerState.update { state ->
+            val updated = state.bands.map {
+                if (it.index == bandIndex) it.copy(levelMb = levelMb) else it
+            }
+            state.copy(bands = updated, currentPreset = "Özel")
+        }
+        persistEq()
     }
 
     fun setPreset(presetName: String) {
