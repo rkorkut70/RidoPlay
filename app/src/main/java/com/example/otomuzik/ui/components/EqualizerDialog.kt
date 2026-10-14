@@ -112,22 +112,25 @@ fun EqualizerDialog(
     val gains10Band = remember { mutableStateMapOf<Int, Float>().apply { repeat(10) { put(it, 0f) } } }
     val gains15Band = remember { mutableStateMapOf<Int, Float>().apply { repeat(15) { put(it, 0f) } } }
 
-    // Donanım bantlarından ilk açılışta değerleri senkronize et
+    // Donanım bantlarından SADECE İLK AÇILIŞTA senkronize et (Kullanıcı kaydırdığında feedback döngüsü olmaması için)
+    var isInitialized by remember { mutableStateOf(false) }
     LaunchedEffect(eqState.bands) {
+        if (isInitialized) return@LaunchedEffect
         val bands = if (eqState.bands.isNotEmpty()) eqState.bands else com.example.otomuzik.model.DEFAULT_EQ_BANDS
+        if (bands.isEmpty()) return@LaunchedEffect
+
         // 5 Band senkronizasyonu
         bands.forEachIndexed { i, band ->
             val db = (band.levelMb / 100f).coerceIn(-15f, 15f)
             if (i < 5) gains5Band[i] = db
         }
         // 3 Band senkronizasyonu (Bass, Mid, Treble)
-        if (bands.isNotEmpty()) {
-            gains3Band[0] = (bands[0].levelMb / 100f).coerceIn(-15f, 15f)
-            val midBand = bands.getOrNull(2) ?: bands.getOrNull(1) ?: bands[0]
-            gains3Band[1] = (midBand.levelMb / 100f).coerceIn(-15f, 15f)
-            val trebleBand = bands.last()
-            gains3Band[2] = (trebleBand.levelMb / 100f).coerceIn(-15f, 15f)
-        }
+        gains3Band[0] = (bands[0].levelMb / 100f).coerceIn(-15f, 15f)
+        val midBand = bands.getOrNull(2) ?: bands.getOrNull(1) ?: bands[0]
+        gains3Band[1] = (midBand.levelMb / 100f).coerceIn(-15f, 15f)
+        val trebleBand = bands.last()
+        gains3Band[2] = (trebleBand.levelMb / 100f).coerceIn(-15f, 15f)
+
         // 10 ve 15 band interpolasyonu
         if (bands.size >= 2) {
             val logHw = bands.map { log10(it.centerFreqHz.toDouble().coerceAtLeast(10.0)) }
@@ -148,6 +151,7 @@ fun EqualizerDialog(
             EqBandMode.TEN_BAND.frequencies.forEachIndexed { i, f -> gains10Band[i] = interp(f) }
             EqBandMode.FIFTEEN_BAND.frequencies.forEachIndexed { i, f -> gains15Band[i] = interp(f) }
         }
+        isInitialized = true
     }
 
     val currentGains = when (activeMode) {
@@ -157,7 +161,9 @@ fun EqualizerDialog(
         EqBandMode.FIFTEEN_BAND -> gains15Band
     }
 
-    // Sanal fader hareket ettiğinde donanım bantlarına logaritmik interpolasyon ile uygula
+    // Sanal fader hareket ettiğinde donanım bantlarına frekans ağırlıklı etki uygula
+    // Böylece her fader bağımsız kalır, tek bir çubuk oynatıldığında diğerleri ASLA oynamaz
+    // ve en soldaki bas çubuğu hardware bas bandını doğru şekilde besler (flat yapmaz).
     fun applyGainsToHardware() {
         val virtFreqs = activeMode.frequencies
         val virtGains = virtFreqs.indices.map { currentGains[it] ?: 0f }
@@ -167,21 +173,30 @@ fun EqualizerDialog(
             val hwFreq = hwBand.centerFreqHz.toDouble().coerceAtLeast(10.0)
             val logHw = log10(hwFreq)
 
-            val logVirt = virtFreqs.map { log10(it.toDouble().coerceAtLeast(10.0)) }
-            val gainDb = when {
-                logHw <= logVirt.first() -> virtGains.first()
-                logHw >= logVirt.last() -> virtGains.last()
-                else -> {
-                    var idx = 0
-                    while (idx < logVirt.size - 1 && logVirt[idx + 1] < logHw) {
-                        idx++
-                    }
-                    val t = (logHw - logVirt[idx]) / (logVirt[idx + 1] - logVirt[idx])
-                    val g0 = virtGains[idx]
-                    val g1 = virtGains[idx + 1]
-                    ((1.0 - t) * g0 + t * g1).toFloat()
+            var totalWeight = 0.0
+            var weightedSum = 0.0
+
+            virtFreqs.forEachIndexed { i, vf ->
+                val logV = log10(vf.toDouble().coerceAtLeast(10.0))
+                val dist = kotlin.math.abs(logHw - logV)
+                // 0.45 dekad (~1.5 oktav) band nüfuz yarıçapı
+                val radius = 0.45
+                if (dist < radius) {
+                    val w = (1.0 - (dist / radius)) * (1.0 - (dist / radius))
+                    weightedSum += virtGains[i] * w
+                    totalWeight += w
                 }
             }
+
+            val gainDb = if (totalWeight > 0.001) {
+                (weightedSum / totalWeight).toFloat()
+            } else {
+                val closestIdx = virtFreqs.indices.minByOrNull { 
+                    kotlin.math.abs(logHw - log10(virtFreqs[it].toDouble().coerceAtLeast(10.0))) 
+                } ?: 0
+                virtGains[closestIdx]
+            }
+
             val gainMb = (gainDb * 100f).toInt().coerceIn(hwBand.minLevelMb.toInt(), hwBand.maxLevelMb.toInt()).toShort()
             onBandChange(hwBand.index, gainMb)
         }
