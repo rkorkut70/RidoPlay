@@ -87,6 +87,7 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
     private var equalizer: Equalizer? = null
     private var bassBoost: BassBoost? = null
     private var loudnessEnhancer: LoudnessEnhancer? = null
+    private var currentAudioSessionId: Int = 0
     private val _equalizerState = MutableStateFlow(EqualizerState())
     val equalizerState: StateFlow<EqualizerState> = _equalizerState.asStateFlow()
     
@@ -537,15 +538,18 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
             return
         }
 
-        // Halihazırda bir şarkı çalıyorsa crossfade ile geçiş yap
+        // Halihazırda bir şarkı çalıyorsa ve crossfade aktifse (süre > 0) crossfade ile geçiş yap
+        val crossfadeDuration = repository.getCrossfadeDuration()
         val currentlyPlaying = mediaPlayer?.isPlaying == true
-        if (currentlyPlaying && !isCrossfading) {
+        if (currentlyPlaying && !isCrossfading && crossfadeDuration > 0) {
             startCrossfade(song)
             return
         }
 
-        // Crossfade zaten devam ediyorsa veya çalmıyorsa → normal yükleme
+        // Crossfade kapalıysa veya zaten çalmıyorsa → doğrudan temiz ve anında geçiş
+        // Crossfade kapalıysa veya zaten çalmıyorsa → doğrudan temiz ve anında geçiş
         releaseMediaPlayer()
+        releaseAudioEffects()
 
         try {
             mediaPlayer = MediaPlayer().apply {
@@ -563,9 +567,12 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
                     setDataSource(applicationContext, Uri.parse(song.uriString))
                 }
 
+                // Efektler bağlanana kadar ses sıçramasını önlemek için sessiz başlat
+                setVolume(0f, 0f)
                 prepare()
+                setupAudioEffects(this.audioSessionId)
                 start()
-                setupAudioEffects(audioSessionId)
+                setVolume(1.0f, 1.0f)
                 applyPlaybackSpeed()
 
                 setOnCompletionListener {
@@ -1139,8 +1146,12 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
     // --- Ekolayzer (EQ) ve Bas Güçlendirme (BassBoost) ---
     private fun setupAudioEffects(audioSessionId: Int) {
         if (audioSessionId == 0) return
+        if (equalizer != null && currentAudioSessionId == audioSessionId) {
+            return
+        }
         try {
             releaseAudioEffects()
+            currentAudioSessionId = audioSessionId
 
             equalizer = Equalizer(0, audioSessionId).apply {
                 enabled = _equalizerState.value.isEnabled
@@ -1191,7 +1202,7 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
                 bassBoost = BassBoost(0, audioSessionId).apply {
                     if (strengthSupported) {
                         setStrength(_equalizerState.value.bassBoostStrength)
-                        enabled = true
+                        enabled = _equalizerState.value.isEnabled && (_equalizerState.value.bassBoostStrength > 0)
                     }
                 }
                 _equalizerState.update {
@@ -1205,7 +1216,7 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
             try {
                 loudnessEnhancer = LoudnessEnhancer(audioSessionId).apply {
                     setTargetGain(500)
-                    enabled = _equalizerState.value.isLoudnessEnhancerEnabled
+                    enabled = _equalizerState.value.isEnabled && _equalizerState.value.isLoudnessEnhancerEnabled
                 }
             } catch (e: Exception) {
                 loudnessEnhancer = null
@@ -1223,19 +1234,25 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
         equalizer = null
         bassBoost = null
         loudnessEnhancer = null
+        currentAudioSessionId = 0
     }
 
     fun setLoudnessEnhancerEnabled(enabled: Boolean) {
-        loudnessEnhancer?.enabled = enabled
+        loudnessEnhancer?.enabled = _equalizerState.value.isEnabled && enabled
         _equalizerState.update { it.copy(isLoudnessEnhancerEnabled = enabled) }
         repository.setEqLoudnessEnhancerEnabled(enabled)
     }
 
     fun setBandLevel(bandIndex: Short, levelMb: Short) {
-        try {
-            equalizer?.setBandLevel(bandIndex, levelMb)
-        } catch (e: Exception) {
-            e.printStackTrace()
+        equalizer?.let { eq ->
+            try {
+                val minLevel = eq.bandLevelRange[0]
+                val maxLevel = eq.bandLevelRange[1]
+                val clamped = levelMb.coerceIn(minLevel, maxLevel)
+                eq.setBandLevel(bandIndex, clamped)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
         _equalizerState.update { state ->
             val updated = state.bands.map {
@@ -1278,6 +1295,7 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
             try {
                 if (bb.strengthSupported) {
                     bb.setStrength(strength)
+                    bb.enabled = _equalizerState.value.isEnabled && (strength > 0)
                     _equalizerState.update { it.copy(bassBoostStrength = strength) }
                     persistEq()
                 }
@@ -1289,6 +1307,8 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
 
     fun toggleEqualizer(enabled: Boolean) {
         equalizer?.enabled = enabled
+        bassBoost?.enabled = enabled && (_equalizerState.value.bassBoostStrength > 0)
+        loudnessEnhancer?.enabled = enabled && _equalizerState.value.isLoudnessEnhancerEnabled
         _equalizerState.update { it.copy(isEnabled = enabled) }
         persistEq()
     }
@@ -1381,10 +1401,6 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
                 }
                 setVolume(0f, 0f) // Fade-in için sessiz başla
                 prepare()
-                
-                // Ses efektlerini hemen başlat (1.5 sn sonraki duraklamayı önlemek için)
-                setupAudioEffects(this.audioSessionId)
-                
                 start()
             }
 
@@ -1420,8 +1436,9 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
             // Fade coroutine
             crossfadeJob = serviceScope.launch {
                 for (step in 1..fadeSteps) {
-                    val newVol = step.toFloat() / fadeSteps
-                    val oldVol = 1f - newVol
+                    val progress = step.toFloat() / fadeSteps
+                    val newVol = progress
+                    val oldVol = 1f - progress
                     try {
                         oldPlayer.setVolume(oldVol, oldVol)
                         newPlayer.setVolume(newVol, newVol)
@@ -1434,6 +1451,7 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
                 // --- Geçiş tamamlandı ---
                 // Eski player'ı durdur ve serbest bırak
                 try {
+                    oldPlayer.setVolume(0f, 0f)
                     if (oldPlayer.isPlaying) oldPlayer.stop()
                     oldPlayer.release()
                 } catch (e: Exception) {
@@ -1441,6 +1459,7 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
                 }
 
                 // Yeni player artık ana player
+                setupAudioEffects(newPlayer.audioSessionId)
                 newPlayer.setVolume(1f, 1f)
                 newPlayer.setOnCompletionListener { handleTrackCompletion() }
                 newPlayer.setOnErrorListener { _, _, _ -> playNext(); true }
@@ -1461,10 +1480,12 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
 
     private fun releaseMediaPlayer() {
         stopProgressTracker()
-        releaseAudioEffects()
         mediaPlayer?.let {
             try {
-                if (it.isPlaying) it.stop()
+                if (it.isPlaying) {
+                    it.setVolume(0f, 0f)
+                    it.stop()
+                }
                 it.release()
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -1474,7 +1495,10 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
 
         crossfadePlayer?.let {
             try {
-                if (it.isPlaying) it.stop()
+                if (it.isPlaying) {
+                    it.setVolume(0f, 0f)
+                    it.stop()
+                }
                 it.release()
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -1564,6 +1588,7 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
         super.onDestroy()
         serviceJob.cancel()
         releaseMediaPlayer()
+        releaseAudioEffects()
         try {
             mediaSession?.release()
         } catch (t: Throwable) {}

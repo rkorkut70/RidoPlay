@@ -294,24 +294,6 @@ fun NowPlayingPanel(
                             fontSize = if (isCompact) 17.sp else 22.sp
                         )
                     }
-
-                    // 6. Favori Butonu (Amber/Altın Çerçeve - Diğerleriyle Kesinlikle Aynı Boyutta)
-                    Box(
-                        modifier = Modifier
-                            .size(pillBtnSize)
-                            .clip(CircleShape)
-                            .background(Color(0xFF0F172A))
-                            .border(1.8.dp, if (isFavorite) CarAmber else Color(0xFFFFB300), CircleShape)
-                            .clickable { onToggleFavorite() },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_favorite),
-                            contentDescription = "Favori",
-                            tint = if (isFavorite) CarAmber else Color(0xFFFFB300),
-                            modifier = Modifier.size(iconInnerSize)
-                        )
-                    }
                 }
             }
 
@@ -335,6 +317,8 @@ fun NowPlayingPanel(
                 songartist = displayartist,
                 badgeText = badgeText,
                 accentColor = animatedaccent,
+                isFavorite = isFavorite,
+                onToggleFavorite = onToggleFavorite,
                 lyricsData = lyricsData,
                 showCoverLyrics = showCoverLyrics,
                 currentPositionMs = playerState.currentPositionMs,

@@ -758,7 +758,14 @@ class MusicRepository(private val context: Context) {
     fun getKeepScreenOn(): Boolean = prefs.getBoolean("keepScreenOn", false)
 
     fun setCrossfadeDuration(durationMs: Int) = prefs.edit().putInt("crossfadeDuration", durationMs).apply()
-    fun getCrossfadeDuration(): Int = prefs.getInt("crossfadeDuration", 1500)
+    fun getCrossfadeDuration(): Int {
+        val duration = prefs.getInt("crossfadeDuration", 0)
+        if (duration == 1500) {
+            setCrossfadeDuration(0)
+            return 0
+        }
+        return duration
+    }
 
     fun setAutoPlayOnStart(enabled: Boolean) = prefs.edit().putBoolean("autoPlayOnStart", enabled).apply()
     fun getAutoPlayOnStart(): Boolean = prefs.getBoolean("autoPlayOnStart", false)

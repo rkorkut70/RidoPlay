@@ -4,6 +4,7 @@ import com.example.otomuzik.theme.*
 import android.app.role.RoleManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -77,30 +78,25 @@ fun SettingsDialog(
 
     Dialog(
         onDismissRequest = onDismissRequest,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        )
     ) {
         Surface(
-            modifier = (if (isPhone) {
-                Modifier
-                    .fillMaxWidth(0.96f)
-                    .fillMaxHeight(0.92f)
-                    .statusBarsPadding()
-                    .navigationBarsPadding()
-            } else {
-                Modifier
-                    .widthIn(min = 360.dp, max = 560.dp)
-                    .fillMaxWidth(0.90f)
-                    .fillMaxHeight(0.85f)
-            }),
-            shape = RoundedCornerShape(24.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding(),
+            shape = RoundedCornerShape(0.dp),
             color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 6.dp
+            tonalElevation = 4.dp
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
             ) {
-                // Header
+                // Header (Tam Ekran Başlığı ve Kapat Butonu)
                 Surface(
                     color = MaterialTheme.colorScheme.surface,
                     tonalElevation = 2.dp,
@@ -109,34 +105,54 @@ fun SettingsDialog(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 12.dp),
+                            .padding(
+                                horizontal = if (isPhone) 16.dp else 28.dp,
+                                vertical = if (isPhone) 12.dp else 16.dp
+                            ),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "Ayarlar",
-                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "⚙️",
+                                fontSize = if (isPhone) 20.sp else 24.sp,
+                                modifier = Modifier.padding(end = 10.dp)
+                            )
+                            Text(
+                                text = "Ayarlar",
+                                style = if (isPhone) MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                                       else MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                         FilledTonalButton(
                             onClick = onDismissRequest,
-                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp)
+                            contentPadding = PaddingValues(
+                                horizontal = if (isPhone) 16.dp else 24.dp,
+                                vertical = if (isPhone) 6.dp else 10.dp
+                            ),
+                            shape = RoundedCornerShape(12.dp)
                         ) {
-                            Text("Kapat")
+                            Text(
+                                text = "✕ Kapat",
+                                fontSize = if (isPhone) 14.sp else 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
                 }
 
-                // Telefon modunda sekmeler
+                // Ayarlar Sekmeleri (Hem Telefon hem Araç modunda düzenli ve kategorik)
                 var selectedSettingsTab by androidx.compose.runtime.remember { androidx.compose.runtime.mutableIntStateOf(0) }
+                val settingsTabs = listOf(
+                    "Oynatma & Ses",
+                    "Görünüm",
+                    "Kütüphane",
+                    "Araç Modu",
+                    "Sistem"
+                )
+
                 if (isPhone) {
-                    val settingsTabs = listOf(
-                        "Oynatma & Ses",
-                        "Görünüm",
-                        "Kütüphane",
-                        "Araç Modu",
-                        "Sistem"
-                    )
                     ScrollableTabRow(
                         selectedTabIndex = selectedSettingsTab,
                         edgePadding = 12.dp,
@@ -160,6 +176,32 @@ fun SettingsDialog(
                             )
                         }
                     }
+                } else {
+                    // Araba / Geniş Ekran Modu: Tam ekran genişliğinde büyük dokunmatik sekmeler
+                    TabRow(
+                        selectedTabIndex = selectedSettingsTab,
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        contentColor = MaterialTheme.colorScheme.primary,
+                        divider = {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+                        }
+                    ) {
+                        settingsTabs.forEachIndexed { index, tabTitle ->
+                            Tab(
+                                selected = selectedSettingsTab == index,
+                                onClick = { selectedSettingsTab = index },
+                                modifier = Modifier.height(56.dp),
+                                text = {
+                                    Text(
+                                        text = tabTitle,
+                                        fontWeight = if (selectedSettingsTab == index) FontWeight.ExtraBold else FontWeight.Medium,
+                                        fontSize = 15.sp,
+                                        maxLines = 1
+                                    )
+                                }
+                            )
+                        }
+                    }
                 }
 
                 // Content
@@ -167,10 +209,13 @@ fun SettingsDialog(
                     modifier = Modifier
                         .weight(1f)
                         .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 14.dp, vertical = 6.dp)
+                        .padding(
+                            horizontal = if (isPhone) 14.dp else 28.dp,
+                            vertical = if (isPhone) 6.dp else 14.dp
+                        )
                 ) {
                     // 1. Sekme / Bölüm: Oynatma ve Ses (Tab 0)
-                    if (!isPhone || selectedSettingsTab == 0) {
+                    if (selectedSettingsTab == 0) {
                         SettingsSection(title = "Oynatma & Ses") {
                             SettingSwitchRow(
                                 title = "Açılışta Otomatik Başla",
@@ -245,7 +290,7 @@ fun SettingsDialog(
                     }
 
                     // 2. Sekme / Bölüm: Görünüm ve Tema (Tab 1)
-                    if (!isPhone || selectedSettingsTab == 1) {
+                    if (selectedSettingsTab == 1) {
                         SettingsSection(title = "Görünüm & Tema") {
                             SettingactionRow(
                                 title = "Tema Modu",
@@ -328,7 +373,7 @@ fun SettingsDialog(
                     }
 
                     // 3. Sekme / Bölüm: Kütüphane (Tab 2 - Ayrı Kütüphane Sekmesi)
-                    if (!isPhone || selectedSettingsTab == 2) {
+                    if (selectedSettingsTab == 2) {
                         SettingsSection(title = "Kütüphane Yönetimi") {
                             SettingSwitchRow(
                                 title = "Akıllı Listeleri Göster",
@@ -423,7 +468,7 @@ fun SettingsDialog(
                     }
 
                     // 4. Sekme / Bölüm: Otomobil Modu (Tab 3)
-                    if (!isPhone || selectedSettingsTab == 3) {
+                    if (selectedSettingsTab == 3) {
                         SettingsSection(title = "Otomobil Modu") {
                             SettingSwitchRow(
                                 title = "Ekranı Uyanık Tut",
@@ -442,7 +487,7 @@ fun SettingsDialog(
                     }
 
                     // 5. Sekme / Bölüm: Sistem (Tab 4)
-                    if (!isPhone || selectedSettingsTab == 4) {
+                    if (selectedSettingsTab == 4) {
                         SettingsSection(title = "Sistem") {
                             SettingSwitchRow(
                                 title = "Kapatılınca Müziği Durdur",
@@ -489,6 +534,36 @@ fun SettingsDialog(
                                     )
                                 ) {
                                     Text("Varsayılan Müzik Çalar Yap")
+                                }
+                            }
+                        }
+
+                        // Uygulama ve Sürüm Bilgisi
+                        SettingsSection(title = "Hakkında") {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                val versionName = androidx.compose.runtime.remember(context) {
+                                    try {
+                                        val pInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                            context.packageManager.getPackageInfo(context.packageName, PackageManager.PackageInfoFlags.of(0))
+                                        } else {
+                                            @Suppress("DEPRECATION")
+                                            context.packageManager.getPackageInfo(context.packageName, 0)
+                                        }
+                                        pInfo.versionName ?: "3.1"
+                                    } catch (e: Exception) {
+                                        "3.1"
+                                    }
+                                }
+                                Text("Sürüm", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text("v$versionName - RidoPlay", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text("vibecoded by RK", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                                 }
                             }
                         }
@@ -599,18 +674,23 @@ fun SettingactionRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 8.dp),
+                .padding(horizontal = 16.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
-                Text(title, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold, fontSize = 14.sp), color = MaterialTheme.colorScheme.onSurface)
+            Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
+                Text(title, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold, fontSize = 14.5.sp), color = MaterialTheme.colorScheme.onSurface)
                 if (description != null) {
-                    Spacer(modifier = Modifier.height(1.dp))
-                    Text(description, style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(description, style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-            content()
+            Box(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                content()
+            }
         }
     }
 }

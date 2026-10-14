@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
@@ -767,7 +768,7 @@ private fun Studio3DFaderChannel(
                 .width(if (isCompact) 36.dp else 48.dp)
                 .pointerInput(trackHeightPx) {
                     awaitEachGesture {
-                        val down = awaitFirstDown(requireUnconsumed = false)
+                        val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
                         down.consume()
                         onInteractionStart()
 
@@ -782,7 +783,7 @@ private fun Studio3DFaderChannel(
 
                         var isDragging = true
                         while (isDragging) {
-                            val event = awaitPointerEvent()
+                            val event = awaitPointerEvent(pass = PointerEventPass.Initial)
                             val change = event.changes.firstOrNull()
                             if (change == null || !change.pressed) {
                                 isDragging = false

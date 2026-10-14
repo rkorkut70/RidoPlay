@@ -42,6 +42,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -120,6 +121,8 @@ fun SwipeableCoverandInfo(
     onInfoBadgeClick: () -> Unit = {},
     isalbumartCropped: Boolean = false,
     lyricsFontSize: String = "LARGE",
+    isFavorite: Boolean = false,
+    onToggleFavorite: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val hasLyrics = lyricsData != null && lyricsData.lines.isNotEmpty()
@@ -355,16 +358,36 @@ fun SwipeableCoverandInfo(
                         Spacer(modifier = Modifier.height(if (isCompact) 4.dp else 10.dp))
                     }
 
-                    Text(
-                        text = songTitle,
-                        fontSize = if (isCompact) 18.sp else 22.sp,
-                        fontWeight = FontWeight.Black,
-                        color = Color.White,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = songTitle,
+                            fontSize = if (isCompact) 18.sp else 22.sp,
+                            fontWeight = FontWeight.Black,
+                            color = Color.White,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        IconButton(
+                            onClick = onToggleFavorite,
+                            modifier = Modifier.size(if (isCompact) 34.dp else 40.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(id = if (isFavorite) R.drawable.ic_favorite else R.drawable.ic_favorite_border),
+                                contentDescription = if (isFavorite) "Favorilerden Çıkar" else "Favorilere Ekle",
+                                tint = if (isFavorite) Color(0xFFE53935) else Color.White.copy(alpha = 0.75f),
+                                modifier = Modifier.size(if (isCompact) 22.dp else 26.dp)
+                            )
+                        }
+                    }
 
                     Spacer(modifier = Modifier.height(if (isCompact) 2.dp else 4.dp))
 
@@ -624,16 +647,36 @@ fun SwipeableCoverandInfo(
                     ),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    text = songTitle,
-                    fontSize = if (isCompact) 18.sp else 22.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color(0xFFFFFFFF),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = songTitle,
+                        fontSize = if (isCompact) 18.sp else 22.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color(0xFFFFFFFF),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    IconButton(
+                        onClick = onToggleFavorite,
+                        modifier = Modifier.size(if (isCompact) 34.dp else 40.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(id = if (isFavorite) R.drawable.ic_favorite else R.drawable.ic_favorite_border),
+                            contentDescription = if (isFavorite) "Favorilerden Çıkar" else "Favorilere Ekle",
+                            tint = if (isFavorite) Color(0xFFE53935) else Color.White.copy(alpha = 0.75f),
+                            modifier = Modifier.size(if (isCompact) 22.dp else 26.dp)
+                        )
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(if (isCompact) 1.dp else 3.dp))
 

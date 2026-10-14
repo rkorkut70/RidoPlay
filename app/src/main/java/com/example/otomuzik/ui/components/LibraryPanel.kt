@@ -24,6 +24,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -142,46 +144,6 @@ fun LibraryPanel(
             ) {
                 CircularProgressIndicator(color = accentColor)
             }
-        } else if (searchQuery.isNotEmpty()) {
-            // Arama Modu
-            Column(modifier = Modifier.fillMaxSize()) {
-                SubScreenHeader(
-                    title = "Arama Sonuçları",
-                    onBack = { onSearchQueryChange("") },
-                    actions = {
-                        CarHeaderActionButton(
-                            icon = "✕",
-                            text = "Temizle",
-                            accentColor = CarSurfaceVariant,
-                            onClick = { onSearchQueryChange("") }
-                        )
-                    }
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Box(modifier = Modifier.weight(1f)) {
-                    SearchResultsView(
-                        songs = filteredSongs,
-                        query = searchQuery,
-                        currentPlayingSongPath = currentPlayingSongPath,
-                        onPlaySong = { song ->
-                            onPlaySong(song, filteredSongs)
-                            onSearchQueryChange("")
-                        },
-                        onSongLongClick = onSongLongClick
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                FixedCarSearchBar(
-                    query = searchQuery,
-                    onQueryChange = onSearchQueryChange,
-                    resultCount = filteredSongs.size,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
         } else if (isQueueVisible || activeTab == TabType.QUEUE) {
             // Çalma Sırası Ekranı
             Column(modifier = Modifier.fillMaxSize()) {
@@ -226,320 +188,329 @@ fun LibraryPanel(
                 )
             }
         } else {
-            // Ana Sürüş ve Alt Sayfalar
-            when (activeTab) {
-                TabType.HOME -> {
-                    // ── ANA SÜRÜŞ DASHBOARD'U ──
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        // 1. Üst Kısım: 6 Büyük Menü Butonu
-                        CarMenuGrid(
-                            queueCount = currentQueue.size,
-                            onNavigate = { onTabSelected(it) },
-                            onOpenSettings = onOpenSettings,
-                            accentColor = accentColor,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-
-                        Spacer(modifier = Modifier.height(if (isCompact) 6.dp else 10.dp))
-
-                        // 2. Orta Kısım: Önceki, Çalan ve Sonraki Şarkı Akış Kartı
-                        CarTrackFlowCard(
-                            currentSong = currentSong,
-                            previousSong = previousSong,
-                            nextSong = nextSong,
-                            isPlaying = isPlaying,
-                            accentColor = accentColor,
-                            onPlayPrevious = onPlayPrevious,
-                            onPlayNext = onPlayNext,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f)
-                        )
-
-                        Spacer(modifier = Modifier.height(if (isCompact) 6.dp else 10.dp))
-
-                        // 3. Alt Kısım: Büyük Sürüş Arama Çubuğu
-                        FixedCarSearchBar(
-                            query = searchQuery,
-                            onQueryChange = onSearchQueryChange,
-                            resultCount = null,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                }
-
-                TabType.FOLDERS -> {
-                    // ── KLASÖR GEZGİNİ SAYFASI ──
-                    val folderName = if (currentFolderPath != null) {
-                        storageRoots.find { it.path == currentFolderPath }?.name
-                            ?: File(currentFolderPath).name
-                    } else "Klasör Gezgini"
-
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        SubScreenHeader(
-                            title = folderName,
-                            onBack = {
-                                if (currentFolderPath != null) onBackFolder() else onTabSelected(TabType.HOME)
-                            },
-                            actions = {
-                                CarHeaderActionButton(
-                                    icon = "🔄",
-                                    text = "Tara",
-                                    accentColor = CarSurfaceVariant,
-                                    onClick = onRefresh
-                                )
-                                if (currentFolderPath != null) {
+            // Ana Sürüş, Alt Sayfalar ve Arama Modu
+            // NOT: FixedCarSearchBar bu sütunun en altında sabit kalır.
+            // Böylece ilk karakter yazıldığında veya arama modu aktifleştiğinde
+            // bileşen ağaçtan silinmez, klavye ve odak ASLA kaybolmaz!
+            Column(modifier = Modifier.fillMaxSize()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                ) {
+                    if (searchQuery.isNotEmpty()) {
+                        // Arama Modu
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            SubScreenHeader(
+                                title = "Arama Sonuçları",
+                                onBack = { onSearchQueryChange("") },
+                                actions = {
                                     CarHeaderActionButton(
-                                        icon = "📁",
-                                        text = "Klasörü Çal",
-                                        accentColor = accentColor,
-                                        onClick = {
-                                            onPlayFolder(currentFolderPath)
-                                            onTabSelected(TabType.HOME)
-                                        }
+                                        icon = "✕",
+                                        text = "Temizle",
+                                        accentColor = CarSurfaceVariant,
+                                        onClick = { onSearchQueryChange("") }
                                     )
                                 }
-                                CarHeaderActionButton(
-                                    icon = "▶",
-                                    text = "Tümünü Çal",
-                                    accentColor = CarSurfaceVariant,
-                                    onClick = {
-                                        onPlayallSongs()
-                                        onTabSelected(TabType.HOME)
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Box(modifier = Modifier.weight(1f)) {
+                                SearchResultsView(
+                                    songs = filteredSongs,
+                                    query = searchQuery,
+                                    currentPlayingSongPath = currentPlayingSongPath,
+                                    onPlaySong = { song ->
+                                        onPlaySong(song, filteredSongs)
+                                        onSearchQueryChange("")
+                                    },
+                                    onSongLongClick = onSongLongClick
+                                )
+                            }
+                        }
+                    } else {
+                        when (activeTab) {
+                            TabType.HOME -> {
+                                // ── ANA SÜRÜŞ DASHBOARD'U ──
+                                Column(
+                                    modifier = Modifier.fillMaxSize(),
+                                    verticalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    // 1. Üst Kısım: 6 Büyük Menü Butonu
+                                    CarMenuGrid(
+                                        queueCount = currentQueue.size,
+                                        onNavigate = { onTabSelected(it) },
+                                        onOpenSettings = onOpenSettings,
+                                        accentColor = accentColor,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+
+                                    Spacer(modifier = Modifier.height(if (isCompact) 6.dp else 10.dp))
+
+                                    // 2. Orta Kısım: Önceki, Çalan ve Sonraki Şarkı Akış Kartı
+                                    CarTrackFlowCard(
+                                        currentSong = currentSong,
+                                        previousSong = previousSong,
+                                        nextSong = nextSong,
+                                        isPlaying = isPlaying,
+                                        accentColor = accentColor,
+                                        onPlayPrevious = onPlayPrevious,
+                                        onPlayNext = onPlayNext,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .weight(1f)
+                                    )
+                                }
+                            }
+
+                            TabType.FOLDERS -> {
+                                // ── KLASÖR GEZGİNİ SAYFASI ──
+                                val folderName = if (currentFolderPath != null) {
+                                    storageRoots.find { it.path == currentFolderPath }?.name
+                                        ?: File(currentFolderPath).name
+                                } else "Klasör Gezgini"
+
+                                Column(modifier = Modifier.fillMaxSize()) {
+                                    SubScreenHeader(
+                                        title = folderName,
+                                        onBack = {
+                                            if (currentFolderPath != null) onBackFolder() else onTabSelected(TabType.HOME)
+                                        },
+                                        actions = {
+                                            CarHeaderActionButton(
+                                                icon = "🔄",
+                                                text = "Tara",
+                                                accentColor = CarSurfaceVariant,
+                                                onClick = onRefresh
+                                            )
+                                            if (currentFolderPath != null) {
+                                                CarHeaderActionButton(
+                                                    icon = "📁",
+                                                    text = "Klasörü Çal",
+                                                    accentColor = accentColor,
+                                                    onClick = {
+                                                        onPlayFolder(currentFolderPath)
+                                                        onTabSelected(TabType.HOME)
+                                                    }
+                                                )
+                                            }
+                                            CarHeaderActionButton(
+                                                icon = "▶",
+                                                text = "Tümünü Çal",
+                                                accentColor = CarSurfaceVariant,
+                                                onClick = {
+                                                    onPlayallSongs()
+                                                    onTabSelected(TabType.HOME)
+                                                }
+                                            )
+                                        }
+                                    )
+
+                                    Spacer(modifier = Modifier.height(8.dp))
+
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .weight(1f)
+                                    ) {
+                                        FolderBrowserView(
+                                            storageRoots = storageRoots,
+                                            currentFolderPath = currentFolderPath,
+                                            currentFolderItems = currentFolderItems,
+                                            currentPlayingSongPath = currentPlayingSongPath,
+                                            onOpenFolder = onOpenFolder,
+                                            onBackFolder = onBackFolder,
+                                            onPlayFolder = {
+                                                onPlayFolder(it)
+                                                onTabSelected(TabType.HOME)
+                                            },
+                                            onPlayallSongs = {
+                                                onPlayallSongs()
+                                                onTabSelected(TabType.HOME)
+                                            },
+                                            onFolderLongClick = onFolderLongClick,
+                                            onPlaySong = { song, list ->
+                                                onPlaySong(song, list)
+                                                onTabSelected(TabType.HOME)
+                                            },
+                                            onSongLongClick = onSongLongClick,
+                                            onManageFolders = onManageFolders
+                                        )
                                     }
-                                )
+                                }
                             }
-                        )
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                            TabType.ALL_SONGS -> {
+                                // ── TÜM ŞARKILAR SAYFASI ──
+                                Column(modifier = Modifier.fillMaxSize()) {
+                                    SubScreenHeader(
+                                        title = "Tüm Şarkılar (${filteredSongs.size})",
+                                        onBack = { onTabSelected(TabType.HOME) },
+                                        actions = {
+                                            CarHeaderActionButton(
+                                                icon = "🔄",
+                                                text = "Tara",
+                                                accentColor = CarSurfaceVariant,
+                                                onClick = onRefresh
+                                            )
+                                            CarHeaderActionButton(
+                                                icon = "▶",
+                                                text = "Tümünü Çal",
+                                                accentColor = accentColor,
+                                                onClick = {
+                                                    onPlayallSongs()
+                                                    onTabSelected(TabType.HOME)
+                                                }
+                                            )
+                                        }
+                                    )
 
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f)
-                        ) {
-                            FolderBrowserView(
-                                storageRoots = storageRoots,
-                                currentFolderPath = currentFolderPath,
-                                currentFolderItems = currentFolderItems,
-                                currentPlayingSongPath = currentPlayingSongPath,
-                                onOpenFolder = onOpenFolder,
-                                onBackFolder = onBackFolder,
-                                onPlayFolder = {
-                                    onPlayFolder(it)
-                                    onTabSelected(TabType.HOME)
-                                },
-                                onPlayallSongs = {
-                                    onPlayallSongs()
-                                    onTabSelected(TabType.HOME)
-                                },
-                                onFolderLongClick = onFolderLongClick,
-                                onPlaySong = { song, list ->
-                                    onPlaySong(song, list)
-                                    onTabSelected(TabType.HOME)
-                                },
-                                onSongLongClick = onSongLongClick,
-                                onManageFolders = onManageFolders
-                            )
-                        }
+                                    Spacer(modifier = Modifier.height(8.dp))
 
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        FixedCarSearchBar(
-                            query = searchQuery,
-                            onQueryChange = onSearchQueryChange,
-                            resultCount = null,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                }
-
-                TabType.ALL_SONGS -> {
-                    // ── TÜM ŞARKILAR SAYFASI ──
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        SubScreenHeader(
-                            title = "Tüm Şarkılar (${filteredSongs.size})",
-                            onBack = { onTabSelected(TabType.HOME) },
-                            actions = {
-                                CarHeaderActionButton(
-                                    icon = "🔄",
-                                    text = "Tara",
-                                    accentColor = CarSurfaceVariant,
-                                    onClick = onRefresh
-                                )
-                                CarHeaderActionButton(
-                                    icon = "▶",
-                                    text = "Tümünü Çal",
-                                    accentColor = accentColor,
-                                    onClick = {
-                                        onPlayallSongs()
-                                        onTabSelected(TabType.HOME)
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .weight(1f)
+                                    ) {
+                                        SongListView(
+                                            songs = filteredSongs,
+                                            currentPlayingSongPath = currentPlayingSongPath,
+                                            onPlaySong = { song ->
+                                                onPlaySong(song, filteredSongs)
+                                                onTabSelected(TabType.HOME)
+                                            },
+                                            onSongLongClick = onSongLongClick,
+                                            accentColor = accentColor
+                                        )
                                     }
-                                )
-                            }
-                        )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f)
-                        ) {
-                            SongListView(
-                                songs = filteredSongs,
-                                currentPlayingSongPath = currentPlayingSongPath,
-                                onPlaySong = { song ->
-                                    onPlaySong(song, filteredSongs)
-                                    onTabSelected(TabType.HOME)
-                                },
-                                onSongLongClick = onSongLongClick,
-                                accentColor = accentColor
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        FixedCarSearchBar(
-                            query = searchQuery,
-                            onQueryChange = onSearchQueryChange,
-                            resultCount = null,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                }
-
-                TabType.PLAYLISTS -> {
-                    // ── ÇALMA LİSTELERİ SAYFASI ──
-                    val title = selectedPlaylist?.name ?: "Çalma Listeleri (${Playlists.size})"
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        SubScreenHeader(
-                            title = title,
-                            onBack = {
-                                if (selectedPlaylist != null) onClosePlaylist() else onTabSelected(TabType.HOME)
-                            },
-                            actions = {
-                                if (selectedPlaylist != null && selectedPlaylistSongs.isNotEmpty()) {
-                                    CarHeaderActionButton(
-                                        icon = "▶",
-                                        text = "Listeyi Çal",
-                                        accentColor = accentColor,
-                                        onClick = {
-                                            onPlayPlaylist(selectedPlaylist)
-                                            onTabSelected(TabType.HOME)
-                                        }
-                                    )
-                                } else {
-                                    CarHeaderActionButton(
-                                        icon = "+",
-                                        text = "Yeni Liste",
-                                        accentColor = accentColor,
-                                        onClick = onCreatePlaylistClick
-                                    )
                                 }
                             }
-                        )
 
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f)
-                        ) {
-                            PlaylistsView(
-                                Playlists = Playlists,
-                                selectedPlaylist = selectedPlaylist,
-                                selectedPlaylistSongs = selectedPlaylistSongs,
-                                currentPlayingSongPath = currentPlayingSongPath,
-                                onOpenPlaylist = onOpenPlaylist,
-                                onClosePlaylist = onClosePlaylist,
-                                onPlayPlaylist = {
-                                    onPlayPlaylist(it)
-                                    onTabSelected(TabType.HOME)
-                                },
-                                onDeletePlaylist = onDeletePlaylist,
-                                onRemoveSongFromPlaylist = onRemoveSongFromPlaylist,
-                                onCreatePlaylistClick = onCreatePlaylistClick,
-                                onPlaySong = { song ->
-                                    onPlaySong(song, selectedPlaylistSongs)
-                                    onTabSelected(TabType.HOME)
-                                },
-                                onSongLongClick = onSongLongClick,
-                                onExportPlaylist = onExportPlaylist,
-                                onImportM3uClick = onImportM3uClick
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        FixedCarSearchBar(
-                            query = searchQuery,
-                            onQueryChange = onSearchQueryChange,
-                            resultCount = null,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                }
-
-                TabType.FAVORITES -> {
-                    // ── FAVORİLER SAYFASI ──
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        SubScreenHeader(
-                            title = "Favoriler (${favoriteSongs.size})",
-                            onBack = { onTabSelected(TabType.HOME) },
-                            actions = {
-                                if (favoriteSongs.isNotEmpty()) {
-                                    CarHeaderActionButton(
-                                        icon = "▶",
-                                        text = "Favorileri Çal",
-                                        accentColor = CarAmber,
-                                        onClick = {
-                                            onPlayFavorites()
-                                            onTabSelected(TabType.HOME)
+                            TabType.PLAYLISTS -> {
+                                // ── ÇALMA LİSTELERİ SAYFASI ──
+                                val title = selectedPlaylist?.name ?: "Çalma Listeleri (${Playlists.size})"
+                                Column(modifier = Modifier.fillMaxSize()) {
+                                    SubScreenHeader(
+                                        title = title,
+                                        onBack = {
+                                            if (selectedPlaylist != null) onClosePlaylist() else onTabSelected(TabType.HOME)
+                                        },
+                                        actions = {
+                                            if (selectedPlaylist != null && selectedPlaylistSongs.isNotEmpty()) {
+                                                CarHeaderActionButton(
+                                                    icon = "▶",
+                                                    text = "Listeyi Çal",
+                                                    accentColor = accentColor,
+                                                    onClick = {
+                                                        onPlayPlaylist(selectedPlaylist)
+                                                        onTabSelected(TabType.HOME)
+                                                    }
+                                                )
+                                            } else {
+                                                CarHeaderActionButton(
+                                                    icon = "+",
+                                                    text = "Yeni Liste",
+                                                    accentColor = accentColor,
+                                                    onClick = onCreatePlaylistClick
+                                                )
+                                            }
                                         }
                                     )
+
+                                    Spacer(modifier = Modifier.height(8.dp))
+
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .weight(1f)
+                                    ) {
+                                        PlaylistsView(
+                                            Playlists = Playlists,
+                                            selectedPlaylist = selectedPlaylist,
+                                            selectedPlaylistSongs = selectedPlaylistSongs,
+                                            currentPlayingSongPath = currentPlayingSongPath,
+                                            onOpenPlaylist = onOpenPlaylist,
+                                            onClosePlaylist = onClosePlaylist,
+                                            onPlayPlaylist = {
+                                                onPlayPlaylist(it)
+                                                onTabSelected(TabType.HOME)
+                                            },
+                                            onDeletePlaylist = onDeletePlaylist,
+                                            onRemoveSongFromPlaylist = onRemoveSongFromPlaylist,
+                                            onCreatePlaylistClick = onCreatePlaylistClick,
+                                            onPlaySong = { song ->
+                                                onPlaySong(song, selectedPlaylistSongs)
+                                                onTabSelected(TabType.HOME)
+                                            },
+                                            onSongLongClick = onSongLongClick,
+                                            onExportPlaylist = onExportPlaylist,
+                                            onImportM3uClick = onImportM3uClick
+                                        )
+                                    }
                                 }
                             }
-                        )
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                            TabType.FAVORITES -> {
+                                // ── FAVORİLER SAYFASI ──
+                                Column(modifier = Modifier.fillMaxSize()) {
+                                    SubScreenHeader(
+                                        title = "Favoriler (${favoriteSongs.size})",
+                                        onBack = { onTabSelected(TabType.HOME) },
+                                        actions = {
+                                            if (favoriteSongs.isNotEmpty()) {
+                                                CarHeaderActionButton(
+                                                    icon = "▶",
+                                                    text = "Favorileri Çal",
+                                                    accentColor = CarAmber,
+                                                    onClick = {
+                                                        onPlayFavorites()
+                                                        onTabSelected(TabType.HOME)
+                                                    }
+                                                )
+                                            }
+                                        }
+                                    )
 
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f)
-                        ) {
-                            SongListView(
-                                songs = favoriteSongs,
-                                currentPlayingSongPath = currentPlayingSongPath,
-                                onPlaySong = { song ->
-                                    onPlaySong(song, favoriteSongs)
-                                    onTabSelected(TabType.HOME)
-                                },
-                                onSongLongClick = onSongLongClick,
-                                accentColor = accentColor,
-                                emptyMessage = "Henüz favori şarkı eklenmedi.\nŞarkı çalarken kalp simgesine dokunun veya basılı tutarak ekleyin."
-                            )
+                                    Spacer(modifier = Modifier.height(8.dp))
+
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .weight(1f)
+                                    ) {
+                                        SongListView(
+                                            songs = favoriteSongs,
+                                            currentPlayingSongPath = currentPlayingSongPath,
+                                            onPlaySong = { song ->
+                                                onPlaySong(song, favoriteSongs)
+                                                onTabSelected(TabType.HOME)
+                                            },
+                                            onSongLongClick = onSongLongClick,
+                                            accentColor = accentColor,
+                                            emptyMessage = "Henüz favori şarkı eklenmedi.\nŞarkı çalarken kalp simgesine dokunun veya basılı tutarak ekleyin."
+                                        )
+                                    }
+                                }
+                            }
+
+                            TabType.QUEUE -> {
+                                // QUEUE durumu üstteki if (isQueueVisible || activeTab == TabType.QUEUE) içinde ele alınmaktadır
+                            }
                         }
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        FixedCarSearchBar(
-                            query = searchQuery,
-                            onQueryChange = onSearchQueryChange,
-                            resultCount = null,
-                            modifier = Modifier.fillMaxWidth()
-                        )
                     }
                 }
 
-                TabType.QUEUE -> {
-                    // QUEUE durumu üstteki if (isQueueVisible || activeTab == TabType.QUEUE) içinde ele alınmaktadır
-                }
+                Spacer(modifier = Modifier.height(if (isCompact) 6.dp else 8.dp))
+
+                // Sabit ve kalıcı arama çubuğu: Recomposition veya sayfa/arama değişse dahi
+                // TextField ağaçtan silinmediği için klavye ve odak asla kaybolmaz!
+                FixedCarSearchBar(
+                    query = searchQuery,
+                    onQueryChange = onSearchQueryChange,
+                    resultCount = if (searchQuery.isNotEmpty()) filteredSongs.size else null,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     }
@@ -972,11 +943,12 @@ internal fun FixedCarSearchBar(
             ),
             cursorBrush = SolidColor(neonCyan),
             singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             modifier = Modifier.weight(1f),
             decorationBox = { innerTextField ->
                 if (query.isEmpty()) {
                     Text(
-                        text = "Search...",
+                        text = "Ara (şarkı, sanatçı veya klasör)...",
                         color = CarTextMuted,
                         fontSize = if (isCompact) 15.sp else 18.sp,
                         fontWeight = FontWeight.Medium
