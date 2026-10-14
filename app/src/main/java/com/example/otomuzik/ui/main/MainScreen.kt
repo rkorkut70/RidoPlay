@@ -29,10 +29,14 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 
 import com.example.otomuzik.ui.components.AddToPlaylistDialog
 import com.example.otomuzik.ui.components.CreatePlaylistDialog
+import com.example.otomuzik.ui.components.DuplicateFinderDialog
 import com.example.otomuzik.ui.components.EqualizerDialog
 import com.example.otomuzik.ui.components.FolderactionDialog
 import com.example.otomuzik.ui.components.Id3InfoDialog
+import androidx.compose.ui.platform.LocalContext
+import com.example.otomuzik.ui.components.BatchId3TagDialog
 import com.example.otomuzik.ui.components.LibraryPanel
+import com.example.otomuzik.ui.components.M3uImportDialog
 import com.example.otomuzik.ui.components.NowPlayingPanel
 import com.example.otomuzik.ui.components.SongactionDialog
 
@@ -65,6 +69,8 @@ fun MainScreen(
     val songsToaddToPlaylist by viewModel.songsToaddToPlaylist.collectAsStateWithLifecycle()
     val showCreatePlaylistDialog by viewModel.showCreatePlaylistDialog.collectAsStateWithLifecycle()
     val showSettingsDialog by viewModel.showSettingsDialog.collectAsStateWithLifecycle()
+    val showFolderSelectionDialog by viewModel.showFolderSelectionDialog.collectAsStateWithLifecycle()
+    val includedFolders by viewModel.includedFolders.collectAsStateWithLifecycle()
 
     val equalizerState by viewModel.equalizerState.collectAsStateWithLifecycle()
     val showEqualizerDialog by viewModel.showEqualizerDialog.collectAsStateWithLifecycle()
@@ -83,7 +89,16 @@ fun MainScreen(
     val showCoverLyrics by viewModel.showCoverLyrics.collectAsStateWithLifecycle()
     val lyricsData by viewModel.lyricsData.collectAsStateWithLifecycle()
     val lyricsFontSize by viewModel.lyricsFontSize.collectAsStateWithLifecycle()
+    val showAboutDialog by viewModel.showAboutDialog.collectAsStateWithLifecycle()
+    val libraryStats by viewModel.libraryStats.collectAsStateWithLifecycle()
 
+    val batchId3FolderItem by viewModel.batchId3FolderItem.collectAsStateWithLifecycle()
+    val showM3uImportDialog by viewModel.showM3uImportDialog.collectAsStateWithLifecycle()
+    val availableM3uFiles by viewModel.availableM3uFiles.collectAsStateWithLifecycle()
+    val allSongs by viewModel.allSongs.collectAsStateWithLifecycle()
+    val showDuplicateFinderDialog by viewModel.showDuplicateFinderDialog.collectAsStateWithLifecycle()
+
+    val context = LocalContext.current
     val keepScreenOn by viewModel.keepScreenOn.collectAsStateWithLifecycle()
     val view = androidx.compose.ui.platform.LocalView.current
     androidx.compose.runtime.DisposableEffect(keepScreenOn) {
@@ -176,6 +191,7 @@ fun MainScreen(
                         onOpenEqualizer = { viewModel.openEqualizerDialog() },
                         onOpenId3Info = { viewModel.openId3Dialog() },
                         onOpenLyrics = { viewModel.openLyricsDialog() },
+                        onOpenAbout = { viewModel.openAboutDialog() },
                         onOpenQueue = { viewModel.openQueueDialog() },
                         onOpenSleepTimer = { viewModel.openSleepTimerDialog() },
                         onPlayPause = { viewModel.togglePlayPause() },
@@ -245,6 +261,7 @@ fun MainScreen(
                         isPlaying = playerState.isPlaying,
                         onPlayPause = { viewModel.togglePlayPause() },
                         onPlayFavorites = { viewModel.playFavorites() },
+                        onManageFolders = { viewModel.openFolderSelectionDialog() },
                         modifier = Modifier
                             .weight(0.54f)
                             .fillMaxHeight()
@@ -266,6 +283,7 @@ fun MainScreen(
                         onOpenEqualizer = { viewModel.openEqualizerDialog() },
                         onOpenId3Info = { viewModel.openId3Dialog() },
                         onOpenLyrics = { viewModel.openLyricsDialog() },
+                        onOpenAbout = { viewModel.openAboutDialog() },
                         onOpenQueue = { viewModel.openQueueDialog() },
                         onOpenSleepTimer = { viewModel.openSleepTimerDialog() },
                         onPlayPause = { viewModel.togglePlayPause() },
@@ -312,6 +330,8 @@ fun MainScreen(
                         onDeletePlaylist = { viewModel.deletePlaylist(it) },
                         onRemoveSongFromPlaylist = { plId, song -> viewModel.removeSongFromPlaylist(plId, song) },
                         onCreatePlaylistClick = { viewModel.openCreatePlaylistDialog() },
+                        onExportPlaylist = { viewModel.exportCurrentPlaylistM3u(it) },
+                        onImportM3uClick = { viewModel.openM3uImportDialog() },
                         isQueueVisible = isQueueVisible,
                         onCloseQueue = { viewModel.closeQueue() },
                         onOpenQueue = { viewModel.openQueue() },
@@ -334,6 +354,7 @@ fun MainScreen(
                         isPlaying = playerState.isPlaying,
                         onPlayPause = { viewModel.togglePlayPause() },
                         onPlayFavorites = { viewModel.playFavorites() },
+                        onManageFolders = { viewModel.openFolderSelectionDialog() },
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(0.52f)
@@ -349,6 +370,7 @@ fun MainScreen(
                 onPlayFolder = { viewModel.playEntireFolder(folder.path) },
                 onaddToPlaylist = { viewModel.openaddToPlaylistDialogForFolder(folder.path) },
                 onaddToQueue = { viewModel.AddFolderToQueue(folder.path) },
+                onBatchEditTags = { viewModel.openBatchId3Dialog(folder) },
                 onDismiss = { viewModel.closeFolderContext() }
             )
         }
@@ -361,6 +383,7 @@ fun MainScreen(
                 onaddToPlaylist = { viewModel.openaddToPlaylistDialogForSong(song) },
                 onaddToQueue = { viewModel.AddSongToQueue(song) },
                 onToggleFavorite = { viewModel.toggleFavorite(song) },
+                onSetAsRingtone = { com.example.otomuzik.util.RingtoneHelper.setAsRingtone(context, song) },
                 onDismiss = { viewModel.closeSongContext() }
             )
         }
@@ -393,7 +416,8 @@ fun MainScreen(
                 onBandChange = { idx, lvl -> viewModel.setEqBandLevel(idx, lvl) },
                 onBassBoostChange = { viewModel.setEqBassBoost(it) },
                 onLoudnessEnhancerChange = { viewModel.setLoudnessEnhancerEnabled(it) },
-                onDismiss = { viewModel.closeEqualizerDialog() }
+                onDismiss = { viewModel.closeEqualizerDialog() },
+                accentColor = accentColor
             )
         }
 
@@ -414,8 +438,8 @@ fun MainScreen(
             Id3InfoDialog(
                 song = playerState.currentSong!!,
                 onDismiss = { viewModel.closeId3Dialog() },
-                onSave = { newFileName, title, artist, album, genre, year, artworkBytes ->
-                    viewModel.saveId3Tags(playerState.currentSong!!, newFileName, title, artist, album, genre, year, artworkBytes)
+                onSave = { newFileName, title, artist, album, genre, year, artworkBytes, lyrics, deleteArtwork ->
+                    viewModel.saveId3Tags(playerState.currentSong!!, newFileName, title, artist, album, genre, year, artworkBytes, lyrics, deleteArtwork)
                     viewModel.closeId3Dialog()
                 }
             )
@@ -486,6 +510,72 @@ fun MainScreen(
             com.example.otomuzik.ui.components.SettingsDialog(
                 onDismissRequest = { viewModel.closeSettingsDialog() },
                 viewModel = viewModel
+            )
+        }
+
+        // Müzik Klasörleri Yönetim Penceresi
+        if (showFolderSelectionDialog) {
+            com.example.otomuzik.ui.components.FolderSelectionDialog(
+                storageRoots = storageRoots,
+                includedFolders = includedFolders,
+                onToggleFolder = { path, isInc -> viewModel.toggleFolderIncluded(path, isInc) },
+                onRescan = { viewModel.rescanLibrary() },
+                onDismissRequest = { viewModel.closeFolderSelectionDialog() }
+            )
+        }
+
+        // Hakkında Penceresi (Logo tıklamasıyla açılır)
+        if (showAboutDialog) {
+            com.example.otomuzik.ui.components.AboutDialog(
+                onDismissRequest = { viewModel.closeAboutDialog() },
+                accentColor = accentColor,
+                libraryStats = libraryStats
+            )
+        }
+
+        // Toplu ID3 Etiket Düzenleme Penceresi
+        batchId3FolderItem?.let { folder ->
+            BatchId3TagDialog(
+                folderName = folder.name,
+                folderPath = folder.path,
+                songCount = folder.songCount,
+                accentColor = accentColor,
+                onSave = { artist, album, genre, year ->
+                    viewModel.batchUpdateId3Tags(folder.path, artist, album, genre, year)
+                },
+                onDismiss = { viewModel.closeBatchId3Dialog() }
+            )
+        }
+
+        // M3U Çalma Listesi İçe Aktarma Penceresi
+        if (showM3uImportDialog) {
+            M3uImportDialog(
+                m3uFiles = availableM3uFiles,
+                accentColor = accentColor,
+                onSelectFile = { viewModel.importM3uFile(it) },
+                onRefresh = { viewModel.scanM3uFiles() },
+                onDismiss = { viewModel.closeM3uImportDialog() }
+            )
+        }
+
+        // Aynı / Mükerrer Şarkıları Bulma Penceresi
+        if (showDuplicateFinderDialog) {
+            DuplicateFinderDialog(
+                allSongs = allSongs,
+                accentColor = accentColor,
+                onDismissRequest = { viewModel.closeDuplicateFinderDialog() },
+                onDeleteSong = { song, onComplete ->
+                    viewModel.deleteSong(song, onComplete)
+                },
+                onDeleteMultipleSongs = { songs, onComplete ->
+                    viewModel.deleteSongs(songs, onComplete)
+                },
+                onRenameSong = { song, newName, onComplete ->
+                    viewModel.renameSong(song, newName, onComplete)
+                },
+                onPreviewSong = { song ->
+                    viewModel.playSongFromList(song, allSongs)
+                }
             )
         }
     }

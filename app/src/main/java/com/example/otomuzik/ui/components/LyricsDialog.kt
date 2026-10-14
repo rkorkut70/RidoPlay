@@ -180,6 +180,7 @@ fun LyricsDialog(
 
     val configuration = LocalConfiguration.current
     val isPhone = configuration.screenWidthDp < 600
+    val isCompactHeader = isPhone || configuration.orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT || configuration.screenWidthDp < 900
 
     // Font Boyutu Hesaplaması: Telefonda ekran genişliğine uygun, tablette ferah
     val baseNormalSp = if (isPhone) 16 + fontSizeDelta else 23 + fontSizeDelta
@@ -222,6 +223,8 @@ fun LyricsDialog(
                                 color = effectiveAccent,
                                 fontSize = if (isPhone) 11.sp else 12.sp,
                                 fontWeight = FontWeight.SemiBold,
+                                maxLines = 1,
+                                softWrap = false,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                             )
                         }
@@ -236,6 +239,8 @@ fun LyricsDialog(
                                 color = CarTextSecondary,
                                 fontSize = if (isPhone) 11.sp else 12.sp,
                                 fontWeight = FontWeight.Medium,
+                                maxLines = 1,
+                                softWrap = false,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                             )
                         }
@@ -492,7 +497,7 @@ fun LyricsDialog(
                 }
 
                 // --- ÜST BAŞLIK ALANI (TELEFON VE TABLET UYUMLU) ---
-                if (isPhone) {
+                if (isCompactHeader) {
                     // Telefonda 1. Satır: Şarkı Bilgisi + Kapat Butonu
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -528,7 +533,7 @@ fun LyricsDialog(
                                     }
                                     if (sourceLabel.isNotEmpty()) {
                                         Spacer(modifier = Modifier.width(6.dp))
-                                        Text(text = sourceLabel, fontSize = 11.sp, color = CarTextMuted)
+                                        Text(text = sourceLabel, fontSize = 11.sp, color = CarTextMuted, maxLines = 1, softWrap = false)
                                     }
                                 }
                             }
@@ -603,7 +608,7 @@ fun LyricsDialog(
                                     }
                                     if (sourceLabel.isNotEmpty()) {
                                         Spacer(modifier = Modifier.width(6.dp))
-                                        Text(text = sourceLabel, fontSize = 13.sp, color = CarTextMuted)
+                                        Text(text = sourceLabel, fontSize = 13.sp, color = CarTextMuted, maxLines = 1, softWrap = false)
                                     }
                                 }
                             }
@@ -706,7 +711,9 @@ fun LyricsDialog(
 
                         // Sağlayıcı arama butonları (Google, Musixmatch, LyricFind, Genius, Panodan Yapıştır)
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -715,10 +722,10 @@ fun LyricsDialog(
                                 colors = ButtonDefaults.buttonColors(containerColor = CarSurfaceDark),
                                 border = BorderStroke(1.dp, if (isDark) CarBorder else Color(0xFFCBD5E1)),
                                 shape = RoundedCornerShape(10.dp),
-                                modifier = Modifier.weight(1f).height(38.dp),
-                                contentPadding = PaddingValues(horizontal = 4.dp)
+                                modifier = Modifier.height(38.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                             ) {
-                                Text(text = "🌐 Google", fontSize = 12.sp, color = CarTextPrimary, maxLines = 1)
+                                Text(text = "🌐 Google", fontSize = 11.5.sp, color = CarTextPrimary, maxLines = 1)
                             }
 
                             Button(
@@ -726,10 +733,10 @@ fun LyricsDialog(
                                 colors = ButtonDefaults.buttonColors(containerColor = CarSurfaceDark),
                                 border = BorderStroke(1.dp, if (isDark) CarBorder else Color(0xFFCBD5E1)),
                                 shape = RoundedCornerShape(10.dp),
-                                modifier = Modifier.weight(1f).height(38.dp),
-                                contentPadding = PaddingValues(horizontal = 4.dp)
+                                modifier = Modifier.height(38.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                             ) {
-                                Text(text = "🎵 Musixmatch", fontSize = 12.sp, color = CarTextPrimary, maxLines = 1)
+                                Text(text = "🎵 Musixmatch", fontSize = 11.5.sp, color = CarTextPrimary, maxLines = 1)
                             }
 
                             Button(
@@ -737,10 +744,10 @@ fun LyricsDialog(
                                 colors = ButtonDefaults.buttonColors(containerColor = CarSurfaceDark),
                                 border = BorderStroke(1.dp, if (isDark) CarBorder else Color(0xFFCBD5E1)),
                                 shape = RoundedCornerShape(10.dp),
-                                modifier = Modifier.weight(1f).height(38.dp),
-                                contentPadding = PaddingValues(horizontal = 4.dp)
+                                modifier = Modifier.height(38.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                             ) {
-                                Text(text = "📑 LyricFind", fontSize = 12.sp, color = CarTextPrimary, maxLines = 1)
+                                Text(text = "📑 LyricFind", fontSize = 11.5.sp, color = CarTextPrimary, maxLines = 1)
                             }
 
                             Button(
@@ -748,10 +755,10 @@ fun LyricsDialog(
                                 colors = ButtonDefaults.buttonColors(containerColor = CarSurfaceDark),
                                 border = BorderStroke(1.dp, if (isDark) CarBorder else Color(0xFFCBD5E1)),
                                 shape = RoundedCornerShape(10.dp),
-                                modifier = Modifier.weight(1f).height(38.dp),
-                                contentPadding = PaddingValues(horizontal = 4.dp)
+                                modifier = Modifier.height(38.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                             ) {
-                                Text(text = "🎶 Genius", fontSize = 12.sp, color = CarTextPrimary, maxLines = 1)
+                                Text(text = "🎶 Genius", fontSize = 11.5.sp, color = CarTextPrimary, maxLines = 1)
                             }
 
                             Button(
@@ -759,10 +766,10 @@ fun LyricsDialog(
                                 colors = ButtonDefaults.buttonColors(containerColor = CarSurfaceDark),
                                 border = BorderStroke(1.dp, effectiveAccent.copy(alpha = 0.5f)),
                                 shape = RoundedCornerShape(10.dp),
-                                modifier = Modifier.weight(1.2f).height(38.dp),
-                                contentPadding = PaddingValues(horizontal = 4.dp)
+                                modifier = Modifier.height(38.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                             ) {
-                                Text(text = "📋 Yapıştır", fontSize = 12.sp, color = effectiveAccent, fontWeight = FontWeight.Bold, maxLines = 1)
+                                Text(text = "📋 Yapıştır", fontSize = 11.5.sp, color = effectiveAccent, fontWeight = FontWeight.Bold, maxLines = 1)
                             }
                         }
                     }
@@ -990,47 +997,97 @@ fun LyricsDialog(
                                 Spacer(modifier = Modifier.height(20.dp))
 
                                 // 1. Sıra: Çevrimiçi Ara & Panodan Yapıştır
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Button(
-                                        onClick = { onSearchOnline(artistName, songTitle) },
-                                        enabled = !isSearching,
-                                        colors = ButtonDefaults.buttonColors(containerColor = effectiveAccent),
-                                        shape = RoundedCornerShape(12.dp),
-                                        modifier = Modifier.height(48.dp)
+                                if (isPhone) {
+                                    Column(
+                                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
-                                        Icon(
-                                            painter = painterResource(R.drawable.ic_search),
-                                            contentDescription = null,
-                                            tint = if (effectiveAccent.luminance() > 0.5f) Color.Black else Color.White,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text(
-                                            text = "Çevrimiçi Otomatik Ara (LRCLIB & ovh)",
-                                            color = if (effectiveAccent.luminance() > 0.5f) Color.Black else Color.White,
-                                            fontSize = 14.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
+                                        Button(
+                                            onClick = { onSearchOnline(artistName, songTitle) },
+                                            enabled = !isSearching,
+                                            colors = ButtonDefaults.buttonColors(containerColor = effectiveAccent),
+                                            shape = RoundedCornerShape(12.dp),
+                                            modifier = Modifier.fillMaxWidth().height(46.dp),
+                                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(R.drawable.ic_search),
+                                                contentDescription = null,
+                                                tint = if (effectiveAccent.luminance() > 0.5f) Color.Black else Color.White,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                text = "Çevrimiçi Ara (LRCLIB & ovh)",
+                                                color = if (effectiveAccent.luminance() > 0.5f) Color.Black else Color.White,
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                maxLines = 1
+                                            )
+                                        }
 
-                                    Button(
-                                        onClick = pasteFromClipboard,
-                                        colors = ButtonDefaults.buttonColors(containerColor = CarSurfaceVariant),
-                                        border = BorderStroke(1.dp, effectiveAccent.copy(alpha = 0.6f)),
-                                        shape = RoundedCornerShape(12.dp),
-                                        modifier = Modifier.height(48.dp)
+                                        Button(
+                                            onClick = pasteFromClipboard,
+                                            colors = ButtonDefaults.buttonColors(containerColor = CarSurfaceVariant),
+                                            border = BorderStroke(1.dp, effectiveAccent.copy(alpha = 0.6f)),
+                                            shape = RoundedCornerShape(12.dp),
+                                            modifier = Modifier.fillMaxWidth().height(46.dp),
+                                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                                        ) {
+                                            Text(text = "📋", fontSize = 15.sp)
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                text = "Panodan Yapıştır",
+                                                color = effectiveAccent,
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                maxLines = 1
+                                            )
+                                        }
+                                    }
+                                } else {
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text(text = "📋", fontSize = 16.sp)
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text(
-                                            text = "Panodan Yapıştır",
-                                            color = effectiveAccent,
-                                            fontSize = 14.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
+                                        Button(
+                                            onClick = { onSearchOnline(artistName, songTitle) },
+                                            enabled = !isSearching,
+                                            colors = ButtonDefaults.buttonColors(containerColor = effectiveAccent),
+                                            shape = RoundedCornerShape(12.dp),
+                                            modifier = Modifier.height(48.dp)
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(R.drawable.ic_search),
+                                                contentDescription = null,
+                                                tint = if (effectiveAccent.luminance() > 0.5f) Color.Black else Color.White,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                text = "Çevrimiçi Otomatik Ara (LRCLIB & ovh)",
+                                                color = if (effectiveAccent.luminance() > 0.5f) Color.Black else Color.White,
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+
+                                        Button(
+                                            onClick = pasteFromClipboard,
+                                            colors = ButtonDefaults.buttonColors(containerColor = CarSurfaceVariant),
+                                            border = BorderStroke(1.dp, effectiveAccent.copy(alpha = 0.6f)),
+                                            shape = RoundedCornerShape(12.dp),
+                                            modifier = Modifier.height(48.dp)
+                                        ) {
+                                            Text(text = "📋", fontSize = 16.sp)
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                text = "Panodan Yapıştır",
+                                                color = effectiveAccent,
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
                                     }
                                 }
 
@@ -1038,8 +1095,10 @@ fun LyricsDialog(
 
                                 // 2. Sıra: Servis Arama Butonları (Google, Musixmatch, LyricFind, Genius)
                                 Row(
-                                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Button(
@@ -1047,9 +1106,10 @@ fun LyricsDialog(
                                         colors = ButtonDefaults.buttonColors(containerColor = CarSurfaceVariant),
                                         border = BorderStroke(1.dp, if (isDark) CarBorder else Color(0xFFCBD5E1)),
                                         shape = RoundedCornerShape(12.dp),
-                                        modifier = Modifier.height(42.dp)
+                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                                        modifier = Modifier.height(40.dp)
                                     ) {
-                                        Text(text = "🌐 Google", color = CarTextPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                                        Text(text = "🌐 Google", color = CarTextPrimary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
                                     }
 
                                     Button(
@@ -1057,9 +1117,10 @@ fun LyricsDialog(
                                         colors = ButtonDefaults.buttonColors(containerColor = CarSurfaceVariant),
                                         border = BorderStroke(1.dp, if (isDark) CarBorder else Color(0xFFCBD5E1)),
                                         shape = RoundedCornerShape(12.dp),
-                                        modifier = Modifier.height(42.dp)
+                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                                        modifier = Modifier.height(40.dp)
                                     ) {
-                                        Text(text = "🎵 Musixmatch", color = CarTextPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                                        Text(text = "🎵 Musixmatch", color = CarTextPrimary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
                                     }
 
                                     Button(
@@ -1067,9 +1128,10 @@ fun LyricsDialog(
                                         colors = ButtonDefaults.buttonColors(containerColor = CarSurfaceVariant),
                                         border = BorderStroke(1.dp, if (isDark) CarBorder else Color(0xFFCBD5E1)),
                                         shape = RoundedCornerShape(12.dp),
-                                        modifier = Modifier.height(42.dp)
+                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                                        modifier = Modifier.height(40.dp)
                                     ) {
-                                        Text(text = "📑 LyricFind", color = CarTextPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                                        Text(text = "📑 LyricFind", color = CarTextPrimary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
                                     }
 
                                     Button(
@@ -1077,9 +1139,10 @@ fun LyricsDialog(
                                         colors = ButtonDefaults.buttonColors(containerColor = CarSurfaceVariant),
                                         border = BorderStroke(1.dp, if (isDark) CarBorder else Color(0xFFCBD5E1)),
                                         shape = RoundedCornerShape(12.dp),
-                                        modifier = Modifier.height(42.dp)
+                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                                        modifier = Modifier.height(40.dp)
                                     ) {
-                                        Text(text = "🎶 Genius", color = CarTextPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                                        Text(text = "🎶 Genius", color = CarTextPrimary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
                                     }
                                 }
                             }

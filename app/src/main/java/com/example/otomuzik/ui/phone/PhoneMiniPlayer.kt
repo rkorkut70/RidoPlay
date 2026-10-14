@@ -46,7 +46,7 @@ import com.example.otomuzik.theme.CarTextPrimary
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -77,6 +77,7 @@ fun PhoneMiniPlayer(
     onPrevious: () -> Unit = {},
     onToggleFavorite: () -> Unit,
     onClick: () -> Unit,
+    swipeSensitivity: String = "HIGH",
     modifier: Modifier = Modifier
 ) {
     if (currentSong == null) return
@@ -89,14 +90,29 @@ fun PhoneMiniPlayer(
     val currentOnPrevious by rememberUpdatedState(onPrevious)
 
     var dragOffsetX by remember { mutableFloatStateOf(0f) }
+    var dragOffsetY by remember { mutableFloatStateOf(0f) }
+    var totalDrag by remember { mutableFloatStateOf(0f) }
     var isDragging by remember { mutableStateOf(false) }
     val density = LocalDensity.current
-    val swipeThresholdPx = with(density) { 50.dp.toPx() }
 
-    val animatedOffset by animateFloatAsState(
+    val swipeThresholdDp = when (swipeSensitivity) {
+        "VERY_HIGH" -> 22.dp
+        "HIGH" -> 35.dp
+        "NORMAL" -> 50.dp
+        "LOW" -> 75.dp
+        else -> 35.dp
+    }
+    val swipeThresholdPx = with(density) { swipeThresholdDp.toPx() }
+
+    val animatedOffsetX by animateFloatAsState(
         targetValue = dragOffsetX,
-        animationSpec = spring(stiffness = 500f, dampingRatio = 0.8f),
-        label = "MiniPlayerSwipeOffset"
+        animationSpec = spring(stiffness = 600f, dampingRatio = 0.75f),
+        label = "MiniPlayerSwipeOffsetX"
+    )
+    val animatedOffsetY by animateFloatAsState(
+        targetValue = dragOffsetY,
+        animationSpec = spring(stiffness = 600f, dampingRatio = 0.75f),
+        label = "MiniPlayerSwipeOffsetY"
     )
 
     val shape = RoundedCornerShape(16.dp)
@@ -105,45 +121,69 @@ fun PhoneMiniPlayer(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 10.dp, vertical = 6.dp)
-            .offset { IntOffset(animatedOffset.roundToInt(), 0) }
+            .offset { IntOffset(animatedOffsetX.roundToInt(), animatedOffsetY.roundToInt()) }
             .clip(shape)
             .background(CarSurfaceDark.copy(alpha = 0.96f))
             .border(1.2.dp, accentColor.copy(alpha = 0.45f), shape)
-            .pointerInput(density) {
-                detectHorizontalDragGestures(
+            .pointerInput(density, swipeThresholdPx) {
+                detectDragGestures(
                     onDragStart = {
                         isDragging = true
                         dragOffsetX = 0f
+                        dragOffsetY = 0f
+                        totalDrag = 0f
                     },
                     onDragEnd = {
+                        val swipeUpThresholdPx = (swipeThresholdPx * 0.8f).coerceAtLeast(28f)
                         when {
+                            // 1. Yukarı sürükleme (Mini oynatıcıyı yukarı çekince tam ekran oynatıcı açılır)
+                            dragOffsetY < -swipeUpThresholdPx && kotlin.math.abs(dragOffsetY) >= kotlin.math.abs(dragOffsetX) -> {
+                                onClick()
+                            }
+                            // 2. Sağa/Sola sürükleme (Şarkı geçişi)
                             dragOffsetX < -swipeThresholdPx -> currentOnNext()
                             dragOffsetX > swipeThresholdPx  -> currentOnPrevious()
+                            // 3. Dokunma (Tap)
+                            totalDrag < 15f -> onClick()
                         }
                         dragOffsetX = 0f
+                        dragOffsetY = 0f
                         isDragging = false
                     },
                     onDragCancel = {
                         dragOffsetX = 0f
+                        dragOffsetY = 0f
                         isDragging = false
                     },
-                    onHorizontalDrag = { change, dragAmount ->
+                    onDrag = { change, dragAmount ->
                         change.consume()
-                        dragOffsetX = (dragOffsetX + dragAmount).coerceIn(-180f, 180f)
+                        totalDrag += kotlin.math.abs(dragAmount.x) + kotlin.math.abs(dragAmount.y)
+                        dragOffsetX = (dragOffsetX + dragAmount.x).coerceIn(-180f, 180f)
+                        dragOffsetY = (dragOffsetY + dragAmount.y).coerceIn(-240f, 20f)
                     }
                 )
             }
-            .clickable {
-                if (!isDragging && dragOffsetX == 0f) {
-                    onClick()
-                }
-            }
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
+            // Yukarı çekme / sürükleme tutacağı (Swipe up handle indicator)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 5.dp, bottom = 1.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(width = 36.dp, height = 3.dp)
+                        .clip(CircleShape)
+                        .background(accentColor.copy(alpha = 0.5f))
+                )
+            }
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // 1. Albüm Kapağı Küçük Resmi (Thumbnail)
@@ -176,15 +216,15 @@ fun PhoneMiniPlayer(
                 // 2. Şarkı Başlığı ve Sanatçı
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = currentSong.title,
-                        color = CarTextPrimary,
+                        text = com.example.otomuzik.util.TurkishStringFixer.fix(currentSong.title),
+                        color = Color(0xFFFFFFFF),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = currentSong.artist,
+                        text = com.example.otomuzik.util.TurkishStringFixer.fix(currentSong.artist),
                         color = CarTextMuted,
                         fontSize = 12.sp,
                         maxLines = 1,

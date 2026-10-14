@@ -1,4 +1,4 @@
-﻿package com.example.otomuzik.ui.components
+package com.example.otomuzik.ui.components
 import com.example.otomuzik.theme.*
 
 import androidx.compose.foundation.background
@@ -72,7 +72,7 @@ fun PermissionScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             Text(
-                text = "Mzik ve USB Depolama İzni",
+                text = "Müzik ve USB Depolama İzni",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 color = CarTextPrimary,
@@ -82,7 +82,7 @@ fun PermissionScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "USB bellek ve cihazınızdaki arklarınızı çalabilmek için depolama erişim izni vermeniz gerekmektedir.",
+                text = "USB bellek ve cihazınızdaki şarkılarınızı çalabilmek için depolama erişim izni vermeniz gerekmektedir.",
                 fontSize = 14.sp,
                 color = CarTextMuted,
                 textAlign = TextAlign.Center

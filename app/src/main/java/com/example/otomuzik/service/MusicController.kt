@@ -69,6 +69,11 @@ object MusicController {
                         _sleepTimerLeftMs.value = ms
                     }
                 }
+                scope.launch {
+                    s.playbackSpeed.collect { speed ->
+                        _playbackSpeed.value = speed
+                    }
+                }
             }
         }
 
@@ -198,6 +203,15 @@ object MusicController {
 
     fun cancelSleepTimer() {
         musicService?.cancelSleepTimer()
+    }
+
+    // --- Oynatma Hızı ---
+    private val _playbackSpeed = MutableStateFlow(1.0f)
+    val playbackSpeed: StateFlow<Float> = _playbackSpeed.asStateFlow()
+
+    fun setPlaybackSpeed(speed: Float) {
+        _playbackSpeed.value = speed
+        musicService?.setPlaybackSpeed(speed)
     }
 
     fun updateCurrentSongInfo(updatedSong: Song) {

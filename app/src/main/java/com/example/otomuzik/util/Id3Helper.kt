@@ -72,93 +72,116 @@ object Id3Helper {
         var trackNumber = ""
         var durationMs = 0L
 
-        var retriever: MediaMetadataRetriever? = null
-        var isRetrieverSet = false
-
-        try {
-            retriever = MediaMetadataRetriever()
-
-            // 1. ContentResolver �zerinden dene (Scoped storage i�in en g�venli)
-            if (context != null && uriString.isNotEmpty()) {
-                try {
-                    context.contentResolver.openFileDescriptor(Uri.parse(uriString), "r")?.use { pfd ->
-                        retriever.setDataSource(pfd.fileDescriptor)
-                        isRetrieverSet = true
+        // 1. ONCELIK: Dosya dogrudan erisilebiliyorsa org.jaudiotagger ile oku (JNI NewStringUTF cokmesini onler)
+        var parsedViaJaudiotagger = false
+        if (file != null && file.exists() && file.canRead()) {
+            try {
+                val audioFile = org.jaudiotagger.audio.AudioFileIO.read(file)
+                val header = audioFile.audioHeader
+                if (header != null) {
+                    durationMs = (header.trackLength * 1000L).coerceAtLeast(0L)
+                    val br = header.bitRate
+                    if (!br.isNullOrBlank()) {
+                        bitrate = "${br} kbps"
                     }
-                } catch (e: Exception) {
-                    // Devam et
                 }
+                val tag = audioFile.tag
+                if (tag != null) {
+                    val t = tag.getFirst(org.jaudiotagger.tag.FieldKey.TITLE)
+                    if (!t.isNullOrBlank() && t != "<unknown>") title = TurkishStringFixer.fix(t).trim()
+                    val a = tag.getFirst(org.jaudiotagger.tag.FieldKey.ARTIST)
+                    if (!a.isNullOrBlank() && a != "<unknown>") artist = TurkishStringFixer.fix(a).trim()
+                    val alb = tag.getFirst(org.jaudiotagger.tag.FieldKey.ALBUM)
+                    if (!alb.isNullOrBlank() && alb != "<unknown>") album = TurkishStringFixer.fix(alb).trim()
+                    val yr = tag.getFirst(org.jaudiotagger.tag.FieldKey.YEAR)
+                    if (!yr.isNullOrBlank()) year = yr.take(4).trim()
+                    val gn = tag.getFirst(org.jaudiotagger.tag.FieldKey.GENRE)
+                    if (!gn.isNullOrBlank()) genre = TurkishStringFixer.fix(cleanGenre(gn))
+                    val tr = tag.getFirst(org.jaudiotagger.tag.FieldKey.TRACK)
+                    if (!tr.isNullOrBlank()) trackNumber = tr.substringBefore('/').trim()
+                }
+                parsedViaJaudiotagger = true
+            } catch (t: Throwable) {
+                // jaudiotagger basarisiz olursa MediaMetadataRetriever fallback calisir
             }
+        }
 
-            // 2. Do�rudan dosya yolu �zerinden dene (USB bellekler vb.)
-            if (!isRetrieverSet && filePath.isNotEmpty()) {
-                val f = File(filePath)
-                if (f.exists() && f.canRead()) {
+        // 2. ONCELIK: Jaudiotagger basarisiz olduysa MediaMetadataRetriever ile dene
+        if (!parsedViaJaudiotagger) {
+            var retriever: MediaMetadataRetriever? = null
+            var isRetrieverSet = false
+            try {
+                retriever = MediaMetadataRetriever()
+                if (context != null && uriString.isNotEmpty()) {
                     try {
-                        retriever.setDataSource(filePath)
-                        isRetrieverSet = true
-                    } catch (e: Exception) {
-                        // Devam et
+                        context.contentResolver.openFileDescriptor(Uri.parse(uriString), "r")?.use { pfd ->
+                            retriever.setDataSource(pfd.fileDescriptor)
+                            isRetrieverSet = true
+                        }
+                    } catch (e: Exception) {}
+                }
+                if (!isRetrieverSet && filePath.isNotEmpty()) {
+                    val f = File(filePath)
+                    if (f.exists() && f.canRead()) {
+                        try {
+                            retriever.setDataSource(filePath)
+                            isRetrieverSet = true
+                        } catch (e: Exception) {}
                     }
                 }
+                if (isRetrieverSet) {
+                    try {
+                        val id3Title = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
+                        val id3Artist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)
+                        val id3Album = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM)
+                        val id3Year = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_YEAR) ?: retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DATE)
+                        val id3Genre = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_GENRE)
+                        val id3Track = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_CD_TRACK_NUMBER)
+                        val id3Bitrate = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE)
+                        val id3Duration = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+                        if (!id3Title.isNullOrBlank() && id3Title != "<unknown>") {
+                            title = TurkishStringFixer.fix(fixEncoding(id3Title)).trim()
+                        }
+                        if (!id3Artist.isNullOrBlank() && id3Artist != "<unknown>") {
+                            artist = TurkishStringFixer.fix(fixEncoding(id3Artist)).trim()
+                        }
+                        if (!id3Album.isNullOrBlank() && id3Album != "<unknown>") {
+                            album = TurkishStringFixer.fix(fixEncoding(id3Album)).trim()
+                        }
+                        if (!id3Year.isNullOrBlank()) {
+                            year = id3Year.take(4).trim()
+                        }
+                        if (!id3Genre.isNullOrBlank()) {
+                            genre = TurkishStringFixer.fix(fixEncoding(cleanGenre(id3Genre)))
+                        }
+                        if (!id3Track.isNullOrBlank()) {
+                            trackNumber = id3Track.substringBefore('/').trim()
+                        }
+                        if (!id3Bitrate.isNullOrBlank()) {
+                            val bps = id3Bitrate.toLongOrNull() ?: 0L
+                            bitrate = if (bps > 0) "${bps / 1000} kbps" else ""
+                        }
+                        if (!id3Duration.isNullOrBlank()) {
+                            durationMs = id3Duration.toLongOrNull() ?: 0L
+                        }
+                    } catch (t: Throwable) {}
+                }
+                if (file != null && file.exists() && file.canRead() && ext == "mp3") {
+                    val rawTags = parseRawId3v2(file)
+                    if (rawTags != null) {
+                        rawTags["TIT2"]?.let { if (it.isNotBlank() && it != "<unknown>") title = TurkishStringFixer.fix(it) }
+                        rawTags["TPE1"]?.let { if (it.isNotBlank() && it != "<unknown>") artist = TurkishStringFixer.fix(it) }
+                        rawTags["TALB"]?.let { if (it.isNotBlank() && it != "<unknown>") album = TurkishStringFixer.fix(it) }
+                        rawTags["TYER"]?.let { if (it.isNotBlank()) year = it.take(4) }
+                        rawTags["TDRC"]?.let { if (it.isNotBlank() && year.isEmpty()) year = it.take(4) }
+                        rawTags["TCON"]?.let { if (it.isNotBlank()) genre = TurkishStringFixer.fix(cleanGenre(it)) }
+                        rawTags["TRCK"]?.let { if (it.isNotBlank()) trackNumber = it.substringBefore('/').trim() }
+                    }
+                }
+            } catch (e: Exception) {
+            } finally {
+                try { retriever?.release() } catch (e: Exception) {}
             }
-
-            if (isRetrieverSet) {
-                val id3Title  = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
-                val id3Artist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)
-                val id3Album  = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM)
-                val id3Year   = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_YEAR)
-                    ?: retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DATE)
-                val id3Genre  = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_GENRE)
-                val id3Track  = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_CD_TRACK_NUMBER)
-                val id3Bitrate  = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE)
-                val id3Duration = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
-
-                if (!id3Title.isNullOrBlank() && id3Title != "<unknown>") {
-                    title = fixEncoding(id3Title).trim()
-                }
-                if (!id3Artist.isNullOrBlank() && id3Artist != "<unknown>") {
-                    artist = fixEncoding(id3Artist).trim()
-                }
-                if (!id3Album.isNullOrBlank() && id3Album != "<unknown>") {
-                    album = fixEncoding(id3Album).trim()
-                }
-                if (!id3Year.isNullOrBlank()) {
-                    year = id3Year.take(4).trim()
-                }
-                if (!id3Genre.isNullOrBlank()) {
-                    genre = fixEncoding(cleanGenre(id3Genre))
-                }
-                if (!id3Track.isNullOrBlank()) {
-                    trackNumber = id3Track.substringBefore('/').trim()
-                }
-                if (!id3Bitrate.isNullOrBlank()) {
-                    val bps = id3Bitrate.toLongOrNull() ?: 0L
-                    bitrate = if (bps > 0) "${bps / 1000} kbps" else ""
-                }
-                if (!id3Duration.isNullOrBlank()) {
-                    durationMs = id3Duration.toLongOrNull() ?: 0L
-                }
-            }
-
-            //    ham ID3v2 parse ile yeniden dene
-            if (file != null && file.exists() && file.canRead() && ext == "mp3") {
-                val rawTags = parseRawId3v2(file)
-                if (rawTags != null) {
-                    rawTags["TIT2"]?.let { if (it.isNotBlank() && it != "<unknown>") title = TurkishStringFixer.fix(it) }
-                    rawTags["TPE1"]?.let { if (it.isNotBlank() && it != "<unknown>") artist = TurkishStringFixer.fix(it) }
-                    rawTags["TALB"]?.let { if (it.isNotBlank() && it != "<unknown>") album = TurkishStringFixer.fix(it) }
-                    rawTags["TYER"]?.let { if (it.isNotBlank()) year = it.take(4) }
-                    rawTags["TDRC"]?.let { if (it.isNotBlank() && year.isEmpty()) year = it.take(4) }
-                    rawTags["TCON"]?.let { if (it.isNotBlank()) genre = TurkishStringFixer.fix(cleanGenre(it)) }
-                    rawTags["TRCK"]?.let { if (it.isNotBlank()) trackNumber = it.substringBefore('/').trim() }
-                }
-            }
-
-        } catch (e: Exception) {
-            // Hata durumunda varsay�lanlar kullan�l�r
-        } finally {
-            try { retriever?.release() } catch (e: Exception) {}
         }
 
         val metadata = Id3Metadata(
@@ -233,7 +256,7 @@ object Id3Helper {
      */
     private fun scoreTurkish(text: String): Int {
         var score = 0
-        val turkishChars = setOf('�', '�', '�', '�', '�', '�', '�', '�', '�', '�', '�', '�')
+        val turkishChars = setOf('ç', 'ğ', 'ı', 'ö', 'ş', 'ü', 'Ç', 'Ğ', 'İ', 'Ö', 'Ş', 'Ü')
         for (ch in text) {
             when {
                 ch in turkishChars    -> score += 2
@@ -255,8 +278,8 @@ object Id3Helper {
         var suspiciousCount = 0
         for (ch in text) {
             if (ch.code in c1Range) suspiciousCount++
-            // T�rk�e karakterlerin bozuk temsilleri (�, �, �, � vb.)
-            if (ch == '�' || ch == '�') suspiciousCount++
+            // Bozuk karakter kontrolü
+            if (ch == '\uFFFD') suspiciousCount++
         }
         return suspiciousCount > 0
     }
@@ -568,7 +591,9 @@ object Id3Helper {
         album: String,
         genre: String,
         year: String,
-        artworkBytes: ByteArray? = null
+        artworkBytes: ByteArray? = null,
+        lyrics: String? = null,
+        deleteArtwork: Boolean = false
     ): Boolean {
         var tagSaved = false
         try {
@@ -583,7 +608,79 @@ object Id3Helper {
                 tag.setField(org.jaudiotagger.tag.FieldKey.GENRE, genre)
                 tag.setField(org.jaudiotagger.tag.FieldKey.YEAR, year)
 
-                if (artworkBytes != null && artworkBytes.isNotEmpty()) {
+                if (lyrics != null) {
+                    val cleanLyrics = TurkishStringFixer.fix(lyrics.trim())
+                    
+                    // 1. Uygulama içi önbelleğe anında ve garantili kaydet
+                    if (cleanLyrics.isBlank()) {
+                        LyricsHelper.deleteLyricsFromAppCache(context, path)
+                    } else {
+                        LyricsHelper.saveLyricsToAppCache(context, path, cleanLyrics)
+                    }
+
+                    // 2. ID3 etiketine yaz
+                    try {
+                        try {
+                            tag.deleteField(org.jaudiotagger.tag.FieldKey.LYRICS)
+                        } catch (_: Throwable) {}
+
+                        if (cleanLyrics.isNotBlank()) {
+                            try {
+                                tag.setField(org.jaudiotagger.tag.FieldKey.LYRICS, cleanLyrics)
+                            } catch (e: Throwable) {
+                                try {
+                                    val uslt = org.jaudiotagger.tag.id3.framebody.FrameBodyUSLT(
+                                        org.jaudiotagger.tag.id3.valuepair.TextEncoding.UTF_16,
+                                        "eng",
+                                        "",
+                                        cleanLyrics
+                                    )
+                                    val frame = if (tag is org.jaudiotagger.tag.id3.ID3v24Tag) {
+                                        org.jaudiotagger.tag.id3.ID3v24Frame("USLT").apply { body = uslt }
+                                    } else {
+                                        org.jaudiotagger.tag.id3.ID3v23Frame("USLT").apply { body = uslt }
+                                    }
+                                    tag.setField(frame)
+                                } catch (e2: Throwable) {
+                                    e2.printStackTrace()
+                                }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+
+                    // 3. Companion .lrc veya .txt dosyasını senkronize et
+                    try {
+                        val dir = file.parentFile
+                        if (dir != null && dir.exists() && dir.canWrite()) {
+                            val name = file.nameWithoutExtension
+                            val lrcFile = File(dir, "$name.lrc")
+                            val txtFile = File(dir, "$name.txt")
+                            if (cleanLyrics.isBlank()) {
+                                if (lrcFile.exists()) lrcFile.delete()
+                                if (txtFile.exists()) txtFile.delete()
+                            } else {
+                                val isSynced = cleanLyrics.contains(Regex("""\[\d{1,2}:\d{2}"""))
+                                if (isSynced) {
+                                    lrcFile.writeText(cleanLyrics, Charsets.UTF_8)
+                                    if (txtFile.exists()) txtFile.delete()
+                                } else {
+                                    txtFile.writeText(cleanLyrics, Charsets.UTF_8)
+                                    if (lrcFile.exists()) lrcFile.delete()
+                                }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+
+                if (deleteArtwork) {
+                    try {
+                        tag.deleteArtworkField()
+                    } catch (e: Exception) {}
+                } else if (artworkBytes != null && artworkBytes.isNotEmpty()) {
                     try {
                         val artwork = org.jaudiotagger.tag.images.ArtworkFactory.getNew()
                         artwork.binaryData = artworkBytes
@@ -593,10 +690,6 @@ object Id3Helper {
                     } catch (e: Exception) {
                         e.printStackTrace()
                     }
-                } else if (artworkBytes == null) {
-                    try {
-                        tag.deleteArtworkField()
-                    } catch (e: Exception) {}
                 }
 
                 audioFile.commit()
@@ -613,17 +706,24 @@ object Id3Helper {
             e.printStackTrace()
         }
 
-        // Uygulama içi önbelleğe ve klasöre kaydet (Dosya salt okunur olsa bile uygulama resmi hatırlar)
+        // Uygulama iÃ§i Ã¶nbelleÄŸe ve klasÃ¶re kaydet
         try {
-            saveCoverToAppCache(context, path, artworkBytes)
-            if (path.isNotEmpty()) {
-                val parent = File(path).parentFile
-                if (parent != null && parent.exists() && parent.canWrite()) {
-                    val coverFile = File(parent, "cover.jpg")
-                    if (artworkBytes != null && artworkBytes.isNotEmpty()) {
+            if (deleteArtwork) {
+                saveCoverToAppCache(context, path, null)
+                if (path.isNotEmpty()) {
+                    val parent = File(path).parentFile
+                    if (parent != null && parent.exists() && parent.canWrite()) {
+                        val coverFile = File(parent, "cover.jpg")
+                        if (coverFile.exists()) coverFile.delete()
+                    }
+                }
+            } else if (artworkBytes != null && artworkBytes.isNotEmpty()) {
+                saveCoverToAppCache(context, path, artworkBytes)
+                if (path.isNotEmpty()) {
+                    val parent = File(path).parentFile
+                    if (parent != null && parent.exists() && parent.canWrite()) {
+                        val coverFile = File(parent, "cover.jpg")
                         coverFile.writeBytes(artworkBytes)
-                    } else if (artworkBytes == null && coverFile.exists()) {
-                        coverFile.delete()
                     }
                 }
             }
@@ -635,7 +735,6 @@ object Id3Helper {
         AlbumArtHelper.clearCache()
         return true
     }
-
     private fun cleanGenre(rawGenre: String): String {
         val trimmed = rawGenre.trim()
         if (trimmed.startsWith("(") && trimmed.endsWith(")")) {
@@ -665,7 +764,7 @@ object Id3Helper {
         "New Wave", "Psychedelic", "Rave", "Showtunes", "Trailer", "Lo-Fi", "Tribal",
         "Acid Punk", "Acid Jazz", "Polka", "Retro", "Musical", "Rock & Roll", "Hard Rock",
         // T�rk m�zi�i ek genre'lar�
-        "Arabesk", "Turkish Folk", "T�rk Sanat M�zi�i", "T�rk Pop", "T�rk Rock"
+        "Arabesk", "Turkish Folk", "Türk Sanat Müziği", "Türk Pop", "Türk Rock"
     )
 }
 

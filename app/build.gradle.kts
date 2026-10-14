@@ -11,8 +11,8 @@ android {
         applicationId = "com.example.otomuzik"
         minSdk = 24
         targetSdk = 36
-        versionCode = 10
-        versionName = "2.0"
+        versionCode = 13
+        versionName = "2.9"
     }
 
     buildTypes {

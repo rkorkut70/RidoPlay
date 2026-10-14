@@ -52,11 +52,14 @@ import com.example.otomuzik.theme.CarSurfaceDark
 import com.example.otomuzik.theme.CarSurfaceVariant
 import com.example.otomuzik.theme.CarTextMuted
 import com.example.otomuzik.theme.CarTextPrimary
+import com.example.otomuzik.ui.components.AboutDialog
 import com.example.otomuzik.ui.components.AddToPlaylistDialog
 import com.example.otomuzik.ui.components.CreatePlaylistDialog
+import com.example.otomuzik.ui.components.DuplicateFinderDialog
 import com.example.otomuzik.ui.components.EqualizerDialog
 import com.example.otomuzik.ui.components.FixedCarSearchBar
 import com.example.otomuzik.ui.components.FolderBrowserView
+import com.example.otomuzik.ui.components.FolderSelectionDialog
 import com.example.otomuzik.ui.components.FolderactionDialog
 import com.example.otomuzik.ui.components.Id3InfoDialog
 import com.example.otomuzik.ui.components.LyricsDialog
@@ -65,6 +68,10 @@ import com.example.otomuzik.ui.components.QueuePanel
 import com.example.otomuzik.ui.components.SearchResultsView
 import com.example.otomuzik.ui.components.SettingsDialog
 import com.example.otomuzik.ui.components.SongListView
+import androidx.compose.ui.platform.LocalContext
+import com.example.otomuzik.util.RingtoneHelper
+import com.example.otomuzik.ui.components.BatchId3TagDialog
+import com.example.otomuzik.ui.components.M3uImportDialog
 import com.example.otomuzik.ui.components.SongactionDialog
 import com.example.otomuzik.ui.main.MainScreenViewModel
 import com.example.otomuzik.ui.main.TabType
@@ -78,6 +85,7 @@ fun PhoneMainScreen(
     viewModel: MainScreenViewModel,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val playerState by viewModel.playerState.collectAsStateWithLifecycle()
     val allSongs by viewModel.allSongs.collectAsStateWithLifecycle()
     val filteredSongs by viewModel.filteredSongs.collectAsStateWithLifecycle()
@@ -99,6 +107,8 @@ fun PhoneMainScreen(
     val songsToaddToPlaylist by viewModel.songsToaddToPlaylist.collectAsStateWithLifecycle()
     val showCreatePlaylistDialog by viewModel.showCreatePlaylistDialog.collectAsStateWithLifecycle()
     val showSettingsDialog by viewModel.showSettingsDialog.collectAsStateWithLifecycle()
+    val showFolderSelectionDialog by viewModel.showFolderSelectionDialog.collectAsStateWithLifecycle()
+    val includedFolders by viewModel.includedFolders.collectAsStateWithLifecycle()
 
     val equalizerState by viewModel.equalizerState.collectAsStateWithLifecycle()
     val showEqualizerDialog by viewModel.showEqualizerDialog.collectAsStateWithLifecycle()
@@ -114,6 +124,16 @@ fun PhoneMainScreen(
     val lyricsStatusMessage by viewModel.lyricsStatusMessage.collectAsStateWithLifecycle()
     val autoSaveId3Lyrics by viewModel.autoSaveId3Lyrics.collectAsStateWithLifecycle()
     val lyricsData by viewModel.lyricsData.collectAsStateWithLifecycle()
+    val showAboutDialog by viewModel.showAboutDialog.collectAsStateWithLifecycle()
+    val libraryStats by viewModel.libraryStats.collectAsStateWithLifecycle()
+    val swipeSensitivity by viewModel.swipeSensitivity.collectAsStateWithLifecycle()
+    val playbackSpeed by viewModel.playbackSpeed.collectAsStateWithLifecycle()
+    val showWaveform by viewModel.showWaveform.collectAsStateWithLifecycle()
+
+    val batchId3FolderItem by viewModel.batchId3FolderItem.collectAsStateWithLifecycle()
+    val showM3uImportDialog by viewModel.showM3uImportDialog.collectAsStateWithLifecycle()
+    val availableM3uFiles by viewModel.availableM3uFiles.collectAsStateWithLifecycle()
+    val showDuplicateFinderDialog by viewModel.showDuplicateFinderDialog.collectAsStateWithLifecycle()
 
     var showFullscreenPlayer by rememberSaveable { mutableStateOf(true) }
     var isSearchExpanded by remember { mutableStateOf(false) }
@@ -140,7 +160,13 @@ fun PhoneMainScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { viewModel.openAboutDialog() }
+                        .padding(vertical = 2.dp, horizontal = 4.dp)
+                ) {
                     Box(
                         modifier = Modifier
                             .size(34.dp)
@@ -151,7 +177,7 @@ fun PhoneMainScreen(
                     ) {
                         Image(
                             painter = painterResource(id = R.drawable.ic_splash_logo),
-                            contentDescription = null,
+                            contentDescription = "Hakkında",
                             modifier = Modifier.size(22.dp)
                         )
                     }
@@ -237,7 +263,7 @@ fun PhoneMainScreen(
                     selectedTabIndex = selectedTabIndex,
                     containerColor = Color.Transparent,
                     contentColor = accentColor,
-                    edgePadding = 14.dp,
+                    edgePadding = 12.dp,
                     indicator = { tabPositions ->
                         if (selectedTabIndex in tabPositions.indices) {
                             TabRowDefaults.SecondaryIndicator(
@@ -254,13 +280,45 @@ fun PhoneMainScreen(
                         Tab(
                             selected = isSelected,
                             onClick = { viewModel.setTab(tabType) },
+                            modifier = Modifier.padding(horizontal = 2.dp, vertical = 4.dp),
                             text = {
-                                Text(
-                                    text = if (count > 0) "$title ($count)" else title,
-                                    fontSize = 14.sp,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isSelected) accentColor else CarTextMuted
-                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center,
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(if (isSelected) accentColor.copy(alpha = 0.20f) else Color(0x1AFFFFFF))
+                                        .border(
+                                            width = 1.dp,
+                                            color = if (isSelected) accentColor.copy(alpha = 0.65f) else Color(0x2EFFFFFF),
+                                            shape = RoundedCornerShape(12.dp)
+                                        )
+                                        .padding(horizontal = 14.dp, vertical = 6.dp)
+                                ) {
+                                    Text(
+                                        text = title,
+                                        fontSize = 15.sp,
+                                        fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Bold,
+                                        color = if (isSelected) accentColor else Color(0xFFF3F4F6)
+                                    )
+                                    if (count > 0) {
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(if (isSelected) accentColor.copy(alpha = 0.35f) else Color(0x30FFFFFF))
+                                                .padding(horizontal = 6.dp, vertical = 2.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = "$count",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (isSelected) accentColor else Color(0xFFE2E8F0)
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         )
                     }
@@ -300,7 +358,8 @@ fun PhoneMainScreen(
                                 onPlayallSongs = { viewModel.playallSongs() },
                                 onFolderLongClick = { viewModel.openFolderContext(it) },
                                 onPlaySong = { song, list -> viewModel.playSongFromList(song, list) },
-                                onSongLongClick = { viewModel.openSongContext(it) }
+                                onSongLongClick = { viewModel.openSongContext(it) },
+                                onManageFolders = { viewModel.openFolderSelectionDialog() }
                             )
                         }
 
@@ -317,7 +376,9 @@ fun PhoneMainScreen(
                                 onRemoveSongFromPlaylist = { plId, s -> viewModel.removeSongFromPlaylist(plId, s) },
                                 onCreatePlaylistClick = { viewModel.openCreatePlaylistDialog() },
                                 onPlaySong = { song -> viewModel.playSongFromList(song, selectedPlaylistSongs) },
-                                onSongLongClick = { viewModel.openSongContext(it) }
+                                onSongLongClick = { viewModel.openSongContext(it) },
+                                onExportPlaylist = { viewModel.exportCurrentPlaylistM3u(it) },
+                                onImportM3uClick = { viewModel.openM3uImportDialog() }
                             )
                         }
 
@@ -327,6 +388,7 @@ fun PhoneMainScreen(
                                 currentPlayingSongPath = currentSong?.path,
                                 onPlaySong = { song -> viewModel.playSongFromList(song, favoriteSongs) },
                                 onSongLongClick = { viewModel.openSongContext(it) },
+                                accentColor = accentColor,
                                 emptyMessage = "Henüz favori şarkı eklenmedi."
                             )
                         }
@@ -337,7 +399,8 @@ fun PhoneMainScreen(
                                 songs = allSongs,
                                 currentPlayingSongPath = currentSong?.path,
                                 onPlaySong = { song -> viewModel.playSongFromList(song, allSongs) },
-                                onSongLongClick = { viewModel.openSongContext(it) }
+                                onSongLongClick = { viewModel.openSongContext(it) },
+                                accentColor = accentColor
                             )
                         }
                     }
@@ -358,7 +421,8 @@ fun PhoneMainScreen(
                     onNext = { viewModel.playNext() },
                     onPrevious = { viewModel.playPrevious() },
                     onToggleFavorite = { viewModel.toggleFavorite(currentSong) },
-                    onClick = { showFullscreenPlayer = true }
+                    onClick = { showFullscreenPlayer = true },
+                    swipeSensitivity = swipeSensitivity
                 )
             }
         }
@@ -382,11 +446,18 @@ fun PhoneMainScreen(
                 onToggleShuffle = { viewModel.toggleShuffle() },
                 onToggleRepeat = { viewModel.toggleRepeatMode() },
                 onToggleFavorite = { viewModel.toggleFavorite(currentSong) },
-                onOpenQueue = { viewModel.openQueueDialog() },
                 onOpenLyrics = { viewModel.openLyricsDialog() },
                 onOpenEqualizer = { viewModel.openEqualizerDialog() },
                 onOpenId3Info = { viewModel.openId3Dialog() },
                 onOpenSettings = { viewModel.openSettingsDialog() },
+                currentQueue = currentQueue,
+                currentQueueIndex = currentQueueIndex,
+                onPlayQueueIndex = { viewModel.playAtQueueIndex(it) },
+                onReshuffleUpcoming = { viewModel.reshuffleUpcoming() },
+                swipeSensitivity = swipeSensitivity,
+                playbackSpeed = playbackSpeed,
+                onSetPlaybackSpeed = { viewModel.setPlaybackSpeed(it) },
+                showWaveform = showWaveform,
                 onDismiss = { showFullscreenPlayer = false }
             )
         }
@@ -398,6 +469,7 @@ fun PhoneMainScreen(
                 onPlayFolder = { viewModel.playEntireFolder(folder.path) },
                 onaddToPlaylist = { viewModel.openaddToPlaylistDialogForFolder(folder.path) },
                 onaddToQueue = { viewModel.AddFolderToQueue(folder.path) },
+                onBatchEditTags = { viewModel.openBatchId3Dialog(folder) },
                 onDismiss = { viewModel.closeFolderContext() }
             )
         }
@@ -409,6 +481,7 @@ fun PhoneMainScreen(
                 onaddToPlaylist = { viewModel.openaddToPlaylistDialogForSong(song) },
                 onaddToQueue = { viewModel.AddSongToQueue(song) },
                 onToggleFavorite = { viewModel.toggleFavorite(song) },
+                onSetAsRingtone = { RingtoneHelper.setAsRingtone(context, song) },
                 onDismiss = { viewModel.closeSongContext() }
             )
         }
@@ -439,7 +512,8 @@ fun PhoneMainScreen(
                 onBandChange = { idx, lvl -> viewModel.setEqBandLevel(idx, lvl) },
                 onBassBoostChange = { viewModel.setEqBassBoost(it) },
                 onLoudnessEnhancerChange = { viewModel.setLoudnessEnhancerEnabled(it) },
-                onDismiss = { viewModel.closeEqualizerDialog() }
+                onDismiss = { viewModel.closeEqualizerDialog() },
+                accentColor = accentColor
             )
         }
 
@@ -448,8 +522,8 @@ fun PhoneMainScreen(
             Id3InfoDialog(
                 song = playerState.currentSong!!,
                 onDismiss = { viewModel.closeId3Dialog() },
-                onSave = { newFileName, title, artist, album, genre, year, artworkBytes ->
-                    viewModel.saveId3Tags(playerState.currentSong!!, newFileName, title, artist, album, genre, year, artworkBytes)
+                onSave = { newFileName, title, artist, album, genre, year, artworkBytes, lyrics, deleteArtwork ->
+                    viewModel.saveId3Tags(playerState.currentSong!!, newFileName, title, artist, album, genre, year, artworkBytes, lyrics, deleteArtwork)
                     viewModel.closeId3Dialog()
                 }
             )
@@ -507,6 +581,72 @@ fun PhoneMainScreen(
             SettingsDialog(
                 onDismissRequest = { viewModel.closeSettingsDialog() },
                 viewModel = viewModel
+            )
+        }
+
+        // Müzik Klasörleri Yönetim Penceresi
+        if (showFolderSelectionDialog) {
+            FolderSelectionDialog(
+                storageRoots = storageRoots,
+                includedFolders = includedFolders,
+                onToggleFolder = { path, isInc -> viewModel.toggleFolderIncluded(path, isInc) },
+                onRescan = { viewModel.rescanLibrary() },
+                onDismissRequest = { viewModel.closeFolderSelectionDialog() }
+            )
+        }
+
+        // Hakkında Penceresi (Logo tıklamasıyla açılır)
+        if (showAboutDialog) {
+            AboutDialog(
+                onDismissRequest = { viewModel.closeAboutDialog() },
+                accentColor = accentColor,
+                libraryStats = libraryStats
+            )
+        }
+
+        // Toplu ID3 Etiket Düzenleme Penceresi
+        batchId3FolderItem?.let { folder ->
+            BatchId3TagDialog(
+                folderName = folder.name,
+                folderPath = folder.path,
+                songCount = folder.songCount,
+                accentColor = accentColor,
+                onSave = { artist, album, genre, year ->
+                    viewModel.batchUpdateId3Tags(folder.path, artist, album, genre, year)
+                },
+                onDismiss = { viewModel.closeBatchId3Dialog() }
+            )
+        }
+
+        // M3U Çalma Listesi İçe Aktarma Penceresi
+        if (showM3uImportDialog) {
+            M3uImportDialog(
+                m3uFiles = availableM3uFiles,
+                accentColor = accentColor,
+                onSelectFile = { viewModel.importM3uFile(it) },
+                onRefresh = { viewModel.scanM3uFiles() },
+                onDismiss = { viewModel.closeM3uImportDialog() }
+            )
+        }
+
+        // Aynı / Mükerrer Şarkıları Bulma Penceresi
+        if (showDuplicateFinderDialog) {
+            DuplicateFinderDialog(
+                allSongs = allSongs,
+                accentColor = accentColor,
+                onDismissRequest = { viewModel.closeDuplicateFinderDialog() },
+                onDeleteSong = { song, onComplete ->
+                    viewModel.deleteSong(song, onComplete)
+                },
+                onDeleteMultipleSongs = { songs, onComplete ->
+                    viewModel.deleteSongs(songs, onComplete)
+                },
+                onRenameSong = { song, newName, onComplete ->
+                    viewModel.renameSong(song, newName, onComplete)
+                },
+                onPreviewSong = { song ->
+                    viewModel.playSongFromList(song, allSongs)
+                }
             )
         }
     }

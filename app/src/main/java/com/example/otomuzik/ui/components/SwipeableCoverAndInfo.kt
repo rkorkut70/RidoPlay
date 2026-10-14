@@ -628,7 +628,7 @@ fun SwipeableCoverandInfo(
                     text = songTitle,
                     fontSize = if (isCompact) 18.sp else 22.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = CarTextPrimary,
+                    color = Color(0xFFFFFFFF),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center,

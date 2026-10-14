@@ -1,5 +1,7 @@
 package com.example.otomuzik.ui.phone
 
+import android.content.res.Configuration
+import androidx.compose.ui.platform.LocalConfiguration
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -12,6 +14,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -55,9 +58,16 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.unit.IntOffset
 import kotlin.math.roundToInt
+import com.example.otomuzik.ui.components.WaveformVisualizer
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.otomuzik.R
+import com.example.otomuzik.ui.components.PlaybackQueueView
 import com.example.otomuzik.model.RepeatMode
 import com.example.otomuzik.model.Song
 import com.example.otomuzik.theme.BaseCarBgDark
@@ -94,14 +104,23 @@ fun PhoneNowPlayingSheet(
     onToggleShuffle: () -> Unit,
     onToggleRepeat: () -> Unit,
     onToggleFavorite: () -> Unit,
-    onOpenQueue: () -> Unit,
     onOpenLyrics: () -> Unit,
     onOpenEqualizer: () -> Unit,
     onOpenId3Info: () -> Unit,
     onOpenSettings: () -> Unit = {},
+    currentQueue: List<Song> = emptyList(),
+    currentQueueIndex: Int = -1,
+    onPlayQueueIndex: (Int) -> Unit = {},
+    onReshuffleUpcoming: () -> Unit = {},
+    swipeSensitivity: String = "HIGH",
+    playbackSpeed: Float = 1.0f,
+    onSetPlaybackSpeed: (Float) -> Unit = {},
+    showWaveform: Boolean = true,
     onDismiss: () -> Unit
 ) {
     if (song == null) return
+
+    var showQueueOverlay by remember { mutableStateOf(false) }
 
     val currentOnNext by rememberUpdatedState(onNext)
     val currentOnPrevious by rememberUpdatedState(onPrevious)
@@ -109,7 +128,15 @@ fun PhoneNowPlayingSheet(
     var dragOffsetX by remember { mutableFloatStateOf(0f) }
     var isDraggingArtwork by remember { mutableStateOf(false) }
     val density = LocalDensity.current
-    val swipeThresholdPx = with(density) { 55.dp.toPx() }
+
+    val swipeThresholdDp = when (swipeSensitivity) {
+        "VERY_HIGH" -> 22.dp
+        "HIGH" -> 35.dp
+        "NORMAL" -> 50.dp
+        "LOW" -> 75.dp
+        else -> 35.dp
+    }
+    val swipeThresholdPx = with(density) { swipeThresholdDp.toPx() }
 
     val animatedOffset by animateFloatAsState(
         targetValue = dragOffsetX,
@@ -147,6 +174,276 @@ fun PhoneNowPlayingSheet(
                     )
             )
 
+            val configuration = LocalConfiguration.current
+            val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+
+            if (isLandscape) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .statusBarsPadding()
+                        .navigationBarsPadding()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Sol Taraf: AlbÃ¼m KapaÄŸÄ± & BaÅŸlÄ±k
+                    Column(
+                        modifier = Modifier
+                            .weight(0.40f)
+                            .fillMaxHeight(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .aspectRatio(1f)
+                                .offset { IntOffset(animatedOffset.roundToInt(), 0) }
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(CarSurfaceDark)
+                                .border(1.5.dp, accentColor.copy(alpha = 0.5f), RoundedCornerShape(20.dp))
+                                .pointerInput(density, swipeThresholdPx) {
+                                    detectHorizontalDragGestures(
+                                        onDragStart = {
+                                            isDraggingArtwork = true
+                                            dragOffsetX = 0f
+                                        },
+                                        onDragEnd = {
+                                            when {
+                                                dragOffsetX < -swipeThresholdPx -> currentOnNext()
+                                                dragOffsetX > swipeThresholdPx  -> currentOnPrevious()
+                                            }
+                                            dragOffsetX = 0f
+                                            isDraggingArtwork = false
+                                        },
+                                        onDragCancel = {
+                                            dragOffsetX = 0f
+                                            isDraggingArtwork = false
+                                        },
+                                        onHorizontalDrag = { change, dragAmount ->
+                                            change.consume()
+                                            dragOffsetX = (dragOffsetX + dragAmount).coerceIn(-240f, 240f)
+                                        }
+                                    )
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (artworkBitmap != null) {
+                                Image(
+                                    bitmap = artworkBitmap.asImageBitmap(),
+                                    contentDescription = "AlbÃ¼m KapaÄŸÄ±",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            } else {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_music_note),
+                                    contentDescription = null,
+                                    tint = accentColor,
+                                    modifier = Modifier.size(64.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        Text(
+                            text = com.example.otomuzik.util.TurkishStringFixer.fix(song.title),
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFFFFFFFF),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = com.example.otomuzik.util.TurkishStringFixer.fix(song.artist),
+                            fontSize = 12.sp,
+                            color = CarTextMuted,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    // SaÄŸ Taraf: Kontroller, Slider & Butonlar
+                    Column(
+                        modifier = Modifier
+                            .weight(0.60f)
+                            .fillMaxHeight(),
+                        verticalArrangement = Arrangement.SpaceBetween,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        // Ãœst Bar
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            IconButton(
+                                onClick = onDismiss,
+                                modifier = Modifier.size(36.dp).background(CarSurfaceDark, CircleShape)
+                            ) {
+                                Text(text = "â–¼", fontSize = 14.sp, color = CarTextPrimary)
+                            }
+
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                IconButton(
+                                    onClick = onToggleFavorite,
+                                    modifier = Modifier.size(36.dp).background(CarSurfaceDark, CircleShape)
+                                ) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.ic_favorite),
+                                        contentDescription = "Favori",
+                                        tint = if (isFavorite) CarAmber else CarTextMuted,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                                IconButton(
+                                    onClick = {
+                                        val next = when {
+                                            playbackSpeed <= 0.85f -> 1.0f
+                                            playbackSpeed <= 1.1f -> 1.25f
+                                            playbackSpeed <= 1.35f -> 1.5f
+                                            else -> 0.8f
+                                        }
+                                        onSetPlaybackSpeed(next)
+                                    },
+                                    modifier = Modifier.size(36.dp).background(CarSurfaceDark, CircleShape)
+                                ) {
+                                    Text(
+                                        text = if (playbackSpeed == 1.0f) "1x" else "${playbackSpeed}x",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (playbackSpeed != 1.0f) accentColor else CarTextPrimary
+                                    )
+                                }
+                                IconButton(
+                                    onClick = onOpenEqualizer,
+                                    modifier = Modifier.size(36.dp).background(CarSurfaceDark, CircleShape)
+                                ) {
+                                    Text(text = "EQ", fontSize = 11.sp, fontWeight = FontWeight.Black, color = accentColor)
+                                }
+                                IconButton(
+                                    onClick = onOpenId3Info,
+                                    modifier = Modifier.size(36.dp).background(CarSurfaceDark, CircleShape)
+                                ) {
+                                    Text(text = "ℹ", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = CarTextPrimary)
+                                }
+                                IconButton(
+                                    onClick = onOpenSettings,
+                                    modifier = Modifier.size(36.dp).background(CarSurfaceDark, CircleShape)
+                                ) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.ic_settings),
+                                        contentDescription = "Ayarlar",
+                                        tint = CarTextPrimary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        // Canlı Ses Dalgası (Waveform)
+                        if (showWaveform) {
+                            WaveformVisualizer(
+                                isPlaying = isPlaying,
+                                accentColor = accentColor,
+                                height = 26.dp,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 4.dp)
+                            )
+                        }
+
+                        // Scrubber Slider
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Slider(
+                                value = currentSliderVal,
+                                onValueChange = {
+                                    isDraggingSlider = true
+                                    sliderPosition = it
+                                },
+                                onValueChangeFinished = {
+                                    isDraggingSlider = false
+                                    onSeekTo((sliderPosition * durationMs).toLong())
+                                },
+                                colors = SliderDefaults.colors(
+                                    thumbColor = accentColor,
+                                    activeTrackColor = accentColor,
+                                    inactiveTrackColor = CarBorder
+                                ),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                val posText = formatTime(if (isDraggingSlider) (sliderPosition * durationMs).toLong() else currentPositionMs)
+                                val durText = formatTime(durationMs)
+                                Text(text = posText, fontSize = 11.sp, color = CarTextMuted)
+                                Text(text = durText, fontSize = 11.sp, color = CarTextMuted)
+                            }
+                        }
+
+                        // Oynatma ButonlarÄ±
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            IconButton(onClick = onToggleShuffle, modifier = Modifier.size(38.dp)) {
+                                Icon(painter = painterResource(id = R.drawable.ic_shuffle), contentDescription = "KarÄ±ÅŸtÄ±r", tint = if (isShuffle) accentColor else CarTextMuted, modifier = Modifier.size(20.dp))
+                            }
+                            IconButton(onClick = onPrevious, modifier = Modifier.size(44.dp).background(CarSurfaceDark, CircleShape)) {
+                                Icon(painter = painterResource(id = R.drawable.ic_skip_previous), contentDescription = "Ã–nceki", tint = CarTextPrimary, modifier = Modifier.size(24.dp))
+                            }
+                            IconButton(onClick = onPlayPause, modifier = Modifier.size(56.dp).background(accentColor, CircleShape)) {
+                                Icon(painter = painterResource(id = if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play), contentDescription = if (isPlaying) "Duraklat" else "Oynat", tint = Color(0xFF0C0E12), modifier = Modifier.size(30.dp))
+                            }
+                            IconButton(onClick = onNext, modifier = Modifier.size(44.dp).background(CarSurfaceDark, CircleShape)) {
+                                Icon(painter = painterResource(id = R.drawable.ic_skip_next), contentDescription = "Sonraki", tint = CarTextPrimary, modifier = Modifier.size(24.dp))
+                            }
+                            IconButton(onClick = onToggleRepeat, modifier = Modifier.size(38.dp)) {
+                                val iconRes = when (repeatMode) { RepeatMode.ONE -> R.drawable.ic_repeat_one else -> R.drawable.ic_repeat }
+                                Icon(painter = painterResource(id = iconRes), contentDescription = "Tekrar", tint = if (repeatMode != RepeatMode.OFF) accentColor else CarTextMuted, modifier = Modifier.size(20.dp))
+                            }
+                        }
+
+                        // SÃ¶zler & SÄ±ra ButonlarÄ±
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(CarSurfaceDark)
+                                    .clickable { onOpenLyrics() }
+                                    .padding(horizontal = 14.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(text = "ğŸ¤", fontSize = 13.sp)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(text = "SÃ¶zler", color = CarTextPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+
+                            Row(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(if (showQueueOverlay) accentColor.copy(alpha = 0.25f) else CarSurfaceDark)
+                                    .clickable { showQueueOverlay = true }
+                                    .padding(horizontal = 14.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(painter = painterResource(id = R.drawable.ic_queue), contentDescription = null, tint = accentColor, modifier = Modifier.size(15.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(text = "SÄ±ra", color = CarTextPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            } else {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -171,25 +468,29 @@ fun PhoneNowPlayingSheet(
                         Text(text = "▼", fontSize = 16.sp, color = CarTextPrimary)
                     }
 
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "ŞU AN ÇALIYOR",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = CarTextMuted,
-                            letterSpacing = 1.5.sp
-                        )
-                        Text(
-                            text = song.folderPath.substringAfterLast("/").ifEmpty { "RidoPlay" },
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = accentColor,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        IconButton(
+                            onClick = {
+                                val next = when {
+                                    playbackSpeed <= 0.85f -> 1.0f
+                                    playbackSpeed <= 1.1f -> 1.25f
+                                    playbackSpeed <= 1.35f -> 1.5f
+                                    else -> 0.8f
+                                }
+                                onSetPlaybackSpeed(next)
+                            },
+                            modifier = Modifier
+                                .size(42.dp)
+                                .background(CarSurfaceDark, CircleShape)
+                        ) {
+                            Text(
+                                text = if (playbackSpeed == 1.0f) "1x" else "${playbackSpeed}x",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (playbackSpeed != 1.0f) accentColor else CarTextPrimary
+                            )
+                        }
+
                         IconButton(
                             onClick = onOpenEqualizer,
                             modifier = Modifier
@@ -233,7 +534,7 @@ fun PhoneNowPlayingSheet(
                         .clip(RoundedCornerShape(24.dp))
                         .background(CarSurfaceDark)
                         .border(1.5.dp, accentColor.copy(alpha = 0.5f), RoundedCornerShape(24.dp))
-                        .pointerInput(density) {
+                        .pointerInput(density, swipeThresholdPx) {
                             detectHorizontalDragGestures(
                                 onDragStart = {
                                     isDraggingArtwork = true
@@ -286,16 +587,16 @@ fun PhoneNowPlayingSheet(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = song.title,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Black,
-                            color = CarTextPrimary,
+                            text = com.example.otomuzik.util.TurkishStringFixer.fix(song.title),
+                            fontSize = 21.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFFFFFFFF),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "${song.artist} • ${song.album}",
+                            text = "${com.example.otomuzik.util.TurkishStringFixer.fix(song.artist)} • ${com.example.otomuzik.util.TurkishStringFixer.fix(song.album)}",
                             fontSize = 14.sp,
                             color = CarTextMuted,
                             maxLines = 1,
@@ -316,6 +617,18 @@ fun PhoneNowPlayingSheet(
                             modifier = Modifier.size(24.dp)
                         )
                     }
+                }
+
+                // Canlı Ses Dalgası (Waveform)
+                if (showWaveform) {
+                    WaveformVisualizer(
+                        isPlaying = isPlaying,
+                        accentColor = accentColor,
+                        height = 34.dp,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp)
+                    )
                 }
 
                 // ── 4. İLERLEME ÇUBUĞU (SCRUBBER) ─────────────────────────────
@@ -451,8 +764,8 @@ fun PhoneNowPlayingSheet(
                     Row(
                         modifier = Modifier
                             .clip(RoundedCornerShape(14.dp))
-                            .background(CarSurfaceDark)
-                            .clickable { onOpenQueue() }
+                            .background(if (showQueueOverlay) accentColor.copy(alpha = 0.25f) else CarSurfaceDark)
+                            .clickable { showQueueOverlay = true }
                             .padding(horizontal = 18.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -465,6 +778,39 @@ fun PhoneNowPlayingSheet(
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(text = "Çalma Sırası", color = CarTextPrimary, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
+                }
+            }
+            }
+
+            // ── Çalma Sırası Tam Ekran Katmanı (Modern Slide-Up Overlay) ──
+            AnimatedVisibility(
+                visible = showQueueOverlay,
+                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(BaseCarBgDark)
+                        .statusBarsPadding()
+                        .navigationBarsPadding()
+                        .padding(horizontal = 12.dp, vertical = 10.dp)
+                ) {
+                    PlaybackQueueView(
+                        queue = currentQueue,
+                        currentIndex = currentQueueIndex,
+                        isShuffle = isShuffle,
+                        accentColor = accentColor,
+                        onPlayAtIndex = { idx ->
+                            onPlayQueueIndex(idx)
+                        },
+                        onPlayNext = onNext,
+                        onPlayPrevious = onPrevious,
+                        onToggleShuffle = onToggleShuffle,
+                        onReshuffleUpcoming = onReshuffleUpcoming,
+                        onClose = { showQueueOverlay = false },
+                        modifier = Modifier.fillMaxSize()
+                    )
                 }
             }
         }

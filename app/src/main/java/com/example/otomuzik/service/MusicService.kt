@@ -94,6 +94,35 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
     private val _sleepTimerLeftMs = MutableStateFlow<Long?>(null)
     val sleepTimerLeftMs: StateFlow<Long?> = _sleepTimerLeftMs.asStateFlow()
 
+    private val _playbackSpeed = MutableStateFlow(1.0f)
+    val playbackSpeed: StateFlow<Float> = _playbackSpeed.asStateFlow()
+
+    fun setPlaybackSpeed(speed: Float) {
+        val clamped = (kotlin.math.round(speed * 100) / 100f).coerceIn(0.5f, 2.5f)
+        _playbackSpeed.value = clamped
+        applyPlaybackSpeed()
+    }
+
+    fun getPlaybackSpeed(): Float = _playbackSpeed.value
+
+    private fun applyPlaybackSpeed() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            try {
+                mediaPlayer?.let { mp ->
+                    val isMpPlaying = mp.isPlaying
+                    val params = mp.playbackParams
+                    params.speed = _playbackSpeed.value
+                    mp.playbackParams = params
+                    if (!isMpPlaying) {
+                        mp.pause()
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
     private var audioFocusRequest: AudioFocusRequest? = null
     private var resumeOnFocusGain = false
 
@@ -233,7 +262,7 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
             ACTION_STOP -> stopPlayback()
             ACTION_TOGGLE_PAUSE -> togglePlayPause()
         }
-        return START_NOT_STICKY
+        return START_STICKY
     }
 
     private fun handleMediaKeyCode(keyCode: Int): Boolean {
@@ -531,6 +560,7 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
                 prepare()
                 start()
                 setupAudioEffects(audioSessionId)
+                applyPlaybackSpeed()
 
                 setOnCompletionListener {
                     handleTrackCompletion()

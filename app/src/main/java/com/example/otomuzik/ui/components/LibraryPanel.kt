@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -89,6 +90,8 @@ fun LibraryPanel(
     onDeletePlaylist: (Playlist) -> Unit,
     onRemoveSongFromPlaylist: (Long, Song) -> Unit,
     onCreatePlaylistClick: () -> Unit,
+    onExportPlaylist: ((Playlist) -> Unit)? = null,
+    onImportM3uClick: (() -> Unit)? = null,
     // Çalma Sırası (Queue) Entegrasyonu
     isQueueVisible: Boolean = false,
     onCloseQueue: () -> Unit = {},
@@ -113,6 +116,7 @@ fun LibraryPanel(
     isPlaying: Boolean = false,
     onPlayPause: () -> Unit = {},
     onPlayFavorites: () -> Unit = {},
+    onManageFolders: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
@@ -337,7 +341,8 @@ fun LibraryPanel(
                                     onPlaySong(song, list)
                                     onTabSelected(TabType.HOME)
                                 },
-                                onSongLongClick = onSongLongClick
+                                onSongLongClick = onSongLongClick,
+                                onManageFolders = onManageFolders
                             )
                         }
 
@@ -391,7 +396,8 @@ fun LibraryPanel(
                                     onPlaySong(song, filteredSongs)
                                     onTabSelected(TabType.HOME)
                                 },
-                                onSongLongClick = onSongLongClick
+                                onSongLongClick = onSongLongClick,
+                                accentColor = accentColor
                             )
                         }
 
@@ -462,7 +468,9 @@ fun LibraryPanel(
                                     onPlaySong(song, selectedPlaylistSongs)
                                     onTabSelected(TabType.HOME)
                                 },
-                                onSongLongClick = onSongLongClick
+                                onSongLongClick = onSongLongClick,
+                                onExportPlaylist = onExportPlaylist,
+                                onImportM3uClick = onImportM3uClick
                             )
                         }
 
@@ -513,6 +521,7 @@ fun LibraryPanel(
                                     onTabSelected(TabType.HOME)
                                 },
                                 onSongLongClick = onSongLongClick,
+                                accentColor = accentColor,
                                 emptyMessage = "Henüz favori şarkı eklenmedi.\nŞarkı çalarken kalp simgesine dokunun veya basılı tutarak ekleyin."
                             )
                         }
@@ -802,7 +811,7 @@ private fun TrackFlowRow(
         // Parça Başlığı ve Sanatçı
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = if (song != null) "${song.title} - ${song.artist}" else emptyText,
+                text = if (song != null) "${com.example.otomuzik.util.TurkishStringFixer.fix(song.title)} - ${com.example.otomuzik.util.TurkishStringFixer.fix(song.artist)}" else emptyText,
                 fontSize = if (isCompact) 14.sp else 16.sp,
                 fontWeight = if (isCurrent) FontWeight.ExtraBold else FontWeight.Medium,
                 color = if (isCurrent) Color(0xFFFFD54F) else (if (song != null) CarTextPrimary else CarTextMuted),
@@ -1079,7 +1088,8 @@ internal fun FolderBrowserView(
     onPlayallSongs: () -> Unit,
     onFolderLongClick: (FolderItem) -> Unit,
     onPlaySong: (Song, List<Song>) -> Unit,
-    onSongLongClick: (Song) -> Unit
+    onSongLongClick: (Song) -> Unit,
+    onManageFolders: () -> Unit = {}
 ) {
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val isPhoneLayout = configuration.screenWidthDp < 600 || configuration.orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT
@@ -1268,6 +1278,66 @@ internal fun FolderBrowserView(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(if (isCompact) 6.dp else 8.dp)
             ) {
+                if (currentFolderPath == null) {
+                    item {
+                        val shape = RoundedCornerShape(if (isPhoneLayout) 12.dp else 16.dp)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(shape)
+                                .background(CarSurfaceDark)
+                                .border(1.dp, CarCyan.copy(alpha = 0.5f), shape)
+                                .clickable { onManageFolders() }
+                                .padding(horizontal = 14.dp, vertical = 10.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    modifier = Modifier.weight(1f),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.ic_folder),
+                                        contentDescription = null,
+                                        tint = CarCyan,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Column {
+                                        Text(
+                                            text = "Müzik Klasörlerini Yönet",
+                                            fontSize = if (isPhoneLayout) 14.sp else 16.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = CarTextPrimary
+                                        )
+                                        Text(
+                                            text = "Taranacak dizinleri seç / Download klasörünü gizle",
+                                            fontSize = 11.sp,
+                                            color = CarTextMuted
+                                        )
+                                    }
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(CarCyan.copy(alpha = 0.15f))
+                                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                                ) {
+                                    Text(
+                                        text = "Yönet",
+                                        color = CarCyan,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
                 items(itemsToDisplay) { item ->
                     if (item.isDirectory) {
                         // Klasör Satırı - Telefonda ve araçta dengeli yükseklik ve boşluk
@@ -1360,7 +1430,9 @@ internal fun PlaylistsView(
     onRemoveSongFromPlaylist: (Long, Song) -> Unit,
     onCreatePlaylistClick: () -> Unit,
     onPlaySong: (Song) -> Unit,
-    onSongLongClick: (Song) -> Unit
+    onSongLongClick: (Song) -> Unit,
+    onExportPlaylist: ((Playlist) -> Unit)? = null,
+    onImportM3uClick: (() -> Unit)? = null
 ) {
     if (selectedPlaylist != null) {
         // Seili ÇÇalma Listesi Detay Ekranı
@@ -1413,18 +1485,36 @@ internal fun PlaylistsView(
                 }
 
                 if (selectedPlaylistSongs.isNotEmpty()) {
-                    Button(
-                        onClick = { onPlayPlaylist(selectedPlaylist) },
-                        colors = ButtonDefaults.buttonColors(containerColor = CarCyan),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.height(48.dp)
-                    ) {
-                        Text(
-                            text = "▶ Listeyi Çal",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF0C0E12)
-                        )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (onExportPlaylist != null) {
+                            IconButton(
+                                onClick = { onExportPlaylist(selectedPlaylist) },
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .background(CarSurfaceVariant, RoundedCornerShape(12.dp))
+                                    .border(1.dp, CarBorder, RoundedCornerShape(12.dp))
+                            ) {
+                                Text(
+                                    text = "M3U",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = CarCyan
+                                )
+                            }
+                        }
+                        Button(
+                            onClick = { onPlayPlaylist(selectedPlaylist) },
+                            colors = ButtonDefaults.buttonColors(containerColor = CarCyan),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.height(48.dp)
+                        ) {
+                            Text(
+                                text = "▶ Listeyi Çal",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF0C0E12)
+                            )
+                        }
                     }
                 }
             }
@@ -1480,41 +1570,82 @@ internal fun PlaylistsView(
 
         // Çalma Listeleri Genel Listesi
         Column(modifier = Modifier.fillMaxSize()) {
-            // ➕ Yeni Çalma Listesi Oluştur Butonu
+            // ➕ Yeni Çalma Listesi Oluştur & 📥 M3U İçe Aktar Butonları
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(if (isCompact) 52.dp else 64.dp)
-                    .clip(RoundedCornerShape(if (isCompact) 12.dp else 16.dp))
-                    .background(Color(0x2800E5FF))
-                    .border(1.5.dp, CarCyan, RoundedCornerShape(if (isCompact) 12.dp else 16.dp))
-                    .clickable { onCreatePlaylistClick() }
-                    .padding(horizontal = if (isCompact) 12.dp else 16.dp),
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Box(
+                Row(
                     modifier = Modifier
-                        .size(if (isCompact) 36.dp else 42.dp)
-                        .clip(CircleShape)
-                        .background(CarCyan),
-                    contentAlignment = Alignment.Center
+                        .weight(1f)
+                        .height(if (isCompact) 52.dp else 60.dp)
+                        .clip(RoundedCornerShape(if (isCompact) 12.dp else 16.dp))
+                        .background(Color(0x2800E5FF))
+                        .border(1.5.dp, CarCyan, RoundedCornerShape(if (isCompact) 12.dp else 16.dp))
+                        .clickable { onCreatePlaylistClick() }
+                        .padding(horizontal = if (isCompact) 10.dp else 14.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_add),
-                        contentDescription = null,
-                        tint = Color(0xFF0C0E12),
-                        modifier = Modifier.size(if (isCompact) 20.dp else 24.dp)
+                    Box(
+                        modifier = Modifier
+                            .size(if (isCompact) 32.dp else 36.dp)
+                            .clip(CircleShape)
+                            .background(CarCyan),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_add),
+                            contentDescription = null,
+                            tint = Color(0xFF0C0E12),
+                            modifier = Modifier.size(if (isCompact) 18.dp else 22.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(if (isCompact) 8.dp else 12.dp))
+
+                    Text(
+                        text = "Yeni Liste",
+                        fontSize = if (isCompact) 14.sp else 16.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = CarCyan
                     )
                 }
 
-                Spacer(modifier = Modifier.width(if (isCompact) 12.dp else 16.dp))
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(if (isCompact) 52.dp else 60.dp)
+                        .clip(RoundedCornerShape(if (isCompact) 12.dp else 16.dp))
+                        .background(Color(0x28FFB300))
+                        .border(1.5.dp, CarAmber, RoundedCornerShape(if (isCompact) 12.dp else 16.dp))
+                        .clickable { onImportM3uClick?.invoke() }
+                        .padding(horizontal = if (isCompact) 10.dp else 14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(if (isCompact) 32.dp else 36.dp)
+                            .clip(CircleShape)
+                            .background(CarAmber),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_playlist),
+                            contentDescription = null,
+                            tint = Color(0xFF0C0E12),
+                            modifier = Modifier.size(if (isCompact) 18.dp else 22.dp)
+                        )
+                    }
 
-                Text(
-                    text = "Yeni Çalma Listesi Oluştur",
-                    fontSize = if (isCompact) 15.sp else 18.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = CarCyan
-                )
+                    Spacer(modifier = Modifier.width(if (isCompact) 8.dp else 12.dp))
+
+                    Text(
+                        text = "M3U Aktar",
+                        fontSize = if (isCompact) 14.sp else 16.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = CarAmber
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(if (isCompact) 8.dp else 12.dp))
@@ -1633,7 +1764,8 @@ internal fun SongListView(
     currentPlayingSongPath: String?,
     onPlaySong: (Song) -> Unit,
     onSongLongClick: (Song) -> Unit,
-    emptyMessage: String = "Mzik dosyası bulunamadı"
+    accentColor: Color = CarCyan,
+    emptyMessage: String = "Müzik dosyası bulunamadı"
 ) {
     if (songs.isEmpty()) {
         Box(
@@ -1650,28 +1782,46 @@ internal fun SongListView(
     } else {
         val configuration = androidx.compose.ui.platform.LocalConfiguration.current
         val isCompact = configuration.screenHeightDp < 580 || configuration.screenWidthDp < 980
+        val listState = rememberLazyListState()
 
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(if (isCompact) 6.dp else 8.dp)
-        ) {
-            item {
-                Text(
-                    text = "Toplam ${songs.size} şarkı listeleniyor",
-                    fontSize = if (isCompact) 12.sp else 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = CarTextMuted,
-                    modifier = Modifier.padding(start = 12.dp, bottom = 4.dp, top = 4.dp)
-                )
+        Box(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(end = if (songs.size >= 12) 30.dp else 0.dp),
+                verticalArrangement = Arrangement.spacedBy(if (isCompact) 6.dp else 8.dp)
+            ) {
+                item {
+                    Text(
+                        text = "Toplam ${songs.size} şarkı listeleniyor",
+                        fontSize = if (isCompact) 12.sp else 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = CarTextMuted,
+                        modifier = Modifier.padding(start = 12.dp, bottom = 4.dp, top = 4.dp)
+                    )
+                }
+                itemsIndexed(songs) { index, song ->
+                    val isPlaying = song.path == currentPlayingSongPath
+                    SongItemRow(
+                        song = song,
+                        index = index + 1,
+                        isPlaying = isPlaying,
+                        onClick = { onPlaySong(song) },
+                        onLongClick = { onSongLongClick(song) }
+                    )
+                }
             }
-            itemsIndexed(songs) { index, song ->
-                val isPlaying = song.path == currentPlayingSongPath
-                SongItemRow(
-                    song = song,
-                    index = index + 1,
-                    isPlaying = isPlaying,
-                    onClick = { onPlaySong(song) },
-                    onLongClick = { onSongLongClick(song) }
+
+            // Alfabetik Hızlı Kaydırma Çubuğu (A-Z)
+            if (songs.size >= 12) {
+                AlphabetFastScroller(
+                    songs = songs,
+                    listState = listState,
+                    accentColor = accentColor,
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(end = 2.dp, top = 8.dp, bottom = 8.dp)
                 )
             }
         }
@@ -1755,7 +1905,7 @@ private fun SongItemRow(
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = song.title,
+                text = com.example.otomuzik.util.TurkishStringFixer.fix(song.title),
                 fontSize = if (isPhoneLayout) 14.5.sp else if (isCompact) 16.sp else 19.sp,
                 fontWeight = if (isPlaying) FontWeight.ExtraBold else FontWeight.Bold,
                 color = if (isPlaying) CarCyan else CarTextPrimary,
@@ -1766,7 +1916,7 @@ private fun SongItemRow(
             Spacer(modifier = Modifier.height(1.dp))
 
             Text(
-                text = song.artist,
+                text = com.example.otomuzik.util.TurkishStringFixer.fix(song.artist),
                 fontSize = if (isPhoneLayout) 12.sp else if (isCompact) 13.sp else 15.sp,
                 color = if (isPlaying) CarCyan.copy(alpha = 0.85f) else CarTextSecondary,
                 maxLines = 1,

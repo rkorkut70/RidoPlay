@@ -17,6 +17,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -60,6 +61,8 @@ fun SettingsDialog(
     val autoOpenQueueOnStart by viewModel.autoOpenQueueOnStart.collectAsStateWithLifecycle()
     val lyricsFontSize by viewModel.lyricsFontSize.collectAsStateWithLifecycle()
     val autoSaveId3Lyrics by viewModel.autoSaveId3Lyrics.collectAsStateWithLifecycle()
+    val swipeSensitivity by viewModel.swipeSensitivity.collectAsStateWithLifecycle()
+    val playbackSpeed by viewModel.playbackSpeed.collectAsStateWithLifecycle()
     val libraryStats by viewModel.libraryStats.collectAsStateWithLifecycle()
     
     val roleManager = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -124,6 +127,41 @@ fun SettingsDialog(
                     }
                 }
 
+                // Telefon modunda sekmeler
+                var selectedSettingsTab by androidx.compose.runtime.remember { androidx.compose.runtime.mutableIntStateOf(0) }
+                if (isPhone) {
+                    val settingsTabs = listOf(
+                        "Oynatma & Ses",
+                        "Görünüm",
+                        "Kütüphane",
+                        "Araç Modu",
+                        "Sistem"
+                    )
+                    ScrollableTabRow(
+                        selectedTabIndex = selectedSettingsTab,
+                        edgePadding = 12.dp,
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        contentColor = MaterialTheme.colorScheme.primary,
+                        divider = {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+                        }
+                    ) {
+                        settingsTabs.forEachIndexed { index, tabTitle ->
+                            Tab(
+                                selected = selectedSettingsTab == index,
+                                onClick = { selectedSettingsTab = index },
+                                text = {
+                                    Text(
+                                        text = tabTitle,
+                                        fontWeight = if (selectedSettingsTab == index) FontWeight.Bold else FontWeight.Normal,
+                                        fontSize = 13.sp
+                                    )
+                                }
+                            )
+                        }
+                    }
+                }
+
                 // Content
                 Column(
                     modifier = Modifier
@@ -131,285 +169,327 @@ fun SettingsDialog(
                         .verticalScroll(rememberScrollState())
                         .padding(horizontal = 14.dp, vertical = 6.dp)
                 ) {
-                    // Otomobil Modu
-                    SettingsSection(title = "Otomobil Modu") {
-                        SettingSwitchRow(
-                            title = "Ekranı Uyanık Tut",
-                            description = "Uygulama açıkken ekranın kapanmasını engeller.",
-                            checked = keepScreenOn,
-                            onCheckedChange = { viewModel.setKeepScreenOn(it) }
-                        )
-                        Divider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
-                        SettingSwitchRow(
-                            title = "Bluetooth ile Otomatik Çal",
-                            description = "Araç kitine veya kulaklığa bağlanıldığında müziği otomatik başlatır.",
-                            checked = autoPlayOnBluetooth,
-                            onCheckedChange = { viewModel.setAutoPlayOnBluetooth(it) }
-                        )
-                    }
-
-                    // Görünüm ve Tema
-                    SettingsSection(title = "Görünüm & Tema") {
-                        SettingactionRow(
-                            title = "Tema Modu",
-                            description = "Uygulamanın karanlık veya aydınlık mod tercihi."
-                        ) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                TabButton("Oto", "AUTO", themeMode) { viewModel.setThemeMode(it) }
-                                TabButton("Açık", "LIGHT", themeMode) { viewModel.setThemeMode(it) }
-                                TabButton("Koyu", "DARK", themeMode) { viewModel.setThemeMode(it) }
-                            }
-                        }
-                        Divider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
-                        SettingactionRow(
-                            title = "Cihaz / Arayüz Modu",
-                            description = "Araç/Tablet veya Cep Telefonu ekran düzeni."
-                        ) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                TabButton("Oto", "AUTO", uiMode) { viewModel.setUiMode(it) }
-                                TabButton("Araç", "CAR", uiMode) { viewModel.setUiMode(it) }
-                                TabButton("Telefon", "PHONE", uiMode) { viewModel.setUiMode(it) }
-                            }
-                        }
-                        Divider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
-                        SettingactionRow(
-                            title = "Araç İçi Renk Uyumu",
-                            description = "Araç konsoluna uygun vurgu rengini seçin."
-                        ) {
-                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    // 1. Sekme / Bölüm: Oynatma ve Ses (Tab 0)
+                    if (!isPhone || selectedSettingsTab == 0) {
+                        SettingsSection(title = "Oynatma & Ses") {
+                            SettingSwitchRow(
+                                title = "Açılışta Otomatik Başla",
+                                description = "Uygulama açılır açılmaz en son çalınan müziğe devam eder.",
+                                checked = autoPlayOnStart,
+                                onCheckedChange = { viewModel.setAutoPlayOnStart(it) }
+                            )
+                            Divider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+                            SettingSwitchRow(
+                                title = "Açılışta Sıraya Otomatik Geç",
+                                description = "Açılışta müzik seçiliyse ve işlem yapılmıyorsa 4 saniye sonra çalma sırasını otomatik açar.",
+                                checked = autoOpenQueueOnStart,
+                                onCheckedChange = { viewModel.setAutoOpenQueueOnStart(it) }
+                            )
+                            Divider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+                            SettingSwitchRow(
+                                title = "Boşluksuz Çalma (Gapless)",
+                                description = "Şarkı geçişlerindeki sessizliği kaldırır.",
+                                checked = gaplessPlayback,
+                                onCheckedChange = { viewModel.setGaplessPlayback(it) }
+                            )
+                            Divider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+                            SettingactionRow(
+                                title = "Crossfade Süresi",
+                                description = "Şarkılar arası yumuşak geçiş süresi."
+                            ) {
                                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    TabButton("Neon", "NEON_CYAN", themePalette) { viewModel.setThemePalette(it) }
-                                    TabButton("Mocha", "GREY_BROWN", themePalette) { viewModel.setThemePalette(it) }
-                                }
-                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    TabButton("Kırmızı", "SPORT_RED", themePalette) { viewModel.setThemePalette(it) }
-                                    TabButton("Mavi", "DEEP_BLUE", themePalette) { viewModel.setThemePalette(it) }
+                                    CrossfadeButton("0s", 0, crossfadeDuration) { viewModel.setCrossfadeDuration(it) }
+                                    CrossfadeButton("1s", 1000, crossfadeDuration) { viewModel.setCrossfadeDuration(it) }
+                                    CrossfadeButton("3s", 3000, crossfadeDuration) { viewModel.setCrossfadeDuration(it) }
+                                    CrossfadeButton("5s", 5000, crossfadeDuration) { viewModel.setCrossfadeDuration(it) }
                                 }
                             }
-                        }
-                        Divider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
-                        SettingSwitchRow(
-                            title = "Bulanık Arka Plan Efekti",
-                            description = "Oynatıcı ekranında albüm kapağını bulanıklaştırarak şık bir arka plan yapar.",
-                            checked = showBlurredBackground,
-                            onCheckedChange = { viewModel.setShowBlurredBackground(it) }
-                        )
-                        Divider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
-                        SettingSwitchRow(
-                            title = "Müzik Dalgası (Waveform)",
-                            description = "Oynatıcıda müzik ritmine göre hareket eden dalga efekti gösterir.",
-                            checked = showWaveform,
-                            onCheckedChange = { viewModel.setShowWaveform(it) }
-                        )
-                        Divider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
-                        SettingSwitchRow(
-                            title = "Albüm Kapağını Alana Yay (Tam Ekran)",
-                            description = "Sol alandaki boşlukları doldurarak albüm kapağını tam ekran genişletir.",
-                            checked = isalbumartCropped,
-                            onCheckedChange = { viewModel.setIsAlbumArtCropped(it) }
-                        )
-                        Divider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
-                        SettingactionRow(
-                            title = "Şarkı Sözü Font Boyutu",
-                            description = "Kapakta ve söz penceresinde yazıların büyüklüğünü belirler."
-                        ) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                TabButton("Standart", "NORMAL", lyricsFontSize) { viewModel.setLyricsFontSize(it) }
-                                TabButton("Büyük", "LARGE", lyricsFontSize) { viewModel.setLyricsFontSize(it) }
-                                TabButton("Çok Büyük", "XLARGE", lyricsFontSize) { viewModel.setLyricsFontSize(it) }
+                            Divider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+                            SettingSwitchRow(
+                                title = "Ses Seviyesi Eşitleme (Loudness)",
+                                description = "Şarkıların ses seviyelerini dengeler.",
+                                checked = equalizerState.isLoudnessEnhancerEnabled,
+                                onCheckedChange = { viewModel.setLoudnessEnhancerEnabled(it) }
+                            )
+                            Divider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+                            SettingactionRow(
+                                title = "Şarkı Geçiş Hassasiyeti (Kaydırma / Swipe)",
+                                description = "Kapak ve mini player üzerinde sağa/sola kaydırarak parça değiştirme eşiği."
+                            ) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    TabButton("Çok Hassas", "VERY_HIGH", swipeSensitivity) { viewModel.setSwipeSensitivity(it) }
+                                    TabButton("Hassas", "HIGH", swipeSensitivity) { viewModel.setSwipeSensitivity(it) }
+                                    TabButton("Normal", "NORMAL", swipeSensitivity) { viewModel.setSwipeSensitivity(it) }
+                                    TabButton("Düşük", "LOW", swipeSensitivity) { viewModel.setSwipeSensitivity(it) }
+                                }
+                            }
+                            Divider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+                            SettingactionRow(
+                                title = "Oynatma Hızı",
+                                description = "Müziklerin çalma hızını belirler."
+                            ) {
+                                val currentSpeedStr = when {
+                                    playbackSpeed <= 0.85f -> "0.8"
+                                    playbackSpeed <= 1.1f -> "1.0"
+                                    playbackSpeed <= 1.35f -> "1.25"
+                                    else -> "1.5"
+                                }
+                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    TabButton("0.8x", "0.8", currentSpeedStr) { viewModel.setPlaybackSpeed(0.8f) }
+                                    TabButton("1.0x", "1.0", currentSpeedStr) { viewModel.setPlaybackSpeed(1.0f) }
+                                    TabButton("1.25x", "1.25", currentSpeedStr) { viewModel.setPlaybackSpeed(1.25f) }
+                                    TabButton("1.5x", "1.5", currentSpeedStr) { viewModel.setPlaybackSpeed(1.5f) }
+                                }
                             }
                         }
-                        Divider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
-                        SettingSwitchRow(
-                            title = "Sözleri Otomatik ID3 Tag'e Kaydet",
-                            description = "Bulunan veya panodan eklenen sözleri şarkı dosyasına (ID3) otomatik işler.",
-                            checked = autoSaveId3Lyrics,
-                            onCheckedChange = { viewModel.setAutoSaveId3Lyrics(it) }
-                        )
                     }
 
-                    // Oynatma ve Ses
-                    SettingsSection(title = "Oynatma & Ses") {
-                        SettingSwitchRow(
-                            title = "Açılışta Otomatik Başla",
-                            description = "Uygulama açılır açılmaz en son çalınan müziğe devam eder.",
-                            checked = autoPlayOnStart,
-                            onCheckedChange = { viewModel.setAutoPlayOnStart(it) }
-                        )
-                        Divider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
-                        SettingSwitchRow(
-                            title = "Açılışta Sıraya Otomatik Geç",
-                            description = "Açılışta müzik seçiliyse ve işlem yapılmıyorsa 4 saniye sonra çalma sırasını otomatik açar.",
-                            checked = autoOpenQueueOnStart,
-                            onCheckedChange = { viewModel.setAutoOpenQueueOnStart(it) }
-                        )
-                        Divider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
-                        SettingSwitchRow(
-                            title = "Kapatılınca Müziği Durdur",
-                            description = "Arka plandan uygulamayı sildiğinizde müziği anında durdurur.",
-                            checked = stopOnTaskRemoved,
-                            onCheckedChange = { viewModel.setStopOnTaskRemoved(it) }
-                        )
-                        Divider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
-                        SettingSwitchRow(
-                            title = "Boşluksuz Çalma (Gapless)",
-                            description = "Şarkı geçişlerindeki sessizliği kaldırır.",
-                            checked = gaplessPlayback,
-                            onCheckedChange = { viewModel.setGaplessPlayback(it) }
-                        )
-                        Divider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
-                        SettingactionRow(
-                            title = "Crossfade Süresi",
-                            description = "Şarkılar arası yumuşak geçiş süresi."
-                        ) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                CrossfadeButton("0s", 0, crossfadeDuration) { viewModel.setCrossfadeDuration(it) }
-                                CrossfadeButton("1s", 1000, crossfadeDuration) { viewModel.setCrossfadeDuration(it) }
-                                CrossfadeButton("3s", 3000, crossfadeDuration) { viewModel.setCrossfadeDuration(it) }
-                                CrossfadeButton("5s", 5000, crossfadeDuration) { viewModel.setCrossfadeDuration(it) }
+                    // 2. Sekme / Bölüm: Görünüm ve Tema (Tab 1)
+                    if (!isPhone || selectedSettingsTab == 1) {
+                        SettingsSection(title = "Görünüm & Tema") {
+                            SettingactionRow(
+                                title = "Tema Modu",
+                                description = "Uygulamanın karanlık veya aydınlık mod tercihi."
+                            ) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    TabButton("Oto", "AUTO", themeMode) { viewModel.setThemeMode(it) }
+                                    TabButton("Açık", "LIGHT", themeMode) { viewModel.setThemeMode(it) }
+                                    TabButton("Koyu", "DARK", themeMode) { viewModel.setThemeMode(it) }
+                                }
                             }
-                        }
-                        Divider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
-                        SettingSwitchRow(
-                            title = "Ses Seviyesi Eşitleme (Loudness)",
-                            description = "Şarkıların ses seviyelerini dengeler.",
-                            checked = equalizerState.isLoudnessEnhancerEnabled,
-                            onCheckedChange = { viewModel.setLoudnessEnhancerEnabled(it) }
-                        )
-                    }
-
-                    // Sistem ve Veri
-                    SettingsSection(title = "Sistem & Veri") {
-                        SettingSwitchRow(
-                            title = "Akıllı Listeleri Göster",
-                            description = "En çok çalınanlar, son eklenenler gibi otomatik listeleri aktif eder.",
-                            checked = showSmartPlaylists,
-                            onCheckedChange = { viewModel.setShowSmartPlaylists(it) }
-                        )
-                        Divider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
-                        SettingactionRow(
-                            title = "Başlangıç Sekmesi",
-                            description = "Uygulama açıldığında gösterilecek ana sayfa."
-                        ) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                TabButton("Ana Panel", "HOME", defaultStartTab) { viewModel.setDefaultStartTab(it) }
-                                TabButton("Klasör", "FOLDERS", defaultStartTab) { viewModel.setDefaultStartTab(it) }
-                                TabButton("Şarkı", "ALL_SONGS", defaultStartTab) { viewModel.setDefaultStartTab(it) }
-                                TabButton("Liste", "PLAYLISTS", defaultStartTab) { viewModel.setDefaultStartTab(it) }
+                            Divider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+                            SettingactionRow(
+                                title = "Cihaz / Arayüz Modu",
+                                description = "Araç/Tablet veya Cep Telefonu ekran düzeni."
+                            ) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    TabButton("Oto", "AUTO", uiMode) { viewModel.setUiMode(it) }
+                                    TabButton("Araç", "CAR", uiMode) { viewModel.setUiMode(it) }
+                                    TabButton("Telefon", "PHONE", uiMode) { viewModel.setUiMode(it) }
+                                }
                             }
-                        }
-                        Divider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
-                        
-                        // Action Buttons
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Button(
-                                onClick = {
-                                    val roleMusic = "android.app.role.MUSIC"
-                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && roleManager?.isRoleAvailable(roleMusic) == true) {
-                                        val isRoleHeld = roleManager.isRoleHeld(roleMusic)
-                                        if (!isRoleHeld) {
-                                            val Intent = roleManager.createRequestRoleIntent(roleMusic)
-                                            launcher.launch(Intent)
-                                        }
-                                    } else {
-                                        val Intent = Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS)
-                                        try {
-                                            context.startActivity(Intent)
-                                        } catch (e: Exception) {
-                                            val AppSettingsIntent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                                data = android.net.Uri.parse("package:${context.packageName}")
-                                            }
-                                            try {
-                                                context.startActivity(AppSettingsIntent)
-                                            } catch (e2: Exception) {
-                                                // Fallback
-                                            }
-                                        }
+                            Divider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+                            SettingactionRow(
+                                title = "Araç İçi Renk Uyumu",
+                                description = "Araç konsoluna uygun vurgu rengini seçin veya albüm kapağına göre dinamikleştirin."
+                            ) {
+                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        TabButton("Dinamik", "DYNAMIC", themePalette) { viewModel.setThemePalette(it) }
+                                        TabButton("Neon", "NEON_CYAN", themePalette) { viewModel.setThemePalette(it) }
+                                        TabButton("Mocha", "GREY_BROWN", themePalette) { viewModel.setThemePalette(it) }
                                     }
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                            ) {
-                                Text("Varsayılan Müzik Çalar Yap")
+                                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        TabButton("Kırmızı", "SPORT_RED", themePalette) { viewModel.setThemePalette(it) }
+                                        TabButton("Mavi", "DEEP_BLUE", themePalette) { viewModel.setThemePalette(it) }
+                                    }
+                                }
                             }
+                            Divider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+                            SettingSwitchRow(
+                                title = "Bulanık Arka Plan Efekti",
+                                description = "Oynatıcı ekranında albüm kapağını bulanıklaştırarak şık bir arka plan yapar.",
+                                checked = showBlurredBackground,
+                                onCheckedChange = { viewModel.setShowBlurredBackground(it) }
+                            )
+                            Divider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+                            SettingSwitchRow(
+                                title = "Müzik Dalgası (Waveform)",
+                                description = "Oynatıcıda müzik ritmine göre hareket eden dalga efekti gösterir.",
+                                checked = showWaveform,
+                                onCheckedChange = { viewModel.setShowWaveform(it) }
+                            )
+                            Divider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+                            SettingSwitchRow(
+                                title = "Albüm Kapağını Alana Yay (Tam Ekran)",
+                                description = "Sol alandaki boşlukları doldurarak albüm kapağını tam ekran genişletir.",
+                                checked = isalbumartCropped,
+                                onCheckedChange = { viewModel.setIsAlbumArtCropped(it) }
+                            )
+                            Divider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+                            SettingactionRow(
+                                title = "Şarkı Sözü Font Boyutu",
+                                description = "Kapakta ve söz penceresinde yazıların büyüklüğünü belirler."
+                            ) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    TabButton("Standart", "NORMAL", lyricsFontSize) { viewModel.setLyricsFontSize(it) }
+                                    TabButton("Büyük", "LARGE", lyricsFontSize) { viewModel.setLyricsFontSize(it) }
+                                    TabButton("Çok Büyük", "XLARGE", lyricsFontSize) { viewModel.setLyricsFontSize(it) }
+                                }
+                            }
+                            Divider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+                            SettingSwitchRow(
+                                title = "Sözleri Otomatik ID3 Tag'e Kaydet",
+                                description = "Bulunan veya panodan eklenen sözleri şarkı dosyasına (ID3) otomatik işler.",
+                                checked = autoSaveId3Lyrics,
+                                onCheckedChange = { viewModel.setAutoSaveId3Lyrics(it) }
+                            )
+                        }
+                    }
 
-                            Button(
-                                onClick = { viewModel.rescanLibrary() },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer
-                                )
+                    // 3. Sekme / Bölüm: Kütüphane (Tab 2 - Ayrı Kütüphane Sekmesi)
+                    if (!isPhone || selectedSettingsTab == 2) {
+                        SettingsSection(title = "Kütüphane Yönetimi") {
+                            SettingSwitchRow(
+                                title = "Akıllı Listeleri Göster",
+                                description = "En çok çalınanlar, son eklenenler gibi otomatik listeleri aktif eder.",
+                                checked = showSmartPlaylists,
+                                onCheckedChange = { viewModel.setShowSmartPlaylists(it) }
+                            )
+                            Divider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+                            SettingactionRow(
+                                title = "Başlangıç Sekmesi",
+                                description = "Uygulama açıldığında gösterilecek ana sayfa."
                             ) {
-                                Text("Kütüphaneyi Yeniden Tara", fontWeight = FontWeight.Bold)
+                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    TabButton("Ana Panel", "HOME", defaultStartTab) { viewModel.setDefaultStartTab(it) }
+                                    TabButton("Klasör", "FOLDERS", defaultStartTab) { viewModel.setDefaultStartTab(it) }
+                                    TabButton("Şarkı", "ALL_SONGS", defaultStartTab) { viewModel.setDefaultStartTab(it) }
+                                    TabButton("Liste", "PLAYLISTS", defaultStartTab) { viewModel.setDefaultStartTab(it) }
+                                }
                             }
+                            Divider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
                             
-                            Button(
-                                onClick = { viewModel.clearPlayHistory() },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.errorContainer,
-                                    contentColor = MaterialTheme.colorScheme.onErrorContainer
-                                )
+                            // Kütüphane Eylem Butonları
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                Text("Çalma Geçmişini Temizle")
-                            }
-                        }
-                    }
+                                Button(
+                                    onClick = { viewModel.openDuplicateFinderDialog() },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                ) {
+                                    Text("🔍 Aynı / Mükerrer Şarkıları Bul", fontWeight = FontWeight.Bold)
+                                }
 
-                    // Kütüphane İstatistikleri
-                    SettingsSection(title = "Kütüphane İstatistikleri") {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            StatRow("🎵 Toplam Şarkı", "${libraryStats.totalSongs} Şarkı")
-                            StatRow("📁 Toplam Klasör", "${libraryStats.totalFolders} Klasör")
-                            StatRow("🎤 Farklı Sanatçı", "${libraryStats.uniqueArtists} Sanatçı")
-                            StatRow("💿 Farklı Albüm", "${libraryStats.uniqueAlbums} Albüm")
-                            StatRow("📑 Çalma Listesi", "${libraryStats.totalPlaylists} Liste")
-                            StatRow("⏱️ Toplam Çalma Süresi", libraryStats.totalDurationFormatted)
-                            StatRow("💾 Medya Boyutu", libraryStats.totalSizeFormatted)
-                        }
-                    }
+                                Button(
+                                    onClick = { viewModel.openFolderSelectionDialog() },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                    )
+                                ) {
+                                    Text("📁 Müzik Klasörlerini Yönet", fontWeight = FontWeight.Bold)
+                                }
 
-                    // Uygulama Bilgisi
-                    SettingsSection(title = "Hakkında") {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 12.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            val context = androidx.compose.ui.platform.LocalContext.current
-                            val versionName = androidx.compose.runtime.remember(context) {
-                                try {
-                                    val pInfo = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                                        context.packageManager.getPackageInfo(context.packageName, android.content.pm.PackageManager.PackageInfoFlags.of(0))
-                                    } else {
-                                        @Suppress("DEPRECATION")
-                                        context.packageManager.getPackageInfo(context.packageName, 0)
-                                    }
-                                    pInfo.versionName ?: "2.0"
-                                } catch (e: Exception) {
-                                    "2.0"
+                                Button(
+                                    onClick = { viewModel.rescanLibrary() },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                                    )
+                                ) {
+                                    Text("🔄 Kütüphaneyi Yeniden Tara", fontWeight = FontWeight.Bold)
+                                }
+                                
+                                Button(
+                                    onClick = { viewModel.clearPlayHistory() },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                                        contentColor = MaterialTheme.colorScheme.onErrorContainer
+                                    )
+                                ) {
+                                    Text("🗑️ Çalma Geçmişini Temizle")
                                 }
                             }
-                            Text("Sürüm", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
-                            Column(horizontalAlignment = Alignment.End) {
-                                Text("v$versionName - RidoPlay", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text("vibecoded by RK", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                        }
+
+                        // Kütüphane İstatistikleri
+                        SettingsSection(title = "Kütüphane İstatistikleri") {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                StatRow("🎵 Toplam Şarkı", "${libraryStats.totalSongs} Şarkı")
+                                StatRow("📁 Toplam Klasör", "${libraryStats.totalFolders} Klasör")
+                                StatRow("🎤 Farklı Sanatçı", "${libraryStats.uniqueArtists} Sanatçı")
+                                StatRow("💿 Farklı Albüm", "${libraryStats.uniqueAlbums} Albüm")
+                                StatRow("📑 Çalma Listesi", "${libraryStats.totalPlaylists} Liste")
+                                StatRow("⏱️ Toplam Çalma Süresi", libraryStats.totalDurationFormatted)
+                                StatRow("💾 Medya Boyutu", libraryStats.totalSizeFormatted)
+                            }
+                        }
+                    }
+
+                    // 4. Sekme / Bölüm: Otomobil Modu (Tab 3)
+                    if (!isPhone || selectedSettingsTab == 3) {
+                        SettingsSection(title = "Otomobil Modu") {
+                            SettingSwitchRow(
+                                title = "Ekranı Uyanık Tut",
+                                description = "Uygulama açıkken ekranın kapanmasını engeller.",
+                                checked = keepScreenOn,
+                                onCheckedChange = { viewModel.setKeepScreenOn(it) }
+                            )
+                            Divider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+                            SettingSwitchRow(
+                                title = "Bluetooth ile Otomatik Çal",
+                                description = "Araç kitine veya kulaklığa bağlanıldığında müziği otomatik başlatır.",
+                                checked = autoPlayOnBluetooth,
+                                onCheckedChange = { viewModel.setAutoPlayOnBluetooth(it) }
+                            )
+                        }
+                    }
+
+                    // 5. Sekme / Bölüm: Sistem (Tab 4)
+                    if (!isPhone || selectedSettingsTab == 4) {
+                        SettingsSection(title = "Sistem") {
+                            SettingSwitchRow(
+                                title = "Kapatılınca Müziği Durdur",
+                                description = "Arka plandan uygulamayı sildiğinizde müziği anında durdurur.",
+                                checked = stopOnTaskRemoved,
+                                onCheckedChange = { viewModel.setStopOnTaskRemoved(it) }
+                            )
+                            Divider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+                            
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp)
+                            ) {
+                                Button(
+                                    onClick = {
+                                        val roleMusic = "android.app.role.MUSIC"
+                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && roleManager?.isRoleAvailable(roleMusic) == true) {
+                                            val isRoleHeld = roleManager.isRoleHeld(roleMusic)
+                                            if (!isRoleHeld) {
+                                                val intent = roleManager.createRequestRoleIntent(roleMusic)
+                                                launcher.launch(intent)
+                                            }
+                                        } else {
+                                            val intent = Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS)
+                                            try {
+                                                context.startActivity(intent)
+                                            } catch (e: Exception) {
+                                                val appSettingsIntent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                                    data = android.net.Uri.parse("package:${context.packageName}")
+                                                }
+                                                try {
+                                                    context.startActivity(appSettingsIntent)
+                                                } catch (e2: Exception) {
+                                                    // Fallback
+                                                }
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                ) {
+                                    Text("Varsayılan Müzik Çalar Yap")
+                                }
                             }
                         }
                     }

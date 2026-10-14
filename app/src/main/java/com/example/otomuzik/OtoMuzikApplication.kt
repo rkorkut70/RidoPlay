@@ -12,9 +12,29 @@ import java.util.Locale
 
 class OtoMuzikApplication : Application() {
 
+    companion object {
+        var instanceOrNull: OtoMuzikApplication? = null
+            private set
+    }
+
     override fun onCreate() {
         super.onCreate()
+        instanceOrNull = this
+        initJaudiotagger()
         setupCrashHandler()
+    }
+
+    private fun initJaudiotagger() {
+        try {
+            org.jaudiotagger.tag.TagOptionSingleton.getInstance().apply {
+                isResetTextEncodingForExistingFrames = true
+                id3v23DefaultTextEncoding = org.jaudiotagger.tag.id3.valuepair.TextEncoding.UTF_16
+                id3v24DefaultTextEncoding = org.jaudiotagger.tag.id3.valuepair.TextEncoding.UTF_8
+                isTruncateTextWithoutErrors = true
+            }
+        } catch (t: Throwable) {
+            t.printStackTrace()
+        }
     }
 
     private fun setupCrashHandler() {

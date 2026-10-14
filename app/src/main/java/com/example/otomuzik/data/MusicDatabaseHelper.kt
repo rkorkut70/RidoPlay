@@ -259,6 +259,22 @@ class MusicDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
     }
 
     /**
+     * Şarkıyı veritabanından ve çalma listelerinden siler.
+     */
+    fun deleteSong(path: String): Boolean {
+        val db = writableDatabase
+        db.beginTransaction()
+        try {
+            db.delete(TABLE_PLAYLIST_SONGS, "$COL_PLS_SONG_PATH = ?", arrayOf(path))
+            val rows = db.delete(TABLE_SONGS, "$COL_PATH = ?", arrayOf(path))
+            db.setTransactionSuccessful()
+            return rows > 0
+        } finally {
+            db.endTransaction()
+        }
+    }
+
+    /**
      * Şarkı dosya adı veya meta verisi değiştiğinde kütüphaneyi ve çalma listelerindeki referansları günceller.
      */
     fun updateSongDetails(

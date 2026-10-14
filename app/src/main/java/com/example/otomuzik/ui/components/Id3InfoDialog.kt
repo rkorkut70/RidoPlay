@@ -3,6 +3,7 @@ package com.example.otomuzik.ui.components
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -58,6 +59,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -82,6 +84,7 @@ import com.example.otomuzik.theme.CarTextPrimary
 import com.example.otomuzik.theme.CarTextSecondary
 import com.example.otomuzik.util.CoverSuggestion
 import com.example.otomuzik.util.Id3Helper
+import com.example.otomuzik.util.LyricsHelper
 import com.example.otomuzik.util.MusicCoverSearcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -93,7 +96,7 @@ import java.io.File
 fun Id3InfoDialog(
     song: Song,
     onDismiss: () -> Unit,
-    onSave: (newFileName: String, title: String, artist: String, album: String, genre: String, year: String, artworkBytes: ByteArray?) -> Unit = { _, _, _, _, _, _, _ -> }
+    onSave: (newFileName: String, title: String, artist: String, album: String, genre: String, year: String, artworkBytes: ByteArray?, lyrics: String?, deleteArtwork: Boolean) -> Unit = { _, _, _, _, _, _, _, _, _ -> }
 ) {
     val context = LocalContext.current
     val songFile = remember(song.path) { File(song.path) }
@@ -109,6 +112,15 @@ fun Id3InfoDialog(
     var genre by remember { mutableStateOf(TextFieldValue(song.genre)) }
     var year by remember { mutableStateOf(TextFieldValue(song.year)) }
     var artworkBytes by remember { mutableStateOf<ByteArray?>(null) }
+    var coverDeleted by remember { mutableStateOf(false) }
+
+    // Şarkı Sözleri (ID3 USLT) Durumu
+    val clipboardManager = LocalClipboardManager.current
+    var embeddedLyrics by remember { mutableStateOf<String?>(null) }
+    var lyricsText by remember { mutableStateOf(TextFieldValue("")) }
+    var isLyricsLoaded by remember { mutableStateOf(false) }
+    var isSearchingOnlineLyrics by remember { mutableStateOf(false) }
+    var lyricsStatusMsg by remember { mutableStateOf("") }
 
     // Kapak Arama Durumu
     var isSearchingCover by remember { mutableStateOf(false) }
@@ -186,6 +198,7 @@ fun Id3InfoDialog(
                             val finalBytes = bos.toByteArray()
                             withContext(Dispatchers.Main) {
                                 artworkBytes = finalBytes
+                                coverDeleted = false
                                 coverSearchMessage = "✅ Galeriden resim seçildi"
                             }
                         } else {
@@ -203,12 +216,24 @@ fun Id3InfoDialog(
         }
     }
 
-    // Mevcut şarkının albüm kapağını başlangıçta yükle
+    // Mevcut şarkının albüm kapağını ve ID3 gömülü sözlerini başlangıçta yükle
     LaunchedEffect(song.path) {
-        val existing = withContext(Dispatchers.IO) {
+        val existingCover = withContext(Dispatchers.IO) {
             Id3Helper.getArtworkBytes(song, context)
         }
-        if (existing != null) artworkBytes = existing
+        if (existingCover != null) artworkBytes = existingCover
+
+        val existingLyrics = withContext(Dispatchers.IO) {
+            LyricsHelper.getLyricsForSong(context, song.path)?.rawLyrics ?: LyricsHelper.readEmbeddedLyrics(song.path)
+        }
+        embeddedLyrics = existingLyrics
+        if (!existingLyrics.isNullOrBlank()) {
+            lyricsText = TextFieldValue(existingLyrics)
+            lyricsStatusMsg = "✓ Dosyada gömülü ID3 sözü bulundu (${existingLyrics.lines().size} satır)"
+        } else {
+            lyricsStatusMsg = "Bu dosyada gömülü ID3 şarkı sözü bulunmuyor."
+        }
+        isLyricsLoaded = true
     }
 
     // Görünür olan 10'lu kapak grubunun küçük resimlerini (thumbnails) arka planda hızlıca indir
@@ -229,6 +254,7 @@ fun Id3InfoDialog(
 
     val configuration = LocalConfiguration.current
     val isPhone = configuration.screenWidthDp < 600
+    val isCompact = isPhone || configuration.orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT || configuration.screenWidthDp < 750
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -271,14 +297,15 @@ fun Id3InfoDialog(
                                 .clip(RoundedCornerShape(9.dp))
                                 .background(if (selectedTab == 0) CarCyan else Color.Transparent)
                                 .clickable { selectedTab = 0 }
-                                .padding(horizontal = if (isPhone) 8.dp else 16.dp, vertical = 7.dp),
+                                .padding(horizontal = if (isPhone) 6.dp else 14.dp, vertical = 7.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "🏷️ ID3 Bilgileri",
-                                fontSize = if (isPhone) 12.sp else 13.sp,
+                                text = "🏷️ ID3 Bilgisi",
+                                fontSize = if (isPhone) 11.5.sp else 13.sp,
                                 fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Medium,
-                                color = if (selectedTab == 0) Color(0xFF0C0E12) else CarTextPrimary
+                                color = if (selectedTab == 0) Color(0xFF0C0E12) else CarTextPrimary,
+                                maxLines = 1
                             )
                         }
 
@@ -295,14 +322,35 @@ fun Id3InfoDialog(
                                         performCoverSearch()
                                     }
                                 }
-                                .padding(horizontal = if (isPhone) 8.dp else 16.dp, vertical = 7.dp),
+                                .padding(horizontal = if (isPhone) 6.dp else 14.dp, vertical = 7.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = "🖼️ Kapaklar$coverBadge",
-                                fontSize = if (isPhone) 12.sp else 13.sp,
+                                fontSize = if (isPhone) 11.5.sp else 13.sp,
                                 fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Medium,
-                                color = if (selectedTab == 1) Color(0xFF0C0E12) else CarTextPrimary
+                                color = if (selectedTab == 1) Color(0xFF0C0E12) else CarTextPrimary,
+                                maxLines = 1
+                            )
+                        }
+
+                        // Sekme 2: Gömülü Şarkı Sözleri (ID3 USLT)
+                        val lyricsBadge = if (!embeddedLyrics.isNullOrBlank()) " ✓" else ""
+                        Box(
+                            modifier = Modifier
+                                .then(if (isPhone) Modifier.weight(1f) else Modifier)
+                                .clip(RoundedCornerShape(9.dp))
+                                .background(if (selectedTab == 2) CarCyan else Color.Transparent)
+                                .clickable { selectedTab = 2 }
+                                .padding(horizontal = if (isPhone) 6.dp else 14.dp, vertical = 7.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "🎤 Sözler$lyricsBadge",
+                                fontSize = if (isPhone) 11.5.sp else 13.sp,
+                                fontWeight = if (selectedTab == 2) FontWeight.Bold else FontWeight.Medium,
+                                color = if (selectedTab == 2) Color(0xFF0C0E12) else CarTextPrimary,
+                                maxLines = 1
                             )
                         }
                     }
@@ -322,7 +370,7 @@ fun Id3InfoDialog(
                     }
                 }
 
-                if (isPhone) {
+                if (isCompact) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -433,6 +481,7 @@ fun Id3InfoDialog(
                                     Button(
                                         onClick = {
                                             artworkBytes = null
+                                            coverDeleted = true
                                             selectedSuggestionId = null
                                             coverSearchMessage = "Kapak kaldırıldı"
                                         },
@@ -559,7 +608,7 @@ fun Id3InfoDialog(
                                 }
                             }
                         }
-                    } else {
+                    } else if (selectedTab == 1) {
                         // ──────────────────────────────────────────────────────
                         // SEKME 1: BÜYÜK ALBÜM KAPAKLARI ARAMA & 10'LU GRUPLAR
                         // ──────────────────────────────────────────────────────
@@ -856,6 +905,7 @@ fun Id3InfoDialog(
                                                                 isDownloadingCover = false
                                                                 if (fullBytes != null) {
                                                                     artworkBytes = fullBytes
+                                                                    coverDeleted = false
                                                                     coverSearchMessage = "✅ Kapak seçildi: ${item.title} (${item.source})"
                                                                 } else {
                                                                     coverSearchMessage = "⚠️ Kapak tam boyutta indirilemedi."
@@ -951,6 +1001,135 @@ fun Id3InfoDialog(
                                 }
                             }
                         }
+                    } else {
+                        // ──────────────────────────────────────────────────────
+                        // SEKME 2: GÖMÜLÜ ŞARKI SÖZLERİ (ID3 USLT) GÖRÜNTÜLE & DÜZENLE
+                        // ──────────────────────────────────────────────────────
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            // Sözler Araç Çubuğu
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // Çevrimiçi Arama Butonu
+                                Button(
+                                    onClick = {
+                                        coroutineScope.launch(Dispatchers.IO) {
+                                            withContext(Dispatchers.Main) {
+                                                isSearchingOnlineLyrics = true
+                                                lyricsStatusMsg = "LRCLIB ve lyrics.ovh servislerinden aranıyor..."
+                                            }
+                                            val onlineData = LyricsHelper.fetchOnlineLyrics(
+                                                artist = artist.text,
+                                                title = title.text,
+                                                durationSec = (song.durationMs / 1000).toInt(),
+                                                songPath = song.path
+                                            )
+                                            withContext(Dispatchers.Main) {
+                                                isSearchingOnlineLyrics = false
+                                                if (onlineData != null && onlineData.rawLyrics.isNotBlank()) {
+                                                    lyricsText = TextFieldValue(onlineData.rawLyrics)
+                                                    lyricsStatusMsg = "✓ İnternetten sözler bulundu (${onlineData.lines.size} satır)"
+                                                } else {
+                                                    lyricsStatusMsg = "⚠️ Çevrimiçi söz bulunamadı. Panodan yapıştırabilirsiniz."
+                                                }
+                                            }
+                                        }
+                                    },
+                                    enabled = !isSearchingOnlineLyrics,
+                                    colors = ButtonDefaults.buttonColors(containerColor = CarCyan),
+                                    shape = RoundedCornerShape(10.dp),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                                    modifier = Modifier.height(36.dp)
+                                ) {
+                                    if (isSearchingOnlineLyrics) {
+                                        CircularProgressIndicator(color = Color(0xFF0C0E12), strokeWidth = 2.dp, modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Aranıyor...", color = Color(0xFF0C0E12), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                    } else {
+                                        Text("🔍 İnternetten Bul", color = Color(0xFF0C0E12), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                    }
+                                }
+
+                                // Panodan Yapıştır Butonu
+                                Button(
+                                    onClick = {
+                                        val clip = clipboardManager.getText()?.text
+                                        if (!clip.isNullOrBlank()) {
+                                            lyricsText = TextFieldValue(clip)
+                                            lyricsStatusMsg = "✓ Panodan yapıştırıldı (${clip.lines().size} satır)"
+                                        } else {
+                                            Toast.makeText(context, "Pano boş!", Toast.LENGTH_SHORT).show()
+                                        }
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = CarSurfaceVariant),
+                                    border = BorderStroke(1.dp, CarBorder),
+                                    shape = RoundedCornerShape(10.dp),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                                    modifier = Modifier.height(36.dp)
+                                ) {
+                                    Text("📋 Panodan Yapıştır", color = CarTextPrimary, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                                }
+
+                                // Temizle / Kaldır Butonu
+                                if (lyricsText.text.isNotBlank()) {
+                                    Button(
+                                        onClick = {
+                                            lyricsText = TextFieldValue("")
+                                            lyricsStatusMsg = "Sözler temizlendi (Kaydedildiğinde ID3 etiketinden silinir)"
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0x33FF5252)),
+                                        shape = RoundedCornerShape(10.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                        modifier = Modifier.height(36.dp)
+                                    ) {
+                                        Text("🗑️ Temizle", color = Color(0xFFFF5252), fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold)
+                                    }
+                                }
+                            }
+
+                            // Durum / Bilgilendirme Notu
+                            if (lyricsStatusMsg.isNotEmpty()) {
+                                Text(
+                                    text = lyricsStatusMsg,
+                                    fontSize = 11.5.sp,
+                                    color = if (lyricsStatusMsg.startsWith("✓")) CarCyan else if (lyricsStatusMsg.startsWith("⚠️")) CarAmber else CarTextMuted,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+
+                            // Şarkı Sözü Düzenleme Alanı
+                            OutlinedTextField(
+                                value = lyricsText,
+                                onValueChange = { lyricsText = it },
+                                label = { Text("MP3 Dosyasına Gömülü Şarkı Sözleri (USLT / LRC)", color = CarTextMuted, fontSize = 12.sp) },
+                                placeholder = { Text("Buraya şarkı sözlerini yazabilir, yapıştırabilir veya internetten arayabilirsiniz...", color = CarTextMuted.copy(alpha = 0.6f), fontSize = 12.sp) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f),
+                                shape = RoundedCornerShape(14.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = CarCyan,
+                                    unfocusedBorderColor = CarBorder,
+                                    focusedTextColor = CarTextPrimary,
+                                    unfocusedTextColor = CarTextPrimary,
+                                    focusedContainerColor = CarSurfaceVariant.copy(alpha = 0.5f),
+                                    unfocusedContainerColor = CarSurfaceVariant.copy(alpha = 0.3f)
+                                ),
+                                textStyle = TextStyle(
+                                    fontSize = 13.sp,
+                                    lineHeight = 18.sp,
+                                    fontFamily = FontFamily.Default
+                                )
+                            )
+                        }
                     }
                 }
 
@@ -962,8 +1141,8 @@ fun Id3InfoDialog(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (selectedTab == 1) {
-                        // Kapak sekmesindeyken sol tarafta "ID3 Sekmesine Dön"
+                    if (selectedTab != 0) {
+                        // Kapak veya Söz sekmesindeyken sol tarafta "ID3 Sekmesine Dön"
                         Button(
                             onClick = { selectedTab = 0 },
                             colors = ButtonDefaults.buttonColors(containerColor = CarSurfaceVariant),
@@ -974,7 +1153,7 @@ fun Id3InfoDialog(
                                 .height(46.dp)
                         ) {
                             Text(
-                                text = "🏷️ Bilgiler",
+                                text = "🏷️ ID3 Bilgisi",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = CarTextPrimary
@@ -999,10 +1178,11 @@ fun Id3InfoDialog(
                         }
                     }
 
-                    // Kaydet Butonu (Her iki sekmeden de doğrudan kaydedilebilir!)
+                    // Kaydet Butonu (Tüm sekmelerden doğrudan kaydedilebilir!)
                     Button(
                         onClick = {
-                            onSave(fileName.text, title.text, artist.text, album.text, genre.text, year.text, artworkBytes)
+                            val finalLyrics = if (isLyricsLoaded) lyricsText.text else null
+                            onSave(fileName.text, title.text, artist.text, album.text, genre.text, year.text, artworkBytes, finalLyrics, coverDeleted)
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = CarCyan),
                         shape = RoundedCornerShape(12.dp),

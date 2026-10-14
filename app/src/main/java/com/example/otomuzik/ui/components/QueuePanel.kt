@@ -524,7 +524,7 @@ private fun QueueSongItemCard(
         // Orta Bölüm: Başlık ve Sanatçı
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = song.title,
+                text = com.example.otomuzik.util.TurkishStringFixer.fix(song.title),
                 fontSize = if (isCompact) 15.sp else 16.sp,
                 fontWeight = if (isCurrent) FontWeight.ExtraBold else FontWeight.Bold,
                 color = if (isCurrent) accentColor else CarTextPrimary,
@@ -533,7 +533,7 @@ private fun QueueSongItemCard(
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = song.artist,
+                text = com.example.otomuzik.util.TurkishStringFixer.fix(song.artist),
                 fontSize = if (isCompact) 12.sp else 13.sp,
                 color = if (isCurrent) CarTextPrimary.copy(alpha = 0.9f) else CarTextMuted,
                 maxLines = 1,

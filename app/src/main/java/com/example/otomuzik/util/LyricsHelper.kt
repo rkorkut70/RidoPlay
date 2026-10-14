@@ -20,55 +20,130 @@ object LyricsHelper {
     private val TIMESTAMP_REGEX = Regex("""\[(\d{1,2}):(\d{2})(?:[.:](\d{1,3}))?\]""")
     private val HEADER_TAG_REGEX = Regex("""^\[[a-zA-Z]+:.*\]$""")
 
+    init {
+        try {
+            org.jaudiotagger.tag.TagOptionSingleton.getInstance().apply {
+                isResetTextEncodingForExistingFrames = true
+                id3v23DefaultTextEncoding = org.jaudiotagger.tag.id3.valuepair.TextEncoding.UTF_16
+                id3v24DefaultTextEncoding = org.jaudiotagger.tag.id3.valuepair.TextEncoding.UTF_8
+                isTruncateTextWithoutErrors = true
+            }
+        } catch (_: Throwable) {}
+    }
+
+    fun getLyricsCacheFile(context: android.content.Context, path: String): File {
+        val cacheDir = File(context.filesDir, "lyrics")
+        if (!cacheDir.exists()) cacheDir.mkdirs()
+        val safeName = java.security.MessageDigest.getInstance("MD5")
+            .digest(path.toByteArray(Charsets.UTF_8))
+            .joinToString("") { "%02x".format(it) }
+        return File(cacheDir, "$safeName.txt")
+    }
+
+    fun saveLyricsToAppCache(context: android.content.Context, path: String, lyricsText: String?) {
+        try {
+            val file = getLyricsCacheFile(context, path)
+            if (!lyricsText.isNullOrBlank()) {
+                file.writeText(TurkishStringFixer.fix(lyricsText.trim()), Charsets.UTF_8)
+            } else {
+                if (file.exists()) file.delete()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    fun getLyricsFromAppCache(context: android.content.Context, path: String): String? {
+        return try {
+            val file = getLyricsCacheFile(context, path)
+            if (file.exists() && file.length() > 0) {
+                val content = file.readText(Charsets.UTF_8)
+                if (content.isNotBlank()) TurkishStringFixer.fix(content.trim()) else null
+            } else null
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    fun deleteLyricsFromAppCache(context: android.content.Context, path: String) {
+        try {
+            val file = getLyricsCacheFile(context, path)
+            if (file.exists()) file.delete()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
     /**
-     * Şarkı için yerel depodan (.lrc, .txt veya ID3 gümülü) sözleri yükler.
+     * Şarkı için yerel depodan (önbellek, .lrc, .txt veya ID3 gömülü) sözleri yükler.
      */
-    suspend fun getLyricsForSong(songPath: String): LyricsData? = withContext(Dispatchers.IO) {
+    suspend fun getLyricsForSong(songPath: String): LyricsData? = getLyricsForSong(null, songPath)
+
+    suspend fun getLyricsForSong(context: android.content.Context? = null, songPath: String): LyricsData? = withContext(Dispatchers.IO) {
         if (songPath.isBlank()) return@withContext null
 
-        val songFile = File(songPath)
-        if (!songFile.exists()) return@withContext null
+        val effectiveContext = context ?: com.example.otomuzik.OtoMuzikApplication.instanceOrNull
 
-        val directory = songFile.parentFile ?: return@withContext null
+        // 1. Öncelik: Uygulama içi önbellek (Kullanıcının kaydettiği/düzenlediği en güncel söz)
+        if (effectiveContext != null) {
+            val cachedLyrics = getLyricsFromAppCache(effectiveContext, songPath)
+            if (!cachedLyrics.isNullOrBlank()) {
+                val fixedContent = TurkishStringFixer.fix(cachedLyrics)
+                val lines = parseLyrics(fixedContent)
+                val isSynced = lines.any { it.timestampMs >= 0 }
+                return@withContext LyricsData(
+                    songPath = songPath,
+                    rawLyrics = fixedContent,
+                    lines = lines,
+                    isSynced = isSynced,
+                    source = if (isSynced) LyricsSource.LOCAL_LRC else LyricsSource.LOCAL_TXT
+                )
+            }
+        }
+
+        val songFile = File(songPath)
+        val directory = songFile.parentFile
         val songNameWithoutExtension = songFile.nameWithoutExtension
 
-        // 1. Öncelik: .lrc dosyası
-        val lrcFile = File(directory, "$songNameWithoutExtension.lrc")
-        if (lrcFile.exists() && lrcFile.length() > 0) {
-            val content = readFileWithEncodingFallback(lrcFile)
-            if (!content.isNullOrBlank()) {
-                val fixedContent = TurkishStringFixer.fix(content)
-                val lines = parseLyrics(fixedContent)
-                val isSynced = lines.any { it.timestampMs >= 0 }
-                return@withContext LyricsData(
-                    songPath = songPath,
-                    rawLyrics = fixedContent,
-                    lines = lines,
-                    isSynced = isSynced,
-                    source = LyricsSource.LOCAL_LRC
-                )
+        // 2. Öncelik: .lrc dosyası
+        if (directory != null) {
+            val lrcFile = File(directory, "$songNameWithoutExtension.lrc")
+            if (lrcFile.exists() && lrcFile.length() > 0) {
+                val content = readFileWithEncodingFallback(lrcFile)
+                if (!content.isNullOrBlank()) {
+                    val fixedContent = TurkishStringFixer.fix(content)
+                    val lines = parseLyrics(fixedContent)
+                    val isSynced = lines.any { it.timestampMs >= 0 }
+                    return@withContext LyricsData(
+                        songPath = songPath,
+                        rawLyrics = fixedContent,
+                        lines = lines,
+                        isSynced = isSynced,
+                        source = LyricsSource.LOCAL_LRC
+                    )
+                }
+            }
+
+            // 3. Öncelik: .txt dosyası
+            val txtFile = File(directory, "$songNameWithoutExtension.txt")
+            if (txtFile.exists() && txtFile.length() > 0) {
+                val content = readFileWithEncodingFallback(txtFile)
+                if (!content.isNullOrBlank()) {
+                    val fixedContent = TurkishStringFixer.fix(content)
+                    val lines = parseLyrics(fixedContent)
+                    val isSynced = lines.any { it.timestampMs >= 0 }
+                    return@withContext LyricsData(
+                        songPath = songPath,
+                        rawLyrics = fixedContent,
+                        lines = lines,
+                        isSynced = isSynced,
+                        source = LyricsSource.LOCAL_TXT
+                    )
+                }
             }
         }
 
-        // 2. Öncelik: .txt dosyası
-        val txtFile = File(directory, "$songNameWithoutExtension.txt")
-        if (txtFile.exists() && txtFile.length() > 0) {
-            val content = readFileWithEncodingFallback(txtFile)
-            if (!content.isNullOrBlank()) {
-                val fixedContent = TurkishStringFixer.fix(content)
-                val lines = parseLyrics(fixedContent)
-                val isSynced = lines.any { it.timestampMs >= 0 }
-                return@withContext LyricsData(
-                    songPath = songPath,
-                    rawLyrics = fixedContent,
-                    lines = lines,
-                    isSynced = isSynced,
-                    source = LyricsSource.LOCAL_TXT
-                )
-            }
-        }
-
-        // 3. Öncelik: MP3 ID3 etiketindeki gömülü USLT / LYRICS çerçevesi
+        // 4. Öncelik: MP3 ID3 etiketindeki gömülü USLT / LYRICS çerçevesi
         val embeddedLyrics = readEmbeddedLyrics(songPath)
         if (!embeddedLyrics.isNullOrBlank()) {
             val fixedContent = TurkishStringFixer.fix(embeddedLyrics)
@@ -336,10 +411,17 @@ object LyricsHelper {
             val dir = songFile.parentFile ?: return@withContext false
             val name = songFile.nameWithoutExtension
 
-            val extension = if (lyricsData.isSynced) "lrc" else "txt"
-            val targetFile = File(dir, "$name.$extension")
+            val cleanLyrics = TurkishStringFixer.fix(lyricsData.rawLyrics.trim())
+            val lrcFile = File(dir, "$name.lrc")
+            val txtFile = File(dir, "$name.txt")
 
-            targetFile.writeText(TurkishStringFixer.fix(lyricsData.rawLyrics), Charsets.UTF_8)
+            if (lyricsData.isSynced) {
+                lrcFile.writeText(cleanLyrics, Charsets.UTF_8)
+                if (txtFile.exists()) txtFile.delete()
+            } else {
+                txtFile.writeText(cleanLyrics, Charsets.UTF_8)
+                if (lrcFile.exists()) lrcFile.delete()
+            }
             true
         } catch (e: Exception) {
             e.printStackTrace()
@@ -355,11 +437,134 @@ object LyricsHelper {
         val file = File(songPath)
         if (!file.exists() || !file.canRead()) return null
 
-        return try {
+        val fromJaudiotagger = try {
             val audioFile = org.jaudiotagger.audio.AudioFileIO.read(file)
-            val tag = audioFile.tag ?: return null
-            val lyrics = tag.getFirst(org.jaudiotagger.tag.FieldKey.LYRICS)
+            val tag = audioFile.tag
+            val lyrics = tag?.getFirst(org.jaudiotagger.tag.FieldKey.LYRICS)
             if (!lyrics.isNullOrBlank()) TurkishStringFixer.fix(lyrics.trim()) else null
+        } catch (e: Throwable) {
+            null
+        }
+
+        if (fromJaudiotagger != null) return fromJaudiotagger
+
+        // Fallback: Ham ID3v2 USLT parser (Jaudiotagger audio frame hatalarında çökerse)
+        return readRawUslt(file)
+    }
+
+    /**
+     * Ham ID3v2 binary verisinden USLT veya ULT çerçevesini okur.
+     */
+    private fun readRawUslt(file: File): String? {
+        return try {
+            java.io.RandomAccessFile(file, "r").use { raf ->
+                val header = ByteArray(10)
+                raf.read(header)
+                if (header[0] != 'I'.code.toByte() || header[1] != 'D'.code.toByte() || header[2] != '3'.code.toByte()) return null
+                val majorVersion = header[3].toInt() and 0xFF
+                if (majorVersion !in 2..4) return null
+
+                val flagByte = header[5].toInt() and 0xFF
+                val hasExtHeader = (flagByte and 0x40) != 0
+
+                val size = ((header[6].toLong() and 0x7F) shl 21) or
+                           ((header[7].toLong() and 0x7F) shl 14) or
+                           ((header[8].toLong() and 0x7F) shl 7) or
+                            (header[9].toLong() and 0x7F)
+
+                val frameHeaderSize = if (majorVersion == 2) 6 else 10
+                val frameIdSize = if (majorVersion == 2) 3 else 4
+
+                if (hasExtHeader) {
+                    val extSizeBytes = ByteArray(4)
+                    raf.read(extSizeBytes)
+                    val extSize = java.nio.ByteBuffer.wrap(extSizeBytes).int
+                    raf.skipBytes(extSize - 4)
+                }
+
+                var bytesRead = 0L
+                val frameHeaderBuf = ByteArray(frameHeaderSize)
+
+                while (bytesRead < size - frameHeaderSize) {
+                    val read = raf.read(frameHeaderBuf)
+                    if (read < frameHeaderSize) break
+                    bytesRead += read
+
+                    val frameId = String(frameHeaderBuf, 0, frameIdSize, Charsets.ISO_8859_1)
+                    if (frameId.all { it == '\u0000' }) break
+
+                    val frameSize = if (majorVersion == 2) {
+                        ((frameHeaderBuf[3].toLong() and 0xFF) shl 16) or
+                        ((frameHeaderBuf[4].toLong() and 0xFF) shl 8) or
+                         (frameHeaderBuf[5].toLong() and 0xFF)
+                    } else {
+                        if (majorVersion == 4) {
+                            ((frameHeaderBuf[4].toLong() and 0x7F) shl 21) or
+                            ((frameHeaderBuf[5].toLong() and 0x7F) shl 14) or
+                            ((frameHeaderBuf[6].toLong() and 0x7F) shl 7) or
+                             (frameHeaderBuf[7].toLong() and 0x7F)
+                        } else {
+                            ((frameHeaderBuf[4].toLong() and 0xFF) shl 24) or
+                            ((frameHeaderBuf[5].toLong() and 0xFF) shl 16) or
+                            ((frameHeaderBuf[6].toLong() and 0xFF) shl 8) or
+                             (frameHeaderBuf[7].toLong() and 0xFF)
+                        }
+                    }
+
+                    if (frameSize <= 0 || frameSize > 2 * 1024 * 1024) break
+
+                    val frameData = ByteArray(frameSize.toInt())
+                    val dataRead = raf.read(frameData)
+                    if (dataRead < 1) break
+                    bytesRead += dataRead
+
+                    val normalizedId = if (majorVersion == 2 && frameId == "ULT") "USLT" else frameId
+                    if (normalizedId == "USLT" && frameData.size > 4) {
+                        val enc = frameData[0].toInt() and 0xFF
+                        var offset = 4 // encoding (1) + language (3)
+                        val isUtf16 = enc == 1 || enc == 2
+                        if (isUtf16) {
+                            while (offset < frameData.size - 1) {
+                                if (frameData[offset] == 0.toByte() && frameData[offset + 1] == 0.toByte()) {
+                                    offset += 2
+                                    break
+                                }
+                                offset += 2
+                            }
+                        } else {
+                            while (offset < frameData.size) {
+                                if (frameData[offset] == 0.toByte()) {
+                                    offset += 1
+                                    break
+                                }
+                                offset++
+                            }
+                        }
+
+                        if (offset < frameData.size) {
+                            val lyricBytes = frameData.copyOfRange(offset, frameData.size)
+                            val decoded = when (enc) {
+                                1 -> String(lyricBytes, Charsets.UTF_16)
+                                2 -> String(lyricBytes, Charsets.UTF_16BE)
+                                3 -> String(lyricBytes, Charsets.UTF_8)
+                                else -> {
+                                    var s = String(lyricBytes, Charsets.UTF_8)
+                                    if (s.contains("\uFFFD")) {
+                                        s = try { String(lyricBytes, java.nio.charset.Charset.forName("windows-1254")) }
+                                            catch (e: Exception) { String(lyricBytes, java.nio.charset.Charset.forName("ISO-8859-9")) }
+                                    }
+                                    s
+                                }
+                            }.trimEnd('\u0000').trim()
+
+                            if (decoded.isNotBlank()) {
+                                return TurkishStringFixer.fix(decoded)
+                            }
+                        }
+                    }
+                }
+                null
+            }
         } catch (e: Exception) {
             null
         }
@@ -369,14 +574,38 @@ object LyricsHelper {
      * Şarkı sözünü MP3 dosyasının ID3 etiketine gömer.
      */
     suspend fun saveEmbeddedLyrics(songPath: String, lyricsText: String): Boolean = withContext(Dispatchers.IO) {
-        if (songPath.isBlank() || lyricsText.isBlank()) return@withContext false
+        if (songPath.isBlank()) return@withContext false
         val file = File(songPath)
         if (!file.exists()) return@withContext false
 
         return@withContext try {
             val audioFile = org.jaudiotagger.audio.AudioFileIO.read(file)
             val tag = audioFile.tagOrCreateAndSetDefault
-            tag.setField(org.jaudiotagger.tag.FieldKey.LYRICS, TurkishStringFixer.fix(lyricsText))
+            val cleanLyrics = TurkishStringFixer.fix(lyricsText.trim())
+
+            try {
+                tag.deleteField(org.jaudiotagger.tag.FieldKey.LYRICS)
+            } catch (_: Throwable) {}
+
+            if (cleanLyrics.isNotBlank()) {
+                try {
+                    tag.setField(org.jaudiotagger.tag.FieldKey.LYRICS, cleanLyrics)
+                } catch (e: Throwable) {
+                    try {
+                        val uslt = org.jaudiotagger.tag.id3.framebody.FrameBodyUSLT(
+                            org.jaudiotagger.tag.id3.valuepair.TextEncoding.UTF_16,
+                            "eng",
+                            "",
+                            cleanLyrics
+                        )
+                        val frame = org.jaudiotagger.tag.id3.ID3v23Frame("USLT")
+                        frame.body = uslt
+                        tag.setField(frame)
+                    } catch (e2: Throwable) {
+                        e2.printStackTrace()
+                    }
+                }
+            }
             audioFile.commit()
             true
         } catch (e: Exception) {

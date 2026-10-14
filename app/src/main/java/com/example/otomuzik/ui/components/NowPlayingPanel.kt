@@ -68,6 +68,7 @@ fun NowPlayingPanel(
     onOpenEqualizer: () -> Unit,
     onOpenId3Info: () -> Unit = {},
     onOpenLyrics: () -> Unit = {},
+    onOpenAbout: () -> Unit = {},
     onOpenQueue: () -> Unit = {},
     onOpenSleepTimer: () -> Unit = {},
     onPlayPause: () -> Unit,
@@ -184,10 +185,13 @@ fun NowPlayingPanel(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // En solda 3 Boyutlu Tasarımlı Program Adı (RidoPlay)
+                // En solda 3 Boyutlu Tasarımlı Program Adı (RidoPlay) - Tıklanınca Hakkında açılır
                 ThreeDimensionalBrandText(
                     text = "RidoPlay",
-                    isCompact = isCompact
+                    isCompact = isCompact,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { onOpenAbout() }
                 )
 
                 // Sağ tarafta EQ ve menü butonları (Şık Altın/Amber Kapsül Container)

@@ -21,3 +21,4 @@ local.properties
 find_*.ps1
 sample_*.ps1
 test_*.ps1
+backup_*.ps1

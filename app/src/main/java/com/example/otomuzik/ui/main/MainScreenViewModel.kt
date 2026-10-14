@@ -106,7 +106,6 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
     private val _showSettingsDialog = MutableStateFlow(false)
     val showSettingsDialog: StateFlow<Boolean> = _showSettingsDialog.asStateFlow()
 
-
     fun openSettingsDialog() {
         onUserNavigated()
         _showSettingsDialog.value = true
@@ -114,6 +113,18 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
 
     fun closeSettingsDialog() {
         _showSettingsDialog.value = false
+    }
+
+    private val _showAboutDialog = MutableStateFlow(false)
+    val showAboutDialog: StateFlow<Boolean> = _showAboutDialog.asStateFlow()
+
+    fun openAboutDialog() {
+        onUserNavigated()
+        _showAboutDialog.value = true
+    }
+
+    fun closeAboutDialog() {
+        _showAboutDialog.value = false
     }
 
     val favoriteSongs: StateFlow<List<Song>> = combine(_allSongs, _favoritePaths) { songs, favs ->
@@ -143,11 +154,59 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
     private val _showCreatePlaylistDialog = MutableStateFlow(false)
     val showCreatePlaylistDialog: StateFlow<Boolean> = _showCreatePlaylistDialog.asStateFlow()
 
+    private val _batchId3FolderItem = MutableStateFlow<FolderItem?>(null)
+    val batchId3FolderItem: StateFlow<FolderItem?> = _batchId3FolderItem.asStateFlow()
+
+    fun openBatchId3Dialog(folder: FolderItem) {
+        _batchId3FolderItem.value = folder
+    }
+
+    fun closeBatchId3Dialog() {
+        _batchId3FolderItem.value = null
+    }
+
+    private val _showM3uImportDialog = MutableStateFlow(false)
+    val showM3uImportDialog: StateFlow<Boolean> = _showM3uImportDialog.asStateFlow()
+
+    private val _showDuplicateFinderDialog = MutableStateFlow(false)
+    val showDuplicateFinderDialog: StateFlow<Boolean> = _showDuplicateFinderDialog.asStateFlow()
+
+    fun openDuplicateFinderDialog() {
+        _showDuplicateFinderDialog.value = true
+    }
+
+    fun closeDuplicateFinderDialog() {
+        _showDuplicateFinderDialog.value = false
+    }
+
+    private val _availableM3uFiles = MutableStateFlow<List<File>>(emptyList())
+    val availableM3uFiles: StateFlow<List<File>> = _availableM3uFiles.asStateFlow()
+
+    fun openM3uImportDialog() {
+        scanM3uFiles()
+        _showM3uImportDialog.value = true
+    }
+
+    fun closeM3uImportDialog() {
+        _showM3uImportDialog.value = false
+    }
+
+    fun scanM3uFiles() {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val files = com.example.otomuzik.util.PlaylistM3uHelper.findAvailableM3uFiles()
+            _availableM3uFiles.value = files
+        }
+    }
+
     // Ekolayzer (EQ) Durumu
     val equalizerState: StateFlow<com.example.otomuzik.model.EqualizerState> = MusicController.equalizerState
 
     private val _showEqualizerDialog = MutableStateFlow(false)
     val showEqualizerDialog: StateFlow<Boolean> = _showEqualizerDialog.asStateFlow()
+
+    // Oynatma Hızı
+    val playbackSpeed: StateFlow<Float> = MusicController.playbackSpeed
+    fun setPlaybackSpeed(speed: Float) = MusicController.setPlaybackSpeed(speed)
 
     // albüm Kapak Resmi
     private val _currentSongartwork = MutableStateFlow<android.graphics.Bitmap?>(null)
@@ -172,6 +231,40 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
 
     private val _autoOpenQueueOnStart = MutableStateFlow(repository.getAutoOpenQueueOnStart())
     val autoOpenQueueOnStart: StateFlow<Boolean> = _autoOpenQueueOnStart.asStateFlow()
+
+    // Taranacak Kütüphane Klasörleri
+    private val _includedFolders = MutableStateFlow(repository.getIncludedFolders())
+    val includedFolders: StateFlow<Set<String>> = _includedFolders.asStateFlow()
+
+    private val _showFolderSelectionDialog = MutableStateFlow(false)
+    val showFolderSelectionDialog: StateFlow<Boolean> = _showFolderSelectionDialog.asStateFlow()
+
+    fun openFolderSelectionDialog() { _showFolderSelectionDialog.value = true }
+    fun closeFolderSelectionDialog() { _showFolderSelectionDialog.value = false }
+
+    fun toggleFolderIncluded(path: String, isIncluded: Boolean) {
+        val current = _includedFolders.value.toMutableSet()
+        if (isIncluded) {
+            current.add(path)
+        } else {
+            current.remove(path)
+        }
+        repository.setIncludedFolders(current)
+        _includedFolders.value = current
+        rescanLibrary()
+    }
+
+    fun addCustomIncludedFolder(path: String) {
+        repository.addIncludedFolder(path)
+        _includedFolders.value = repository.getIncludedFolders()
+        rescanLibrary()
+    }
+
+    fun removeIncludedFolder(path: String) {
+        repository.removeIncludedFolder(path)
+        _includedFolders.value = repository.getIncludedFolders()
+        rescanLibrary()
+    }
 
     fun getPalettePrimaryColor(palette: String): androidx.compose.ui.graphics.Color {
         return when (palette) {
@@ -269,6 +362,14 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
 
     private val _stopOnTaskRemoved = MutableStateFlow(repository.getStopOnTaskRemoved())
     val stopOnTaskRemoved: StateFlow<Boolean> = _stopOnTaskRemoved.asStateFlow()
+
+    private val _swipeSensitivity = MutableStateFlow(repository.getSwipeSensitivity())
+    val swipeSensitivity: StateFlow<String> = _swipeSensitivity.asStateFlow()
+
+    fun setSwipeSensitivity(sensitivity: String) {
+        _swipeSensitivity.value = sensitivity
+        repository.setSwipeSensitivity(sensitivity)
+    }
 
     // Kütüphane İstatistikleri (Ayarlar ekranı için)
     val libraryStats: StateFlow<com.example.otomuzik.model.LibraryStats> = combine(_allSongs, _Playlists) { songs, playlists ->
@@ -377,18 +478,22 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
                     )
                     _currentSongartwork.value = artwork
 
-                    // Kapaktan baskın rengi çıkar (IO thread'de çalışır)
-                    _accentColor.value = com.example.otomuzik.theme.DynamicColorManager
-                        .extractDominantColor(artwork)
+                    // Kapaktan baskın rengi çıkar (DYNAMIC ise) veya seçilen paleti kullan
+                    if (_themePalette.value == "DYNAMIC") {
+                        _accentColor.value = com.example.otomuzik.theme.DynamicColorManager
+                            .extractDominantColor(artwork)
+                    } else {
+                        _accentColor.value = getPalettePrimaryColor(_themePalette.value)
+                    }
 
                     _currentSongId3.value = com.example.otomuzik.util.Id3Helper.parseSong(
                         context = getApplication<android.app.Application>(),
                         filePath = song.path,
                         uriString = song.uriString
-                    )
+                )
 
                     // Şarkı sözlerini yerelden yükle
-                    val lyrics = com.example.otomuzik.util.LyricsHelper.getLyricsForSong(song.path)
+                    val lyrics = com.example.otomuzik.util.LyricsHelper.getLyricsForSong(getApplication<android.app.Application>(), song.path)
                     _lyricsData.value = lyrics
                     _currentLyrics.value = lyrics?.rawLyrics
                     _lyricsStatusMessage.value = null
@@ -427,7 +532,9 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
         album: String,
         genre: String,
         year: String,
-        artworkBytes: ByteArray? = null
+        artworkBytes: ByteArray? = null,
+        lyrics: String? = null,
+        deleteArtwork: Boolean = false
     ) {
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             val app = getApplication<android.app.Application>()
@@ -495,7 +602,9 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
                 album = album,
                 genre = genre,
                 year = year,
-                artworkBytes = artworkBytes
+                artworkBytes = artworkBytes,
+                lyrics = lyrics,
+                deleteArtwork = deleteArtwork
             )
 
             // 3. Veritabanını, favorileri ve çalma listelerini güncelle
@@ -538,6 +647,25 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
                     filePath = effectivePath,
                     uriString = effectiveUriString
                 )
+                if (lyrics != null) {
+                    val cleanLyrics = com.example.otomuzik.util.TurkishStringFixer.fix(lyrics.trim())
+                    if (cleanLyrics.isBlank()) {
+                        _lyricsData.value = null
+                        _currentLyrics.value = null
+                    } else {
+                        val parsedLines = com.example.otomuzik.util.LyricsHelper.parseLyrics(cleanLyrics)
+                        val isSynced = parsedLines.any { it.timestampMs >= 0 }
+                        val newLyricsData = com.example.otomuzik.model.LyricsData(
+                            songPath = effectivePath,
+                            rawLyrics = cleanLyrics,
+                            lines = parsedLines,
+                            isSynced = isSynced,
+                            source = if (isSynced) com.example.otomuzik.model.LyricsSource.LOCAL_LRC else com.example.otomuzik.model.LyricsSource.LOCAL_TXT
+                        )
+                        _lyricsData.value = newLyricsData
+                        _currentLyrics.value = cleanLyrics
+                    }
+                }
 
                 kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                     val msg = if (effectivePath != song.path) "✓ Dosya adı ve etiketler kaydedildi: $cleanName" else "✓ ID3 etiketleri kaydedildi"
@@ -545,6 +673,109 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
                 }
 
                 refreshAll()
+            }
+        }
+    }
+
+    fun deleteSong(song: Song, onComplete: ((Boolean) -> Unit)? = null) {
+        viewModelScope.launch {
+            val app = getApplication<android.app.Application>()
+            val success = repository.deleteSong(song)
+            if (success) {
+                if (MusicController.playerState.value.currentSong?.path == song.path) {
+                    MusicController.playNext()
+                }
+                val updated = _allSongs.value.filter { it.path != song.path }
+                _allSongs.value = updated
+                MusicController.syncQueueWithLibrary(updated)
+
+                val currentPath = _currentFolderPath.value
+                if (!currentPath.isNullOrEmpty()) {
+                    _currentFolderItems.value = repository.getFolderContents(currentPath)
+                }
+                loadPlaylists()
+
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    android.widget.Toast.makeText(app, "🗑️ '${song.title}' silindi", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            } else {
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    android.widget.Toast.makeText(app, "⚠️ Dosya silinemedi (Yazma izni kısıtlı olabilir)", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+            onComplete?.invoke(success)
+        }
+    }
+
+    fun deleteSongs(songs: List<Song>, onComplete: ((Int) -> Unit)? = null) {
+        viewModelScope.launch {
+            val app = getApplication<android.app.Application>()
+            var deletedCount = 0
+            val deletedPaths = mutableSetOf<String>()
+            val currentPlayingPath = MusicController.playerState.value.currentSong?.path
+
+            for (song in songs) {
+                val success = repository.deleteSong(song)
+                if (success) {
+                    deletedCount++
+                    deletedPaths.add(song.path)
+                }
+            }
+
+            if (deletedCount > 0) {
+                if (currentPlayingPath != null && deletedPaths.contains(currentPlayingPath)) {
+                    MusicController.playNext()
+                }
+                val updated = _allSongs.value.filter { it.path !in deletedPaths }
+                _allSongs.value = updated
+                MusicController.syncQueueWithLibrary(updated)
+
+                val currentPath = _currentFolderPath.value
+                if (!currentPath.isNullOrEmpty()) {
+                    _currentFolderItems.value = repository.getFolderContents(currentPath)
+                }
+                loadPlaylists()
+
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    android.widget.Toast.makeText(app, "🗑️ $deletedCount adet mükerrer kopya silindi", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            } else {
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    android.widget.Toast.makeText(app, "⚠️ Dosyalar silinemedi (Yazma izni kısıtlı olabilir)", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+            onComplete?.invoke(deletedCount)
+        }
+    }
+
+    fun renameSong(song: Song, newNameWithoutExt: String, onComplete: ((Boolean, Song?) -> Unit)? = null) {
+        viewModelScope.launch {
+            val app = getApplication<android.app.Application>()
+            val updatedSong = repository.renameSongFile(song, newNameWithoutExt)
+            if (updatedSong != null) {
+                val updatedList = _allSongs.value.map { if (it.path == song.path) updatedSong else it }
+                _allSongs.value = updatedList
+                MusicController.syncQueueWithLibrary(updatedList)
+
+                if (MusicController.playerState.value.currentSong?.path == song.path) {
+                    MusicController.updateCurrentSongInfo(updatedSong)
+                }
+
+                val currentPath = _currentFolderPath.value
+                if (!currentPath.isNullOrEmpty()) {
+                    _currentFolderItems.value = repository.getFolderContents(currentPath)
+                }
+                loadPlaylists()
+
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    android.widget.Toast.makeText(app, "✓ Dosya yeniden adlandırıldı: ${updatedSong.title}", android.widget.Toast.LENGTH_SHORT).show()
+                }
+                onComplete?.invoke(true, updatedSong)
+            } else {
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    android.widget.Toast.makeText(app, "⚠️ Dosya adı değiştirilemedi (Aynı isimde dosya var veya yazma izni kısıtlı)", android.widget.Toast.LENGTH_SHORT).show()
+                }
+                onComplete?.invoke(false, null)
             }
         }
     }
@@ -614,7 +845,9 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
                         "✓ $sourceName üzerinden sözler bulundu (düz metin)."
                     }
                 }
-                // Otomatik olarak diske ve ID3'e kaydet
+                // Otomatik olarak app cache, disk ve ID3'e kaydet
+                val app = getApplication<android.app.Application>()
+                com.example.otomuzik.util.LyricsHelper.saveLyricsToAppCache(app, song.path, result.rawLyrics)
                 com.example.otomuzik.util.LyricsHelper.saveLyricsToFile(song.path, result)
                 if (repository.getAutoSaveId3Lyrics()) {
                     com.example.otomuzik.util.LyricsHelper.saveEmbeddedLyrics(song.path, result.rawLyrics)
@@ -637,6 +870,7 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
 
         val song = playerState.value.currentSong ?: return
         viewModelScope.launch {
+            val app = getApplication<android.app.Application>()
             val fixedText = com.example.otomuzik.util.TurkishStringFixer.fix(clipboardText.trim())
             val parsedLines = com.example.otomuzik.util.LyricsHelper.parseLyrics(fixedText)
             val isSynced = parsedLines.any { it.timestampMs >= 0 }
@@ -651,17 +885,16 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
             _lyricsData.value = newLyricsData
             _currentLyrics.value = fixedText
 
+            // Uygulama içi önbelleğe her koşulda garantili kaydet
+            com.example.otomuzik.util.LyricsHelper.saveLyricsToAppCache(app, song.path, fixedText)
+
             // Diske ve ID3 etiketine otomatik kaydet
             val fileSaved = com.example.otomuzik.util.LyricsHelper.saveLyricsToFile(song.path, newLyricsData)
             val id3Saved = if (repository.getAutoSaveId3Lyrics()) {
                 com.example.otomuzik.util.LyricsHelper.saveEmbeddedLyrics(song.path, fixedText)
             } else false
 
-            _lyricsStatusMessage.value = if (fileSaved || id3Saved) {
-                "✓ Panodan yapıştırıldı ve kaydedildi (${if (isSynced) "Senkronize LRC" else "Düz Metin"})."
-            } else {
-                "✓ Panodan yapıştırıldı (${if (isSynced) "Senkronize LRC" else "Düz Metin"})."
-            }
+            _lyricsStatusMessage.value = "✓ Panodan yapıştırıldı ve kaydedildi (${if (isSynced) "Senkronize LRC" else "Düz Metin"})."
         }
     }
 
@@ -676,6 +909,10 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
         }
 
         viewModelScope.launch {
+            val app = getApplication<android.app.Application>()
+            // Uygulama içi önbelleğe her koşulda garantili kaydet
+            com.example.otomuzik.util.LyricsHelper.saveLyricsToAppCache(app, song.path, data.rawLyrics)
+
             val fileSaved = com.example.otomuzik.util.LyricsHelper.saveLyricsToFile(song.path, data)
             val id3Saved = com.example.otomuzik.util.LyricsHelper.saveEmbeddedLyrics(song.path, data.rawLyrics)
 
@@ -683,10 +920,10 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
                 fileSaved && id3Saved -> "✓ Sözler şarkı klasörüne (${if (data.isSynced) ".lrc" else ".txt"}) ve ID3 etiketine kaydedildi"
                 fileSaved -> "✓ Sözler şarkı klasörüne kaydedildi (${if (data.isSynced) ".lrc" else ".txt"})"
                 id3Saved -> "✓ Sözler MP3 ID3 etiketine kaydedildi"
-                else -> "Kaydedilemedi (Yazma izni yetersiz olabilir)"
+                else -> "✓ Sözler uygulama hafızasına kaydedildi"
             }
             _lyricsStatusMessage.value = msg
-            onResult?.invoke(fileSaved || id3Saved, msg)
+            onResult?.invoke(true, msg)
         }
     }
 
@@ -1119,6 +1356,126 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
         }
     }
 
+    fun exportCurrentPlaylistM3u(playlist: Playlist) {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val app = getApplication<Application>()
+            val songs = repository.getSongsForPlaylist(playlist.id)
+            if (songs.isEmpty()) {
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    android.widget.Toast.makeText(app, "Bu çalma listesinde hiç şarkı yok.", android.widget.Toast.LENGTH_SHORT).show()
+                }
+                return@launch
+            }
+            val result = com.example.otomuzik.util.PlaylistM3uHelper.exportToM3u(playlist, songs)
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                result.fold(
+                    onSuccess = { file ->
+                        android.widget.Toast.makeText(
+                            app,
+                            "✓ M3U Listesi kaydedildi:\n${file.name} (Müzik klasörü)",
+                            android.widget.Toast.LENGTH_LONG
+                        ).show()
+                    },
+                    onFailure = { err ->
+                        android.widget.Toast.makeText(
+                            app,
+                            "Dışa aktarma başarısız: ${err.localizedMessage ?: "Hata"}",
+                            android.widget.Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                )
+            }
+        }
+    }
+
+    fun importM3uFile(file: File) {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val app = getApplication<Application>()
+            val (name, songs) = com.example.otomuzik.util.PlaylistM3uHelper.parseM3u(file, _allSongs.value)
+            if (songs.isEmpty()) {
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    android.widget.Toast.makeText(
+                        app,
+                        "M3U dosyasında kütüphanenizle eşleşen şarkı bulunamadı.",
+                        android.widget.Toast.LENGTH_LONG
+                    ).show()
+                }
+                return@launch
+            }
+            val playlistId = repository.createPlaylist(name)
+            if (playlistId != -1L) {
+                repository.addSongsToPlaylist(playlistId, songs)
+                loadPlaylists()
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    android.widget.Toast.makeText(
+                        app,
+                        "✓ '$name' listesi içe aktarıldı (${songs.size} parça)",
+                        android.widget.Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+        }
+    }
+
+    fun batchUpdateId3Tags(
+        folderPath: String,
+        newArtist: String,
+        newAlbum: String,
+        newGenre: String,
+        newYear: String
+    ) {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val app = getApplication<Application>()
+            val dir = File(folderPath)
+            if (!dir.exists() || !dir.isDirectory) return@launch
+
+            val songsInFolder = _allSongs.value.filter {
+                try {
+                    val file = File(it.path)
+                    file.parentFile?.absolutePath == dir.absolutePath
+                } catch (e: Exception) { false }
+            }
+
+            var updatedCount = 0
+            for (song in songsInFolder) {
+                val effectiveArtist = if (newArtist.isNotBlank()) newArtist else song.artist
+                val effectiveAlbum = if (newAlbum.isNotBlank()) newAlbum else song.album
+                val effectiveGenre = if (newGenre.isNotBlank()) newGenre else song.genre
+                val effectiveYear = if (newYear.isNotBlank()) newYear else song.year
+
+                val ok = com.example.otomuzik.util.Id3Helper.writeTag(
+                    context = app,
+                    path = song.path,
+                    title = song.title,
+                    artist = effectiveArtist,
+                    album = effectiveAlbum,
+                    genre = effectiveGenre,
+                    year = effectiveYear
+                )
+
+                repository.updateSongDetails(
+                    oldPath = song.path,
+                    newPath = song.path,
+                    newTitle = song.title,
+                    newArtist = effectiveArtist,
+                    newAlbum = effectiveAlbum,
+                    newGenre = effectiveGenre,
+                    newYear = effectiveYear
+                )
+                if (ok) updatedCount++
+            }
+
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                android.widget.Toast.makeText(
+                    app,
+                    "✓ $updatedCount parçanın ID3 etiketleri güncellendi",
+                    android.widget.Toast.LENGTH_LONG
+                ).show()
+            }
+            refreshAll()
+        }
+    }
+
     // Oynatma kontrolleri
     fun togglePlayPause() = MusicController.togglePlayPause()
     fun playNext() = MusicController.playNext()
@@ -1192,7 +1549,16 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
     fun setThemePalette(palette: String) {
         _themePalette.value = palette
         repository.setThemePalette(palette)
-        if (_currentSongartwork.value == null) {
+        if (palette == "DYNAMIC") {
+            viewModelScope.launch {
+                val art = _currentSongartwork.value
+                _accentColor.value = if (art != null) {
+                    com.example.otomuzik.theme.DynamicColorManager.extractDominantColor(art)
+                } else {
+                    androidx.compose.ui.graphics.Color(0xFF00E5FF)
+                }
+            }
+        } else {
             _accentColor.value = getPalettePrimaryColor(palette)
         }
     }

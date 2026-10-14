@@ -24,6 +24,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -65,6 +66,7 @@ fun FolderactionDialog(
     onPlayFolder: () -> Unit,
     onaddToPlaylist: () -> Unit,
     onaddToQueue: () -> Unit,
+    onBatchEditTags: (() -> Unit)? = null,
     onDismiss: () -> Unit
 ) {
     Dialog(onDismissRequest = onDismiss) {
@@ -164,6 +166,20 @@ fun FolderactionDialog(
                     }
                 )
 
+                if (onBatchEditTags != null) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    CaractionMenuButton(
+                        iconRes = R.drawable.ic_settings,
+                        title = "Toplu ID3 Düzenle",
+                        subtitle = "Klasördeki tüm parçalara ortak sanatçı/albüm ata",
+                        accentColor = CarAmber,
+                        onClick = {
+                            onDismiss()
+                            onBatchEditTags()
+                        }
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // İİptal Butonu
@@ -197,6 +213,7 @@ fun SongactionDialog(
     onaddToPlaylist: () -> Unit,
     onaddToQueue: () -> Unit,
     onToggleFavorite: () -> Unit,
+    onSetAsRingtone: (() -> Unit)? = null,
     onDismiss: () -> Unit
 ) {
     Dialog(onDismissRequest = onDismiss) {
@@ -295,6 +312,20 @@ fun SongactionDialog(
                         onToggleFavorite()
                     }
                 )
+
+                if (onSetAsRingtone != null) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    CaractionMenuButton(
+                        iconRes = R.drawable.ic_music_note,
+                        title = "Zil Sesi Olarak Ayarla",
+                        subtitle = "Bu parçayı telefonun varsayılan zil sesi yap",
+                        accentColor = CarCyan,
+                        onClick = {
+                            onDismiss()
+                            onSetAsRingtone()
+                        }
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -788,6 +819,170 @@ private fun CaractionMenuButton(
         }
     }
 }
+
+/**
+ * Cihazdaki .m3u / .m3u8 çalma listesi dosyalarını seçip içe aktarmayı sağlayan pencere.
+ */
+@Composable
+fun M3uImportDialog(
+    m3uFiles: List<java.io.File>,
+    accentColor: Color = CarCyan,
+    onSelectFile: (java.io.File) -> Unit,
+    onRefresh: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.95f)
+                .clip(RoundedCornerShape(24.dp))
+                .background(CarSurfaceDark)
+                .border(2.dp, CarBorder, RoundedCornerShape(24.dp))
+                .padding(24.dp)
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                // Başlık
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(46.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Color(0x28FFB300)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_playlist),
+                            contentDescription = null,
+                            tint = CarAmber,
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(14.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "M3U İçe Aktar",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = CarTextPrimary
+                        )
+                        Text(
+                            text = "Müzik veya İndirilenler klasöründen liste seçin",
+                            fontSize = 12.sp,
+                            color = CarTextMuted
+                        )
+                    }
+
+                    IconButton(onClick = onRefresh) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_refresh),
+                            contentDescription = "Yenile",
+                            tint = accentColor,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                if (m3uFiles.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(130.dp)
+                            .background(CarSurfaceVariant, RoundedCornerShape(14.dp))
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Müzik veya İndirilenler klasöründe henüz .m3u / .m3u8 dosyası bulunamadı.",
+                            fontSize = 13.sp,
+                            color = CarTextMuted,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                    }
+                } else {
+                    androidx.compose.foundation.lazy.LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 260.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(m3uFiles) { file ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(CarSurfaceVariant)
+                                    .border(1.dp, CarBorder, RoundedCornerShape(14.dp))
+                                    .clickable {
+                                        onSelectFile(file)
+                                        onDismiss()
+                                    }
+                                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_playlist),
+                                    contentDescription = null,
+                                    tint = CarAmber,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = file.nameWithoutExtension,
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = CarTextPrimary,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = file.name,
+                                        fontSize = 12.sp,
+                                        color = CarTextMuted,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                                Text(
+                                    text = "İçe Aktar ➔",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = accentColor
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(
+                    onClick = onDismiss,
+                    colors = ButtonDefaults.buttonColors(containerColor = CarSurfaceVariant),
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                ) {
+                    Text(
+                        text = "Vazgeç",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = CarTextSecondary
+                    )
+                }
+            }
+        }
+    }
+}
+
 
 
 
