@@ -27,7 +27,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import com.example.otomuzik.ui.components.AddToPlaylistDialog
+import com.example.otomuzik.ui.components.CarSearchKeyboardPanel
 import com.example.otomuzik.ui.components.CreatePlaylistDialog
 import com.example.otomuzik.ui.components.DuplicateFinderDialog
 import com.example.otomuzik.ui.components.EqualizerDialog
@@ -108,9 +112,15 @@ fun MainScreen(
         }
     }
 
-    // Geri tuşu kontrolü (Sıra, Çalma Listesi, Klasör veya Alt Sekmeler açıksa kademeli geri döner)
-    BackHandler(enabled = isQueueVisible || selectedPlaylist != null || currentFolderPath != null || activeTab != TabType.HOME) {
+    var isCarSearchOpen by remember { mutableStateOf(false) }
+
+    // Geri tuşu kontrolü (Arama, Sıra, Çalma Listesi, Klasör veya Alt Sekmeler açıksa kademeli geri döner)
+    BackHandler(enabled = isCarSearchOpen || searchQuery.isNotEmpty() || isQueueVisible || selectedPlaylist != null || currentFolderPath != null || activeTab != TabType.HOME) {
         when {
+            isCarSearchOpen || searchQuery.isNotEmpty() -> {
+                isCarSearchOpen = false
+                viewModel.setSearchQuery("")
+            }
             isQueueVisible -> viewModel.closeQueue()
             selectedPlaylist != null -> viewModel.closePlaylist()
             currentFolderPath != null -> viewModel.goBackFolder()
@@ -177,132 +187,60 @@ fun MainScreen(
             if (isLandscape) {
                 // Otomobil Ekranları İçin İki Bölmeli Yatay Düzen (Landscape)
                 Row(modifier = Modifier.fillMaxSize()) {
-                    // Sol Bölme: Büyük Tuşlu Oynatıcı Kontrol Paneli (%46 genişlik)
-                    NowPlayingPanel(
-                        playerState = playerState,
-                        artworkBitmap = currentSongartwork,
-                        currentSongId3 = currentSongId3,
-                        accentColor = accentColor,
-                        isFavorite = isFavorite,
-                        lyricsData = lyricsData,
-                        showCoverLyrics = showCoverLyrics,
-                        onToggleCoverLyrics = { viewModel.toggleCoverLyrics() },
-                        onToggleFavorite = { playerState.currentSong?.let { viewModel.toggleFavorite(it) } },
-                        onOpenEqualizer = { viewModel.openEqualizerDialog() },
-                        onOpenId3Info = { viewModel.openId3Dialog() },
-                        onOpenLyrics = { viewModel.openLyricsDialog() },
-                        onOpenAbout = { viewModel.openAboutDialog() },
-                        onOpenQueue = { viewModel.openQueueDialog() },
-                        onOpenSleepTimer = { viewModel.openSleepTimerDialog() },
-                        onPlayPause = { viewModel.togglePlayPause() },
-                        onNext = { viewModel.playNext() },
-                        onPrevious = { viewModel.playPrevious() },
-                        onSeekTo = { viewModel.seekTo(it) },
-                        onToggleShuffle = { viewModel.toggleShuffle() },
-                        onToggLERepeat = { viewModel.toggleRepeatMode() },
-                        showWaveform = showWaveform,
-                        isalbumartCropped = isalbumartCropped,
-                        lyricsFontSize = lyricsFontSize,
-                        showBlurredBackground = showBlurredBackground,
-                        modifier = Modifier
-                            .weight(0.46f)
-                            .fillMaxHeight()
-                    )
+                    val showSearchKeyboard = isCarSearchOpen || searchQuery.isNotEmpty()
+                    if (showSearchKeyboard) {
+                        // Sol Bölme: Otomobil Özel Sanal Q Klavye Paneli (%46 genişlik)
+                        CarSearchKeyboardPanel(
+                            searchQuery = searchQuery,
+                            onSearchQueryChange = { viewModel.setSearchQuery(it) },
+                            resultCount = filteredSongs.size,
+                            onClose = {
+                                isCarSearchOpen = false
+                                viewModel.setSearchQuery("")
+                            },
+                            accentColor = accentColor,
+                            showBlurredBackground = showBlurredBackground,
+                            modifier = Modifier
+                                .weight(0.46f)
+                                .fillMaxHeight()
+                        )
+                    } else {
+                        // Sol Bölme: Büyük Tuşlu Oynatıcı Kontrol Paneli (%46 genişlik)
+                        NowPlayingPanel(
+                            playerState = playerState,
+                            artworkBitmap = currentSongartwork,
+                            currentSongId3 = currentSongId3,
+                            accentColor = accentColor,
+                            isFavorite = isFavorite,
+                            lyricsData = lyricsData,
+                            showCoverLyrics = showCoverLyrics,
+                            onToggleCoverLyrics = { viewModel.toggleCoverLyrics() },
+                            onToggleFavorite = { playerState.currentSong?.let { viewModel.toggleFavorite(it) } },
+                            onOpenEqualizer = { viewModel.openEqualizerDialog() },
+                            onOpenId3Info = { viewModel.openId3Dialog() },
+                            onOpenLyrics = { viewModel.openLyricsDialog() },
+                            onOpenAbout = { viewModel.openAboutDialog() },
+                            onOpenQueue = { viewModel.openQueueDialog() },
+                            onOpenSleepTimer = { viewModel.openSleepTimerDialog() },
+                            onPlayPause = { viewModel.togglePlayPause() },
+                            onNext = { viewModel.playNext() },
+                            onPrevious = { viewModel.playPrevious() },
+                            onSeekTo = { viewModel.seekTo(it) },
+                            onToggleShuffle = { viewModel.toggleShuffle() },
+                            onToggLERepeat = { viewModel.toggleRepeatMode() },
+                            showWaveform = showWaveform,
+                            isalbumartCropped = isalbumartCropped,
+                            lyricsFontSize = lyricsFontSize,
+                            showBlurredBackground = showBlurredBackground,
+                            modifier = Modifier
+                                .weight(0.46f)
+                                .fillMaxHeight()
+                        )
+                    }
 
                     Spacer(modifier = Modifier.width(if (isCompact) 6.dp else 10.dp))
 
                     // Sağ Bölme: USB Klasör Gezgini, Kütüphane & Çalma Listeleri (%54 genişlik)
-                    LibraryPanel(
-                        activeTab = activeTab,
-                        onTabSelected = { viewModel.setTab(it) },
-                        searchQuery = searchQuery,
-                        onSearchQueryChange = { viewModel.setSearchQuery(it) },
-                        storageRoots = storageRoots,
-                        currentFolderPath = currentFolderPath,
-                        currentFolderItems = currentFolderItems,
-                        onOpenFolder = { viewModel.openFolder(it) },
-                        onBackFolder = { viewModel.goBackFolder() },
-                        onPlayFolder = { viewModel.playEntireFolder(it) },
-                        onPlayallSongs = { viewModel.playallSongs() },
-                        onFolderLongClick = { viewModel.openFolderContext(it) },
-                        filteredSongs = filteredSongs,
-                        favoriteSongs = favoriteSongs,
-                        currentPlayingSongPath = currentSongPath,
-                        onPlaySong = { song, List -> viewModel.playSongFromList(song, List) },
-                        onSongLongClick = { viewModel.openSongContext(it) },
-                        Playlists = Playlists,
-                        selectedPlaylist = selectedPlaylist,
-                        selectedPlaylistSongs = selectedPlaylistSongs,
-                        onOpenPlaylist = { viewModel.openPlaylist(it) },
-                        onClosePlaylist = { viewModel.closePlaylist() },
-                        onPlayPlaylist = { viewModel.playPlaylist(it) },
-                        onDeletePlaylist = { viewModel.deletePlaylist(it) },
-                        onRemoveSongFromPlaylist = { plId, song -> viewModel.removeSongFromPlaylist(plId, song) },
-                        onCreatePlaylistClick = { viewModel.openCreatePlaylistDialog() },
-                        isQueueVisible = isQueueVisible,
-                        onCloseQueue = { viewModel.closeQueue() },
-                        onOpenQueue = { viewModel.openQueue() },
-                        currentQueue = currentQueue,
-                        currentQueueIndex = currentQueueIndex,
-                        isShuffle = playerState.isShuffle,
-                        accentColor = accentColor,
-                        onPlayQueueIndex = { viewModel.playAtQueueIndex(it) },
-                        onPlayNext = { viewModel.playNext() },
-                        onPlayPrevious = { viewModel.playPrevious() },
-                        onToggleShuffle = { viewModel.toggleShuffle() },
-                        onReshuffleUpcoming = { viewModel.reshuffleUpcoming() },
-                        onRefresh = { viewModel.rescanLibrary() },
-                        onOpenSettings = { viewModel.openSettingsDialog() },
-                        isLoading = isLoading,
-                        showBlurredBackground = showBlurredBackground,
-                        currentSong = playerState.currentSong,
-                        previousSong = playerState.previousSong,
-                        nextSong = playerState.nextSong,
-                        isPlaying = playerState.isPlaying,
-                        onPlayPause = { viewModel.togglePlayPause() },
-                        onPlayFavorites = { viewModel.playFavorites() },
-                        onManageFolders = { viewModel.openFolderSelectionDialog() },
-                        modifier = Modifier
-                            .weight(0.54f)
-                            .fillMaxHeight()
-                    )
-                }
-            } else {
-                // Dikey Ekran Düzeni (Telefon / Tesla Tipi Ekranlar)
-                Column(modifier = Modifier.fillMaxSize()) {
-                    NowPlayingPanel(
-                        playerState = playerState,
-                        artworkBitmap = currentSongartwork,
-                        currentSongId3 = currentSongId3,
-                        accentColor = accentColor,
-                        isFavorite = isFavorite,
-                        lyricsData = lyricsData,
-                        showCoverLyrics = showCoverLyrics,
-                        onToggleCoverLyrics = { viewModel.toggleCoverLyrics() },
-                        onToggleFavorite = { playerState.currentSong?.let { viewModel.toggleFavorite(it) } },
-                        onOpenEqualizer = { viewModel.openEqualizerDialog() },
-                        onOpenId3Info = { viewModel.openId3Dialog() },
-                        onOpenLyrics = { viewModel.openLyricsDialog() },
-                        onOpenAbout = { viewModel.openAboutDialog() },
-                        onOpenQueue = { viewModel.openQueueDialog() },
-                        onOpenSleepTimer = { viewModel.openSleepTimerDialog() },
-                        onPlayPause = { viewModel.togglePlayPause() },
-                        onNext = { viewModel.playNext() },
-                        onPrevious = { viewModel.playPrevious() },
-                        onSeekTo = { viewModel.seekTo(it) },
-                        onToggleShuffle = { viewModel.toggleShuffle() },
-                        onToggLERepeat = { viewModel.toggleRepeatMode() },
-                        showWaveform = showWaveform,
-                        isalbumartCropped = isalbumartCropped,
-                        lyricsFontSize = lyricsFontSize,
-                        showBlurredBackground = showBlurredBackground,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(0.48f)
-                    )
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
                     LibraryPanel(
                         activeTab = activeTab,
                         onTabSelected = { viewModel.setTab(it) },
@@ -355,10 +293,202 @@ fun MainScreen(
                         onPlayPause = { viewModel.togglePlayPause() },
                         onPlayFavorites = { viewModel.playFavorites() },
                         onManageFolders = { viewModel.openFolderSelectionDialog() },
+                        isCarSearchOpen = isCarSearchOpen,
+                        onOpenSearch = { isCarSearchOpen = true },
+                        onCloseSearch = {
+                            isCarSearchOpen = false
+                            viewModel.setSearchQuery("")
+                        },
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(0.52f)
+                            .weight(0.54f)
+                            .fillMaxHeight()
                     )
+                }
+            } else {
+                // Dikey Ekran Düzeni (Telefon / Tesla Tipi Ekranlar)
+                val showSearchKeyboard = isCarSearchOpen || searchQuery.isNotEmpty()
+                if (showSearchKeyboard) {
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        // Üst Bölme: Arama Sonuçları (Kütüphane)
+                        LibraryPanel(
+                            activeTab = activeTab,
+                            onTabSelected = { viewModel.setTab(it) },
+                            searchQuery = searchQuery,
+                            onSearchQueryChange = { viewModel.setSearchQuery(it) },
+                            storageRoots = storageRoots,
+                            currentFolderPath = currentFolderPath,
+                            currentFolderItems = currentFolderItems,
+                            onOpenFolder = { viewModel.openFolder(it) },
+                            onBackFolder = { viewModel.goBackFolder() },
+                            onPlayFolder = { viewModel.playEntireFolder(it) },
+                            onPlayallSongs = { viewModel.playallSongs() },
+                            onFolderLongClick = { viewModel.openFolderContext(it) },
+                            filteredSongs = filteredSongs,
+                            favoriteSongs = favoriteSongs,
+                            currentPlayingSongPath = currentSongPath,
+                            onPlaySong = { song, List -> viewModel.playSongFromList(song, List) },
+                            onSongLongClick = { viewModel.openSongContext(it) },
+                            Playlists = Playlists,
+                            selectedPlaylist = selectedPlaylist,
+                            selectedPlaylistSongs = selectedPlaylistSongs,
+                            onOpenPlaylist = { viewModel.openPlaylist(it) },
+                            onClosePlaylist = { viewModel.closePlaylist() },
+                            onPlayPlaylist = { viewModel.playPlaylist(it) },
+                            onDeletePlaylist = { viewModel.deletePlaylist(it) },
+                            onRemoveSongFromPlaylist = { plId, song -> viewModel.removeSongFromPlaylist(plId, song) },
+                            onCreatePlaylistClick = { viewModel.openCreatePlaylistDialog() },
+                            onExportPlaylist = { viewModel.exportCurrentPlaylistM3u(it) },
+                            onImportM3uClick = { viewModel.openM3uImportDialog() },
+                            isQueueVisible = isQueueVisible,
+                            onCloseQueue = { viewModel.closeQueue() },
+                            onOpenQueue = { viewModel.openQueue() },
+                            currentQueue = currentQueue,
+                            currentQueueIndex = currentQueueIndex,
+                            isShuffle = playerState.isShuffle,
+                            accentColor = accentColor,
+                            onPlayQueueIndex = { viewModel.playAtQueueIndex(it) },
+                            onPlayNext = { viewModel.playNext() },
+                            onPlayPrevious = { viewModel.playPrevious() },
+                            onToggleShuffle = { viewModel.toggleShuffle() },
+                            onReshuffleUpcoming = { viewModel.reshuffleUpcoming() },
+                            onRefresh = { viewModel.rescanLibrary() },
+                            onOpenSettings = { viewModel.openSettingsDialog() },
+                            isLoading = isLoading,
+                            showBlurredBackground = showBlurredBackground,
+                            currentSong = playerState.currentSong,
+                            previousSong = playerState.previousSong,
+                            nextSong = playerState.nextSong,
+                            isPlaying = playerState.isPlaying,
+                            onPlayPause = { viewModel.togglePlayPause() },
+                            onPlayFavorites = { viewModel.playFavorites() },
+                            onManageFolders = { viewModel.openFolderSelectionDialog() },
+                            isCarSearchOpen = isCarSearchOpen,
+                            onOpenSearch = { isCarSearchOpen = true },
+                            onCloseSearch = {
+                                isCarSearchOpen = false
+                                viewModel.setSearchQuery("")
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(0.52f)
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // Alt Bölme: Sanal Q Klavye Paneli
+                        CarSearchKeyboardPanel(
+                            searchQuery = searchQuery,
+                            onSearchQueryChange = { viewModel.setSearchQuery(it) },
+                            resultCount = filteredSongs.size,
+                            onClose = {
+                                isCarSearchOpen = false
+                                viewModel.setSearchQuery("")
+                            },
+                            accentColor = accentColor,
+                            showBlurredBackground = showBlurredBackground,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(0.48f)
+                        )
+                    }
+                } else {
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        NowPlayingPanel(
+                            playerState = playerState,
+                            artworkBitmap = currentSongartwork,
+                            currentSongId3 = currentSongId3,
+                            accentColor = accentColor,
+                            isFavorite = isFavorite,
+                            lyricsData = lyricsData,
+                            showCoverLyrics = showCoverLyrics,
+                            onToggleCoverLyrics = { viewModel.toggleCoverLyrics() },
+                            onToggleFavorite = { playerState.currentSong?.let { viewModel.toggleFavorite(it) } },
+                            onOpenEqualizer = { viewModel.openEqualizerDialog() },
+                            onOpenId3Info = { viewModel.openId3Dialog() },
+                            onOpenLyrics = { viewModel.openLyricsDialog() },
+                            onOpenAbout = { viewModel.openAboutDialog() },
+                            onOpenQueue = { viewModel.openQueueDialog() },
+                            onOpenSleepTimer = { viewModel.openSleepTimerDialog() },
+                            onPlayPause = { viewModel.togglePlayPause() },
+                            onNext = { viewModel.playNext() },
+                            onPrevious = { viewModel.playPrevious() },
+                            onSeekTo = { viewModel.seekTo(it) },
+                            onToggleShuffle = { viewModel.toggleShuffle() },
+                            onToggLERepeat = { viewModel.toggleRepeatMode() },
+                            showWaveform = showWaveform,
+                            isalbumartCropped = isalbumartCropped,
+                            lyricsFontSize = lyricsFontSize,
+                            showBlurredBackground = showBlurredBackground,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(0.48f)
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        LibraryPanel(
+                            activeTab = activeTab,
+                            onTabSelected = { viewModel.setTab(it) },
+                            searchQuery = searchQuery,
+                            onSearchQueryChange = { viewModel.setSearchQuery(it) },
+                            storageRoots = storageRoots,
+                            currentFolderPath = currentFolderPath,
+                            currentFolderItems = currentFolderItems,
+                            onOpenFolder = { viewModel.openFolder(it) },
+                            onBackFolder = { viewModel.goBackFolder() },
+                            onPlayFolder = { viewModel.playEntireFolder(it) },
+                            onPlayallSongs = { viewModel.playallSongs() },
+                            onFolderLongClick = { viewModel.openFolderContext(it) },
+                            filteredSongs = filteredSongs,
+                            favoriteSongs = favoriteSongs,
+                            currentPlayingSongPath = currentSongPath,
+                            onPlaySong = { song, List -> viewModel.playSongFromList(song, List) },
+                            onSongLongClick = { viewModel.openSongContext(it) },
+                            Playlists = Playlists,
+                            selectedPlaylist = selectedPlaylist,
+                            selectedPlaylistSongs = selectedPlaylistSongs,
+                            onOpenPlaylist = { viewModel.openPlaylist(it) },
+                            onClosePlaylist = { viewModel.closePlaylist() },
+                            onPlayPlaylist = { viewModel.playPlaylist(it) },
+                            onDeletePlaylist = { viewModel.deletePlaylist(it) },
+                            onRemoveSongFromPlaylist = { plId, song -> viewModel.removeSongFromPlaylist(plId, song) },
+                            onCreatePlaylistClick = { viewModel.openCreatePlaylistDialog() },
+                            onExportPlaylist = { viewModel.exportCurrentPlaylistM3u(it) },
+                            onImportM3uClick = { viewModel.openM3uImportDialog() },
+                            isQueueVisible = isQueueVisible,
+                            onCloseQueue = { viewModel.closeQueue() },
+                            onOpenQueue = { viewModel.openQueue() },
+                            currentQueue = currentQueue,
+                            currentQueueIndex = currentQueueIndex,
+                            isShuffle = playerState.isShuffle,
+                            accentColor = accentColor,
+                            onPlayQueueIndex = { viewModel.playAtQueueIndex(it) },
+                            onPlayNext = { viewModel.playNext() },
+                            onPlayPrevious = { viewModel.playPrevious() },
+                            onToggleShuffle = { viewModel.toggleShuffle() },
+                            onReshuffleUpcoming = { viewModel.reshuffleUpcoming() },
+                            onRefresh = { viewModel.rescanLibrary() },
+                            onOpenSettings = { viewModel.openSettingsDialog() },
+                            isLoading = isLoading,
+                            showBlurredBackground = showBlurredBackground,
+                            currentSong = playerState.currentSong,
+                            previousSong = playerState.previousSong,
+                            nextSong = playerState.nextSong,
+                            isPlaying = playerState.isPlaying,
+                            onPlayPause = { viewModel.togglePlayPause() },
+                            onPlayFavorites = { viewModel.playFavorites() },
+                            onManageFolders = { viewModel.openFolderSelectionDialog() },
+                            isCarSearchOpen = isCarSearchOpen,
+                            onOpenSearch = { isCarSearchOpen = true },
+                            onCloseSearch = {
+                                isCarSearchOpen = false
+                                viewModel.setSearchQuery("")
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(0.52f)
+                        )
+                    }
                 }
             }
         }

@@ -121,8 +121,25 @@ fun NowPlayingPanel(
 
     Box(
         modifier = modifier
+            .shadow(
+                elevation = 16.dp,
+                shape = RoundedCornerShape(panelCornerRadius),
+                spotColor = animatedaccent.copy(alpha = 0.40f),
+                ambientColor = Color.Black
+            )
             .clip(RoundedCornerShape(panelCornerRadius))
-            .border(1.5.dp, accentBorder, RoundedCornerShape(panelCornerRadius))
+            .border(
+                width = 2.dp,
+                brush = Brush.verticalGradient(
+                    listOf(
+                        Color.White.copy(alpha = 0.45f),
+                        animatedaccent,
+                        accentBorder,
+                        Color.Black.copy(alpha = 0.85f)
+                    )
+                ),
+                shape = RoundedCornerShape(panelCornerRadius)
+            )
     ) {
         if (isFullscreenCover && artworkBitmap != null) {
             // Tam ekran albüm kapağı arka planı
@@ -166,6 +183,19 @@ fun NowPlayingPanel(
                     .background(panelBg)
             )
         }
+
+        // 3D Dışbükey Cam Yansıması (Convex Glass Sheen Overlay)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(130.dp)
+                .align(Alignment.TopCenter)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(Color.White.copy(alpha = 0.07f), Color.Transparent)
+                    )
+                )
+        )
 
         Column(
             modifier = Modifier
@@ -321,6 +351,7 @@ fun NowPlayingPanel(
                 onToggleFavorite = onToggleFavorite,
                 lyricsData = lyricsData,
                 showCoverLyrics = showCoverLyrics,
+                onToggleCoverLyrics = onToggleCoverLyrics,
                 currentPositionMs = playerState.currentPositionMs,
                 durationMs = playerState.durationMs,
                 onSeekTo = onSeekTo,
@@ -358,7 +389,7 @@ fun NowPlayingPanel(
                 )
             }
 
-            // ── 4. KONTROL BUTONLARI ──────────────────────────────────────────
+            // ── 4. KONTROL BUTONLARI (3D Metalik / Neumorphic Tasarım) ──────────
             val ctrlBtnBg = if (isFullscreenCover) Color.Black.copy(alpha = 0.55f) else CarSurfaceVariant
             val ctrlBorder = if (isFullscreenCover) animatedaccent.copy(alpha = 0.35f) else CarBorder
 
@@ -373,14 +404,19 @@ fun NowPlayingPanel(
                 Box(
                     modifier = Modifier
                         .size(sideBtnSize)
+                        .shadow(elevation = 5.dp, shape = CircleShape, ambientColor = Color.Black)
                         .clip(CircleShape)
                         .background(
                             if (playerState.isShuffle)
-                                animatedaccent.copy(alpha = 0.22f)
-                            else ctrlBtnBg.copy(alpha = 0.8f)
+                                Brush.verticalGradient(
+                                    listOf(animatedaccent.copy(alpha = 0.45f), animatedaccent.copy(alpha = 0.15f))
+                                )
+                            else Brush.verticalGradient(
+                                listOf(Color(0xFF2B3346), Color(0xFF141824))
+                            )
                         )
                         .border(
-                            1.dp,
+                            1.2.dp,
                             if (playerState.isShuffle) animatedaccent else ctrlBorder,
                             CircleShape
                         )
@@ -395,13 +431,28 @@ fun NowPlayingPanel(
                     )
                 }
 
-                // Önceki Şarkı
+                // Önceki Şarkı (3D Metalik Kadran)
                 Box(
                     modifier = Modifier
                         .size(skipBtnSize)
+                        .shadow(elevation = 8.dp, shape = CircleShape, ambientColor = Color.Black)
                         .clip(CircleShape)
-                        .background(ctrlBtnBg)
-                        .border(1.5.dp, ctrlBorder, CircleShape)
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color(0xFF2C3446), Color(0xFF161B26), Color(0xFF0D1018))
+                            )
+                        )
+                        .border(
+                            width = 1.8.dp,
+                            brush = Brush.verticalGradient(
+                                listOf(
+                                    Color.White.copy(alpha = 0.40f),
+                                    ctrlBorder,
+                                    Color.Black.copy(alpha = 0.80f)
+                                )
+                            ),
+                            shape = CircleShape
+                        )
                         .clickable { onPrevious() },
                     contentAlignment = Alignment.Center
                 ) {
@@ -413,13 +464,38 @@ fun NowPlayingPanel(
                     )
                 }
 
-                // ▶ / ⏸ Oynat/Duraklat — DEV MERKEZ TUŞ — aksan rengiyle
+                // ▶ / ⏸ Oynat/Duraklat — 3D DEV MERKEZ TUŞ (Kabartmalı ve Işıltılı)
                 Box(
                     modifier = Modifier
                         .size(playBtnSize)
-                        .shadow(elevation = if (isCompact) 6.dp else 10.dp, shape = CircleShape)
+                        .shadow(
+                            elevation = if (isCompact) 10.dp else 16.dp,
+                            shape = CircleShape,
+                            spotColor = animatedaccent.copy(alpha = 0.85f),
+                            ambientColor = Color.Black
+                        )
                         .clip(CircleShape)
-                        .background(animatedaccent)    // ← dinamik Renk
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(
+                                    Color.White.copy(alpha = 0.50f),
+                                    animatedaccent,
+                                    animatedaccent.copy(alpha = 0.85f),
+                                    Color(0xFF003855)
+                                )
+                            )
+                        )
+                        .border(
+                            width = 3.dp,
+                            brush = Brush.verticalGradient(
+                                listOf(
+                                    Color.White.copy(alpha = 0.75f),
+                                    animatedaccent,
+                                    Color.Black.copy(alpha = 0.85f)
+                                )
+                            ),
+                            shape = CircleShape
+                        )
                         .clickable { onPlayPause() },
                     contentAlignment = Alignment.Center
                 ) {
@@ -433,13 +509,28 @@ fun NowPlayingPanel(
                     )
                 }
 
-                // Sonraki Şarkı
+                // Sonraki Şarkı (3D Metalik Kadran)
                 Box(
                     modifier = Modifier
                         .size(skipBtnSize)
+                        .shadow(elevation = 8.dp, shape = CircleShape, ambientColor = Color.Black)
                         .clip(CircleShape)
-                        .background(ctrlBtnBg)
-                        .border(1.5.dp, ctrlBorder, CircleShape)
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color(0xFF2C3446), Color(0xFF161B26), Color(0xFF0D1018))
+                            )
+                        )
+                        .border(
+                            width = 1.8.dp,
+                            brush = Brush.verticalGradient(
+                                listOf(
+                                    Color.White.copy(alpha = 0.40f),
+                                    ctrlBorder,
+                                    Color.Black.copy(alpha = 0.80f)
+                                )
+                            ),
+                            shape = CircleShape
+                        )
                         .clickable { onNext() },
                     contentAlignment = Alignment.Center
                 ) {
@@ -460,14 +551,19 @@ fun NowPlayingPanel(
                 Box(
                     modifier = Modifier
                         .size(sideBtnSize)
+                        .shadow(elevation = 5.dp, shape = CircleShape, ambientColor = Color.Black)
                         .clip(CircleShape)
                         .background(
                             if (isRepeatactive)
-                                animatedaccent.copy(alpha = 0.22f)
-                            else ctrlBtnBg.copy(alpha = 0.8f)
+                                Brush.verticalGradient(
+                                    listOf(repeatTInt.copy(alpha = 0.45f), repeatTInt.copy(alpha = 0.15f))
+                                )
+                            else Brush.verticalGradient(
+                                listOf(Color(0xFF2B3346), Color(0xFF141824))
+                            )
                         )
                         .border(
-                            1.dp,
+                            1.2.dp,
                             if (isRepeatactive) repeatTInt else ctrlBorder,
                             CircleShape
                         )

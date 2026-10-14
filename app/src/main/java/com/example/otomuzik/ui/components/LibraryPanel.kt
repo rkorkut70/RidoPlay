@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -36,6 +37,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -119,6 +121,9 @@ fun LibraryPanel(
     onPlayPause: () -> Unit = {},
     onPlayFavorites: () -> Unit = {},
     onManageFolders: () -> Unit = {},
+    isCarSearchOpen: Boolean = false,
+    onOpenSearch: () -> Unit = {},
+    onCloseSearch: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
@@ -130,13 +135,43 @@ fun LibraryPanel(
         CarSurfaceDark
     }
 
+    val panelShape = RoundedCornerShape(if (isCompact) 18.dp else 22.dp)
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(if (isCompact) 18.dp else 22.dp))
+            .shadow(
+                elevation = 16.dp,
+                shape = panelShape,
+                spotColor = accentColor.copy(alpha = 0.35f),
+                ambientColor = Color.Black
+            )
+            .clip(panelShape)
             .background(panelBg)
-            .border(1.5.dp, if (showBlurredBackground) CarBorder.copy(alpha = 0.85f) else CarBorder, RoundedCornerShape(if (isCompact) 18.dp else 22.dp))
+            .border(
+                width = 2.dp,
+                brush = Brush.verticalGradient(
+                    listOf(
+                        Color.White.copy(alpha = 0.40f),
+                        accentColor.copy(alpha = 0.70f),
+                        if (showBlurredBackground) CarBorder.copy(alpha = 0.85f) else CarBorder,
+                        Color.Black.copy(alpha = 0.80f)
+                    )
+                ),
+                shape = panelShape
+            )
             .padding(if (isCompact) 8.dp else 12.dp)
     ) {
+        // 3D Dışbükey Cam Yansıması (Glossy Sheen Overlay)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(130.dp)
+                .align(Alignment.TopCenter)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(Color.White.copy(alpha = 0.06f), Color.Transparent)
+                    )
+                )
+        )
         if (isLoading) {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -198,19 +233,24 @@ fun LibraryPanel(
                         .fillMaxWidth()
                         .weight(1f)
                 ) {
-                    if (searchQuery.isNotEmpty()) {
+                    if (isCarSearchOpen || searchQuery.isNotEmpty()) {
                         // Arama Modu
                         Column(modifier = Modifier.fillMaxSize()) {
                             SubScreenHeader(
-                                title = "Arama Sonuçları",
-                                onBack = { onSearchQueryChange("") },
+                                title = if (searchQuery.isEmpty()) "Arama Modu" else "Arama Sonuçları (${filteredSongs.size})",
+                                onBack = {
+                                    onCloseSearch()
+                                    onSearchQueryChange("")
+                                },
                                 actions = {
-                                    CarHeaderActionButton(
-                                        icon = "✕",
-                                        text = "Temizle",
-                                        accentColor = CarSurfaceVariant,
-                                        onClick = { onSearchQueryChange("") }
-                                    )
+                                    if (searchQuery.isNotEmpty()) {
+                                        CarHeaderActionButton(
+                                            icon = "✕",
+                                            text = "Temizle",
+                                            accentColor = CarSurfaceVariant,
+                                            onClick = { onSearchQueryChange("") }
+                                        )
+                                    }
                                 }
                             )
 
@@ -218,11 +258,12 @@ fun LibraryPanel(
 
                             Box(modifier = Modifier.weight(1f)) {
                                 SearchResultsView(
-                                    songs = filteredSongs,
+                                    songs = if (searchQuery.isEmpty()) emptyList() else filteredSongs,
                                     query = searchQuery,
                                     currentPlayingSongPath = currentPlayingSongPath,
                                     onPlaySong = { song ->
                                         onPlaySong(song, filteredSongs)
+                                        onCloseSearch()
                                         onSearchQueryChange("")
                                     },
                                     onSongLongClick = onSongLongClick
@@ -509,6 +550,7 @@ fun LibraryPanel(
                     query = searchQuery,
                     onQueryChange = onSearchQueryChange,
                     resultCount = if (searchQuery.isNotEmpty()) filteredSongs.size else null,
+                    onSearchBarClick = onOpenSearch,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -617,34 +659,74 @@ private fun CarBigMenuButton(
 ) {
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val isCompact = configuration.screenHeightDp < 580 || configuration.screenWidthDp < 980
-    // Yumuşak kıvrımlı köşeler
     val shape = RoundedCornerShape(if (isCompact) 22.dp else 28.dp)
 
     Box(
         modifier = modifier
+            .shadow(
+                elevation = if (isCompact) 6.dp else 10.dp,
+                shape = shape,
+                spotColor = borderColor.copy(alpha = 0.55f),
+                ambientColor = Color.Black
+            )
             .clip(shape)
             .background(
-                brush = Brush.radialGradient(
-                    colors = listOf(borderColor.copy(alpha = 0.12f), Color.Transparent),
-                    radius = 320f
+                Brush.verticalGradient(
+                    listOf(Color(0xFF222A3B), Color(0xFF10141F), Color(0xFF090C13))
                 )
             )
-            .background(Color(0xFF0B101B).copy(alpha = 0.90f))
-            .border(2.dp, borderColor, shape)
+            .border(
+                width = 2.dp,
+                brush = Brush.verticalGradient(
+                    listOf(
+                        Color.White.copy(alpha = 0.50f),
+                        borderColor,
+                        borderColor.copy(alpha = 0.45f),
+                        Color.Black.copy(alpha = 0.80f)
+                    )
+                ),
+                shape = shape
+            )
             .clickable { onClick() }
             .padding(horizontal = 8.dp, vertical = 10.dp),
         contentAlignment = Alignment.Center
     ) {
+        // Üst 3D Cam Parlama (Glossy Sheen)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.38f)
+                .align(Alignment.TopCenter)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(Color.White.copy(alpha = 0.10f), Color.Transparent)
+                    )
+                )
+        )
+
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
             modifier = Modifier.fillMaxSize()
         ) {
-            Text(
-                text = icon,
-                fontSize = if (isCompact) 32.sp else 40.sp
-            )
-            Spacer(modifier = Modifier.height(if (isCompact) 6.dp else 10.dp))
+            Box(
+                modifier = Modifier
+                    .size(if (isCompact) 46.dp else 58.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.radialGradient(
+                            listOf(borderColor.copy(alpha = 0.30f), Color.Transparent),
+                            radius = 120f
+                        )
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = icon,
+                    fontSize = if (isCompact) 30.sp else 38.sp
+                )
+            }
+            Spacer(modifier = Modifier.height(if (isCompact) 4.dp else 8.dp))
             Text(
                 text = title,
                 fontSize = if (isCompact) 17.sp else 21.sp,
@@ -674,15 +756,38 @@ fun CarTrackFlowCard(
     val cardShape = RoundedCornerShape(if (isCompact) 20.dp else 26.dp)
     val neonCyan = Color(0xFF00E5FF)
 
-    Column(
+    Box(
         modifier = modifier
-            .fillMaxWidth()
+            .shadow(
+                elevation = if (isCompact) 8.dp else 12.dp,
+                shape = cardShape,
+                spotColor = neonCyan.copy(alpha = 0.40f),
+                ambientColor = Color.Black
+            )
             .clip(cardShape)
-            .background(Color(0xFF0B101B).copy(alpha = 0.90f))
-            .border(2.dp, neonCyan, cardShape)
-            .padding(if (isCompact) 8.dp else 12.dp),
-        verticalArrangement = Arrangement.spacedBy(if (isCompact) 6.dp else 8.dp)
+            .background(
+                Brush.verticalGradient(
+                    listOf(Color(0xFF1E2638), Color(0xFF0F1420), Color(0xFF07090F))
+                )
+            )
+            .border(
+                width = 2.dp,
+                brush = Brush.verticalGradient(
+                    listOf(
+                        Color.White.copy(alpha = 0.45f),
+                        neonCyan,
+                        neonCyan.copy(alpha = 0.40f),
+                        Color.Black.copy(alpha = 0.80f)
+                    )
+                ),
+                shape = cardShape
+            )
+            .padding(if (isCompact) 8.dp else 12.dp)
     ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(if (isCompact) 6.dp else 8.dp)
+        ) {
         // 1. ÖNCEKİ PARÇA
         TrackFlowRow(
             leadSymbol = "⏮",
@@ -713,6 +818,7 @@ fun CarTrackFlowCard(
             onClick = if (nextSong != null) onPlayNext else null
         )
     }
+}
 }
 
 @Composable
@@ -903,6 +1009,7 @@ internal fun FixedCarSearchBar(
     query: String,
     onQueryChange: (String) -> Unit,
     resultCount: Int? = null,
+    onSearchBarClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
@@ -913,13 +1020,29 @@ internal fun FixedCarSearchBar(
 
     Row(
         modifier = modifier
+            .shadow(elevation = 6.dp, shape = pillShape, spotColor = neonCyan.copy(alpha = 0.35f))
             .height(if (isCompact) 52.dp else 64.dp)
             .clip(pillShape)
-            .background(Color(0xFF0B101B).copy(alpha = 0.90f))
+            .background(
+                Brush.verticalGradient(
+                    listOf(Color(0xFF182030), Color(0xFF0C101A), Color(0xFF06080E))
+                )
+            )
             .border(
                 width = 2.dp,
-                color = neonCyan,
+                brush = Brush.verticalGradient(
+                    listOf(
+                        Color.White.copy(alpha = 0.50f),
+                        neonCyan,
+                        neonCyan.copy(alpha = 0.40f),
+                        Color.Black.copy(alpha = 0.80f)
+                    )
+                ),
                 shape = pillShape
+            )
+            .then(
+                if (onSearchBarClick != null) Modifier.clickable { onSearchBarClick() }
+                else Modifier
             )
             .padding(horizontal = if (isCompact) 16.dp else 22.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -933,19 +1056,11 @@ internal fun FixedCarSearchBar(
 
         Spacer(modifier = Modifier.width(14.dp))
 
-        BasicTextField(
-            value = query,
-            onValueChange = onQueryChange,
-            textStyle = TextStyle(
-                color = CarTextPrimary,
-                fontSize = if (isCompact) 16.sp else 19.sp,
-                fontWeight = FontWeight.SemiBold
-            ),
-            cursorBrush = SolidColor(neonCyan),
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-            modifier = Modifier.weight(1f),
-            decorationBox = { innerTextField ->
+        if (onSearchBarClick != null) {
+            Box(
+                modifier = Modifier.weight(1f),
+                contentAlignment = Alignment.CenterStart
+            ) {
                 if (query.isEmpty()) {
                     Text(
                         text = "Ara (şarkı, sanatçı veya klasör)...",
@@ -953,10 +1068,43 @@ internal fun FixedCarSearchBar(
                         fontSize = if (isCompact) 15.sp else 18.sp,
                         fontWeight = FontWeight.Medium
                     )
+                } else {
+                    Text(
+                        text = query,
+                        color = CarTextPrimary,
+                        fontSize = if (isCompact) 16.sp else 19.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
-                innerTextField()
             }
-        )
+        } else {
+            BasicTextField(
+                value = query,
+                onValueChange = onQueryChange,
+                textStyle = TextStyle(
+                    color = CarTextPrimary,
+                    fontSize = if (isCompact) 16.sp else 19.sp,
+                    fontWeight = FontWeight.SemiBold
+                ),
+                cursorBrush = SolidColor(neonCyan),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                modifier = Modifier.weight(1f),
+                decorationBox = { innerTextField ->
+                    if (query.isEmpty()) {
+                        Text(
+                            text = "Ara (şarkı, sanatçı veya klasör)...",
+                            color = CarTextMuted,
+                            fontSize = if (isCompact) 15.sp else 18.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                    innerTextField()
+                }
+            )
+        }
 
         // Bulunan sonuç adedi rozeti
         if (resultCount != null) {
@@ -1011,13 +1159,26 @@ internal fun SearchResultsView(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = "\"$query\" aramasıyla eşleşen parça bulunamadı",
-                color = CarTextMuted,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium,
-                textAlign = TextAlign.Center
-            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text(
+                    text = if (query.isEmpty()) "⌨️" else "🔍",
+                    fontSize = 38.sp
+                )
+                Text(
+                    text = if (query.isEmpty())
+                        "Aramak istediğiniz şarkı, sanatçı veya klasörü\nsanal klavyeden yazın."
+                    else
+                        "\"$query\" aramasıyla eşleşen parça bulunamadı",
+                    color = CarTextMuted,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium,
+                    textAlign = TextAlign.Center
+                )
+            }
         }
     } else {
         LazyColumn(

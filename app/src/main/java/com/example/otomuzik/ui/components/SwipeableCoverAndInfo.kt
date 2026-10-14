@@ -7,6 +7,8 @@ import android.media.AudioManager
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import android.graphics.Bitmap
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -123,15 +125,18 @@ fun SwipeableCoverandInfo(
     lyricsFontSize: String = "LARGE",
     isFavorite: Boolean = false,
     onToggleFavorite: () -> Unit = {},
+    onToggleCoverLyrics: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val haptic = LocalHapticFeedback.current
     val hasLyrics = lyricsData != null && lyricsData.lines.isNotEmpty()
-    val isCoverLyricsActive = showCoverLyrics && hasLyrics
+    val isCoverLyricsActive = showCoverLyrics
 
     val currentOnSwipeNext by rememberUpdatedState(onSwipeNext)
     val currentOnSwipePrevious by rememberUpdatedState(onSwipePrevious)
     val currentOnSeekForward by rememberUpdatedState(onSeekForward)
     val currentOnSeekBackward by rememberUpdatedState(onSeekBackward)
+    val currentOnToggleCoverLyrics by rememberUpdatedState(onToggleCoverLyrics)
 
     var dragOffsetX by remember { mutableFloatStateOf(0f) }
     var isDragging by remember { mutableStateOf(false) }
@@ -183,6 +188,12 @@ fun SwipeableCoverandInfo(
                         } else {
                             currentOnSeekForward()
                         }
+                    },
+                    onLongPress = {
+                        try {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        } catch (_: Exception) {}
+                        currentOnToggleCoverLyrics()
                     }
                 )
             }
@@ -259,7 +270,7 @@ fun SwipeableCoverandInfo(
                     .weight(1f),
                 contentAlignment = Alignment.Center
             ) {
-                if (isCoverLyricsActive && lyricsData != null) {
+                if (isCoverLyricsActive) {
                     BoxWithConstraints(
                         modifier = Modifier.fillMaxSize()
                     ) {
@@ -267,6 +278,7 @@ fun SwipeableCoverandInfo(
                         val rightPadding = if (isCompact) 6.dp else 12.dp
                         val cardWidth = (maxWidth - leftVolumeStripWidth - rightPadding).coerceAtLeast(140.dp)
                         val cardHeight = maxHeight * 0.94f
+                        val lyricsCardShape = RoundedCornerShape(if (isCompact) 16.dp else 22.dp)
 
                         VolumeControlStrip(
                             isCompact = isCompact,
@@ -298,41 +310,125 @@ fun SwipeableCoverandInfo(
                                 .padding(end = rightPadding)
                                 .size(width = cardWidth, height = cardHeight)
                                 .offset { IntOffset(animatedOffset.roundToInt(), 0) }
-                                .clip(RoundedCornerShape(if (isCompact) 16.dp else 22.dp))
+                                .shadow(
+                                    elevation = 14.dp,
+                                    shape = lyricsCardShape,
+                                    spotColor = accentColor.copy(alpha = 0.50f),
+                                    ambientColor = Color.Black
+                                )
+                                .clip(lyricsCardShape)
                                 .border(
-                                    width = 1.2.dp,
-                                    color = accentColor.copy(alpha = 0.60f),
-                                    shape = RoundedCornerShape(if (isCompact) 16.dp else 22.dp)
+                                    width = 1.8.dp,
+                                    brush = Brush.verticalGradient(
+                                        listOf(
+                                            Color.White.copy(alpha = 0.45f),
+                                            accentColor,
+                                            Color.Black.copy(alpha = 0.70f)
+                                        )
+                                    ),
+                                    shape = lyricsCardShape
                                 )
                         ) {
-                            CoverLyricsOverlay(
-                                lyricsData = lyricsData,
-                                currentPositionMs = currentPositionMs,
-                                durationMs = durationMs,
-                                isPlaying = isPlaying,
-                                accentColor = accentColor,
-                                isCompact = isCompact,
-                                lyricsFontSize = lyricsFontSize,
-                                onSeekTo = onSeekTo,
-                                onOpenLyricsDialog = onOpenLyricsDialog
-                            )
+                            if (lyricsData != null && lyricsData.lines.isNotEmpty()) {
+                                CoverLyricsOverlay(
+                                    lyricsData = lyricsData,
+                                    currentPositionMs = currentPositionMs,
+                                    durationMs = durationMs,
+                                    isPlaying = isPlaying,
+                                    accentColor = accentColor,
+                                    isCompact = isCompact,
+                                    lyricsFontSize = lyricsFontSize,
+                                    onSeekTo = onSeekTo,
+                                    onOpenLyricsDialog = onOpenLyricsDialog,
+                                    onToggleCoverLyrics = currentOnToggleCoverLyrics
+                                )
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(Color(0xFF090D16).copy(alpha = 0.88f))
+                                        .clickable { currentOnToggleCoverLyrics() }
+                                        .pointerInput(Unit) {
+                                            detectTapGestures(
+                                                onLongPress = {
+                                                    try {
+                                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                    } catch (_: Exception) {}
+                                                    currentOnToggleCoverLyrics()
+                                                }
+                                            )
+                                        }
+                                        .padding(16.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Text("📝", fontSize = 34.sp)
+                                        Text(
+                                            text = "Bu şarkı için söz bulunamadı",
+                                            color = Color.White,
+                                            fontSize = if (isCompact) 13.sp else 15.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            textAlign = TextAlign.Center
+                                        )
+                                        Text(
+                                            text = "Kapağa dönmek için dokunun veya basılı tutun",
+                                            color = accentColor,
+                                            fontSize = if (isCompact) 11.sp else 12.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            textAlign = TextAlign.Center
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 } else {
+                    val infoCardShape = RoundedCornerShape(if (isCompact) 16.dp else 22.dp)
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .offset { IntOffset(animatedOffset.roundToInt(), 0) }
                             .padding(horizontal = if (isCompact) 4.dp else 6.dp)
+                            .shadow(
+                                elevation = 12.dp,
+                                shape = infoCardShape,
+                                spotColor = accentColor.copy(alpha = 0.40f),
+                                ambientColor = Color.Black
+                            )
+                            .clip(infoCardShape)
                             .background(
-                                color = Color.Black.copy(alpha = 0.50f),
-                                shape = RoundedCornerShape(if (isCompact) 16.dp else 20.dp)
+                                Brush.verticalGradient(
+                                    listOf(
+                                        Color(0xFF1E2638).copy(alpha = 0.82f),
+                                        Color(0xFF0F1420).copy(alpha = 0.88f),
+                                        Color.Black.copy(alpha = 0.92f)
+                                    )
+                                )
                             )
                             .border(
-                                width = 1.2.dp,
-                                color = accentColor.copy(alpha = 0.50f),
-                                shape = RoundedCornerShape(if (isCompact) 16.dp else 20.dp)
+                                width = 1.8.dp,
+                                brush = Brush.verticalGradient(
+                                    listOf(
+                                        Color.White.copy(alpha = 0.45f),
+                                        accentColor.copy(alpha = 0.70f),
+                                        Color.Black.copy(alpha = 0.75f)
+                                    )
+                                ),
+                                shape = infoCardShape
                             )
+                            .pointerInput(Unit) {
+                                detectTapGestures(
+                                    onLongPress = {
+                                        try {
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        } catch (_: Exception) {}
+                                        currentOnToggleCoverLyrics()
+                                    }
+                                )
+                            }
                         .padding(
                             horizontal = if (isCompact) 12.dp else 16.dp,
                             vertical = if (isCompact) 8.dp else 14.dp
@@ -460,11 +556,12 @@ fun SwipeableCoverandInfo(
                 val minAllowed = if (isCompact) 80.dp else 120.dp
                 val dynamicSize = minOf(maxWidth * 0.95f, maxHeight).coerceIn(minAllowed, maxAllowed)
 
-                if (isCoverLyricsActive && lyricsData != null) {
+                if (isCoverLyricsActive) {
                     val leftVolumeStripWidth = if (isCompact) 44.dp else 54.dp
                     val rightPadding = if (isCompact) 6.dp else 12.dp
                     val cardWidth = (maxWidth - leftVolumeStripWidth - rightPadding).coerceAtLeast(minAllowed)
                     val cardHeight = (maxHeight - (if (isCompact) 4.dp else 8.dp)).coerceAtLeast(minAllowed)
+                    val lyricsCardShape = RoundedCornerShape(if (isCompact) 18.dp else 24.dp)
 
                     // 1. Sol ses kontrol şeridi
                     VolumeControlStrip(
@@ -491,7 +588,7 @@ fun SwipeableCoverandInfo(
                             .height(cardHeight)
                     )
 
-                    // 2. Genişletilmiş Şarkı Sözü Kartı
+                    // 2. Genişletilmiş Şarkı Sözü Kartı (3D derinlik)
                     Box(
                         modifier = Modifier
                             .align(Alignment.CenterEnd)
@@ -499,15 +596,27 @@ fun SwipeableCoverandInfo(
                             .size(width = cardWidth, height = cardHeight)
                             .offset { IntOffset(animatedOffset.roundToInt(), 0) }
                             .shadow(
-                                elevation = if (isPlaying) (if (isCompact) 8.dp else 14.dp) else 4.dp,
-                                shape = RoundedCornerShape(if (isCompact) 18.dp else 24.dp)
+                                elevation = if (isPlaying) (if (isCompact) 14.dp else 20.dp) else 8.dp,
+                                shape = lyricsCardShape,
+                                spotColor = if (isPlaying) accentColor.copy(alpha = 0.55f) else Color.Black,
+                                ambientColor = Color.Black
                             )
-                            .clip(RoundedCornerShape(if (isCompact) 18.dp else 24.dp))
-                            .background(CarSurfaceVariant)
+                            .clip(lyricsCardShape)
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(Color(0xFF1E2638), Color(0xFF101420), Color(0xFF090B12))
+                                )
+                            )
                             .border(
-                                width = if (isPlaying) 2.dp else 1.5.dp,
-                                color = if (isPlaying) accentColor else CarBorder,
-                                shape = RoundedCornerShape(if (isCompact) 18.dp else 24.dp)
+                                width = if (isPlaying) 2.2.dp else 1.5.dp,
+                                brush = Brush.verticalGradient(
+                                    listOf(
+                                        Color.White.copy(alpha = if (isPlaying) 0.55f else 0.30f),
+                                        if (isPlaying) accentColor else CarBorder,
+                                        Color.Black.copy(alpha = 0.70f)
+                                    )
+                                ),
+                                shape = lyricsCardShape
                             ),
                         contentAlignment = Alignment.Center
                     ) {
@@ -530,34 +639,102 @@ fun SwipeableCoverandInfo(
                             }
                         }
 
-                        CoverLyricsOverlay(
-                            lyricsData = lyricsData,
-                            currentPositionMs = currentPositionMs,
-                            durationMs = durationMs,
-                            isPlaying = isPlaying,
-                            accentColor = accentColor,
-                            isCompact = isCompact,
-                            lyricsFontSize = lyricsFontSize,
-                            onSeekTo = onSeekTo,
-                            onOpenLyricsDialog = onOpenLyricsDialog
-                        )
+                        if (lyricsData != null && lyricsData.lines.isNotEmpty()) {
+                            CoverLyricsOverlay(
+                                lyricsData = lyricsData,
+                                currentPositionMs = currentPositionMs,
+                                durationMs = durationMs,
+                                isPlaying = isPlaying,
+                                accentColor = accentColor,
+                                isCompact = isCompact,
+                                lyricsFontSize = lyricsFontSize,
+                                onSeekTo = onSeekTo,
+                                onOpenLyricsDialog = onOpenLyricsDialog,
+                                onToggleCoverLyrics = currentOnToggleCoverLyrics
+                            )
+                        } else {
+                            // Şarkı sözü bulunamadı / aranıyor durumu
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clickable { currentOnToggleCoverLyrics() }
+                                    .pointerInput(Unit) {
+                                        detectTapGestures(
+                                            onLongPress = {
+                                                try {
+                                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                } catch (_: Exception) {}
+                                                currentOnToggleCoverLyrics()
+                                            }
+                                        )
+                                    }
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Text("📝", fontSize = 34.sp)
+                                    Text(
+                                        text = "Bu şarkı için söz bulunamadı",
+                                        color = Color.White,
+                                        fontSize = if (isCompact) 13.sp else 15.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        textAlign = TextAlign.Center
+                                    )
+                                    Text(
+                                        text = "Kapağa dönmek için dokunun veya basılı tutun",
+                                        color = accentColor,
+                                        fontSize = if (isCompact) 11.sp else 12.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                            }
+                        }
                     }
                 } else {
+                    // ── 3D DERİNLİKLİ ALBÜM KAPAĞI / PİKAP KUTUSU ──
+                    val coverShape = RoundedCornerShape(if (isCompact) 18.dp else 26.dp)
                     Box(
                         modifier = Modifier
                             .offset { IntOffset(animatedOffset.roundToInt(), 0) }
                             .size(dynamicSize)
                             .shadow(
-                                elevation = if (isPlaying) (if (isCompact) 8.dp else 14.dp) else 4.dp,
-                                shape = RoundedCornerShape(if (isCompact) 18.dp else 26.dp)
+                                elevation = if (isPlaying) (if (isCompact) 16.dp else 24.dp) else 8.dp,
+                                shape = coverShape,
+                                spotColor = if (isPlaying) accentColor.copy(alpha = 0.65f) else Color.Black,
+                                ambientColor = Color.Black
                             )
-                            .clip(RoundedCornerShape(if (isCompact) 18.dp else 26.dp))
-                            .background(CarSurfaceVariant)
+                            .clip(coverShape)
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(Color(0xFF222B3D), Color(0xFF121722), Color(0xFF0A0C13))
+                                )
+                            )
                             .border(
-                                width = if (isPlaying) 2.dp else 1.5.dp,
-                                color = if (isPlaying) accentColor else CarBorder,
-                                shape = RoundedCornerShape(if (isCompact) 18.dp else 26.dp)
-                            ),
+                                width = if (isPlaying) 2.5.dp else 1.8.dp,
+                                brush = Brush.verticalGradient(
+                                    listOf(
+                                        Color.White.copy(alpha = if (isPlaying) 0.60f else 0.35f),
+                                        if (isPlaying) accentColor else CarBorder,
+                                        if (isPlaying) accentColor.copy(alpha = 0.50f) else CarBorder.copy(alpha = 0.40f),
+                                        Color.Black.copy(alpha = 0.85f)
+                                    )
+                                ),
+                                shape = coverShape
+                            )
+                            .pointerInput(Unit) {
+                                detectTapGestures(
+                                    onLongPress = {
+                                        try {
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        } catch (_: Exception) {}
+                                        currentOnToggleCoverLyrics()
+                                    }
+                                )
+                            },
                         contentAlignment = Alignment.Center
                     ) {
                         if (artworkBitmap != null) {
@@ -566,6 +743,18 @@ fun SwipeableCoverandInfo(
                                 contentDescription = "Albüm Kapağı",
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize()
+                            )
+                            // Üst 3D Cam Parlama / Glossy Sheen Efekti
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .fillMaxHeight(0.38f)
+                                    .align(Alignment.TopCenter)
+                                    .background(
+                                        Brush.verticalGradient(
+                                            listOf(Color.White.copy(alpha = 0.16f), Color.Transparent)
+                                        )
+                                    )
                             )
                         } else {
                             Box(modifier = Modifier.fillMaxSize()) {
@@ -577,15 +766,16 @@ fun SwipeableCoverandInfo(
                             }
                         }
 
-                        // Çalarken sağ altta rozet
+                        // Çalarken sağ altta 3D rozet
                         if (isPlaying) {
                             Box(
                                 modifier = Modifier
                                     .align(Alignment.BottomEnd)
                                     .padding(if (isCompact) 6.dp else 10.dp)
+                                    .shadow(elevation = 6.dp, shape = RoundedCornerShape(8.dp), spotColor = CarCyan)
                                     .clip(RoundedCornerShape(8.dp))
-                                    .background(Color(0xDD0C0E12))
-                                    .border(1.dp, CarCyan, RoundedCornerShape(8.dp))
+                                    .background(Color(0xEE0C0E12))
+                                    .border(1.2.dp, CarCyan, RoundedCornerShape(8.dp))
                                     .padding(horizontal = 8.dp, vertical = if (isCompact) 3.dp else 5.dp)
                             ) {
                                 Text(
@@ -865,8 +1055,10 @@ fun CoverLyricsOverlay(
     lyricsFontSize: String = "LARGE",
     onSeekTo: (Long) -> Unit,
     onOpenLyricsDialog: () -> Unit,
+    onToggleCoverLyrics: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val haptic = LocalHapticFeedback.current
     val lines = lyricsData.lines
     val isSynced = lyricsData.isSynced && lines.any { it.timestampMs >= 0 }
     val listState = remember(lyricsData.songPath, lyricsData.rawLyrics) { LazyListState(0, 0) }
@@ -920,6 +1112,16 @@ fun CoverLyricsOverlay(
         modifier = modifier
             .fillMaxSize()
             .background(overlayBg)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onLongPress = {
+                        try {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        } catch (_: Exception) {}
+                        onToggleCoverLyrics()
+                    }
+                )
+            }
     ) {
         // Sözler Listesi
         LazyColumn(
@@ -927,7 +1129,7 @@ fun CoverLyricsOverlay(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = if (isCompact) 8.dp else 12.dp),
-            contentPadding = PaddingValues(top = if (isCompact) 28.dp else 34.dp, bottom = if (isCompact) 24.dp else 30.dp),
+            contentPadding = PaddingValues(top = if (isCompact) 32.dp else 38.dp, bottom = if (isCompact) 24.dp else 30.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(if (isCompact) 4.dp else 6.dp)
         ) {
@@ -1075,30 +1277,59 @@ fun CoverLyricsOverlay(
             }
 
             Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(if (isDark) Color(0xDD121620) else Color(0xEEFFFFFF))
-                    .border(1.dp, effectiveAccent.copy(alpha = 0.75f), RoundedCornerShape(8.dp))
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = ripple(bounded = true)
-                    ) { onOpenLyricsDialog() }
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "⤢",
-                    fontSize = if (isCompact) 11.sp else 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = effectiveAccent
-                )
-                Text(
-                    text = "Tam Ekran",
-                    fontSize = if (isCompact) 9.sp else 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = if (isDark) Color.White else Color(0xFF0F172A)
-                )
+                // Kapağa Dön Butonu
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(if (isDark) Color(0xDD121620) else Color(0xEEFFFFFF))
+                        .border(1.dp, effectiveAccent.copy(alpha = 0.75f), RoundedCornerShape(8.dp))
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = ripple(bounded = true)
+                        ) { onToggleCoverLyrics() }
+                        .padding(horizontal = 7.dp, vertical = 3.5.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
+                    Text(text = "🖼️", fontSize = if (isCompact) 10.sp else 12.sp)
+                    Text(
+                        text = "Kapağa Dön",
+                        fontSize = if (isCompact) 9.sp else 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isDark) Color.White else Color(0xFF0F172A)
+                    )
+                }
+
+                // Tam Ekran Butonu
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(if (isDark) Color(0xDD121620) else Color(0xEEFFFFFF))
+                        .border(1.dp, effectiveAccent.copy(alpha = 0.75f), RoundedCornerShape(8.dp))
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = ripple(bounded = true)
+                        ) { onOpenLyricsDialog() }
+                        .padding(horizontal = 7.dp, vertical = 3.5.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
+                    Text(
+                        text = "⤢",
+                        fontSize = if (isCompact) 11.sp else 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = effectiveAccent
+                    )
+                    Text(
+                        text = "Tam Ekran",
+                        fontSize = if (isCompact) 9.sp else 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isDark) Color.White else Color(0xFF0F172A)
+                    )
+                }
             }
         }
     }
