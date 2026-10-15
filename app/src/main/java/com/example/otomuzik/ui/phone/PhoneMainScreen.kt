@@ -340,12 +340,17 @@ fun PhoneMainScreen(
                         query = searchQuery,
                         currentPlayingSongPath = currentSong?.path,
                         onPlaySong = { song ->
-                            viewModel.insertAsNextSong(song, playImmediately = false)
+                            viewModel.insertAsNextSong(song, playImmediately = true)
+                            viewModel.setSearchQuery("")
+                            isSearchExpanded = false
                         },
                         onPlayImmediately = { song ->
                             viewModel.insertAsNextSong(song, playImmediately = true)
                             viewModel.setSearchQuery("")
                             isSearchExpanded = false
+                        },
+                        onAddToNext = { song ->
+                            viewModel.insertAsNextSong(song, playImmediately = false)
                         },
                         onSongLongClick = { viewModel.openSongContext(it) }
                     )

@@ -19,6 +19,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -93,12 +95,38 @@ fun PlaybackQueueView(
         val configuration = androidx.compose.ui.platform.LocalConfiguration.current
         val isCompact = configuration.screenHeightDp < 580 || configuration.screenWidthDp < 980
 
-        // ── 1. ÜST KONTROL BAR (Kapat + Başlık + Hızlı Kontroller) ──
-        Surface(
-            color = CarSurfaceVariant,
-            shape = RoundedCornerShape(if (isCompact) 14.dp else 18.dp),
-            border = BorderStroke(1.2.dp, CarBorder),
-            modifier = Modifier.fillMaxWidth()
+        // ── 1. ÜST KONTROL BAR (3D Kokpit Paneli: Kapat + Başlık + Hızlı Kontroller) ──
+        val headerShape = RoundedCornerShape(if (isCompact) 14.dp else 18.dp)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(
+                    elevation = if (isCompact) 8.dp else 14.dp,
+                    shape = headerShape,
+                    spotColor = accentColor.copy(alpha = 0.35f),
+                    ambientColor = Color.Black
+                )
+                .clip(headerShape)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            Color(0xFF222B3D),
+                            Color(0xFF141926),
+                            Color(0xFF0D111A)
+                        )
+                    )
+                )
+                .border(
+                    1.4.dp,
+                    Brush.verticalGradient(
+                        listOf(
+                            Color.White.copy(alpha = 0.35f),
+                            accentColor.copy(alpha = 0.40f),
+                            Color.Black.copy(alpha = 0.85f)
+                        )
+                    ),
+                    headerShape
+                )
         ) {
             Column(
                 modifier = Modifier
@@ -108,21 +136,46 @@ fun PlaybackQueueView(
                         vertical = if (isCompact) 8.dp else 12.dp
                     )
             ) {
+                // Kart üst içi parlama çizgisi
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(
+                            Brush.horizontalGradient(
+                                listOf(Color.Transparent, Color.White.copy(0.3f), Color.Transparent)
+                            )
+                        )
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
                 // 1. Satır: [⬅ Kapat] + Başlık + Hızlı [⏮] [⏭]
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Sol: Kapat / Dosyalara Dön Butonu
+                    // Sol: Kapat / Dosyalara Dön Butonu (3D Buton)
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         modifier = Modifier
                             .height(if (isCompact) 42.dp else 52.dp)
+                            .shadow(6.dp, RoundedCornerShape(12.dp), spotColor = Color.Black)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(CarSurfaceDark)
-                            .border(1.2.dp, CarBorder, RoundedCornerShape(12.dp))
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(Color(0xFF2E384D), Color(0xFF181F2C))
+                                )
+                            )
+                            .border(
+                                1.2.dp,
+                                Brush.verticalGradient(
+                                    listOf(Color.White.copy(0.40f), Color.Black.copy(0.70f))
+                                ),
+                                RoundedCornerShape(12.dp)
+                            )
                             .clickable { onClose() }
                             .padding(horizontal = if (isCompact) 10.dp else 16.dp)
                     ) {
@@ -168,18 +221,30 @@ fun PlaybackQueueView(
                         )
                     }
 
-                    // Sağ: Önceki ve Sonraki Butonları
+                    // Sağ: Önceki ve Sonraki Butonları (3D Tuşlar)
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        IconButton(
-                            onClick = onPlayPrevious,
+                        Box(
                             modifier = Modifier
                                 .size(if (isCompact) 42.dp else 52.dp)
+                                .shadow(6.dp, RoundedCornerShape(12.dp), spotColor = Color.Black)
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(CarSurfaceDark)
-                                .border(1.2.dp, CarBorder, RoundedCornerShape(12.dp))
+                                .background(
+                                    Brush.verticalGradient(
+                                        listOf(Color(0xFF2E384D), Color(0xFF181F2C))
+                                    )
+                                )
+                                .border(
+                                    1.2.dp,
+                                    Brush.verticalGradient(
+                                        listOf(Color.White.copy(0.40f), Color.Black.copy(0.70f))
+                                    ),
+                                    RoundedCornerShape(12.dp)
+                                )
+                                .clickable { onPlayPrevious() },
+                            contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 painter = painterResource(id = R.drawable.ic_skip_previous),
@@ -189,13 +254,25 @@ fun PlaybackQueueView(
                             )
                         }
 
-                        IconButton(
-                            onClick = onPlayNext,
+                        Box(
                             modifier = Modifier
                                 .size(if (isCompact) 42.dp else 52.dp)
+                                .shadow(6.dp, RoundedCornerShape(12.dp), spotColor = Color.Black)
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(CarSurfaceDark)
-                                .border(1.2.dp, CarBorder, RoundedCornerShape(12.dp))
+                                .background(
+                                    Brush.verticalGradient(
+                                        listOf(Color(0xFF2E384D), Color(0xFF181F2C))
+                                    )
+                                )
+                                .border(
+                                    1.2.dp,
+                                    Brush.verticalGradient(
+                                        listOf(Color.White.copy(0.40f), Color.Black.copy(0.70f))
+                                    ),
+                                    RoundedCornerShape(12.dp)
+                                )
+                                .clickable { onPlayNext() },
+                            contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 painter = painterResource(id = R.drawable.ic_skip_next),
@@ -210,32 +287,55 @@ fun PlaybackQueueView(
                 Spacer(modifier = Modifier.height(if (isCompact) 6.dp else 8.dp))
 
                 // 2. Satır: [🔀 Karışık Çal / Düz] & [🔄 Sıradakileri Yeniden Oluştur (Sırayı Yenile)]
-                val shuffleBg by animateColorAsState(
-                    targetValue = if (isShuffle) accentColor.copy(alpha = 0.22f) else CarSurfaceDark,
-                    label = "shuffleBg"
-                )
-                val shuffleTint by animateColorAsState(
-                    targetValue = if (isShuffle) accentColor else CarTextMuted,
-                    label = "shuffleTint"
-                )
-
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Karışık Çal Toggle Butonu
+                    // Karışık Çal 3D Toggle Butonu
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center,
                         modifier = Modifier
                             .weight(1f)
                             .height(if (isCompact) 42.dp else 50.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(shuffleBg)
-                            .border(
-                                1.2.dp,
-                                if (isShuffle) accentColor else CarBorder,
-                                RoundedCornerShape(12.dp)
+                            .then(
+                                if (isShuffle) {
+                                    Modifier
+                                        .shadow(6.dp, RoundedCornerShape(12.dp), spotColor = accentColor.copy(0.5f))
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(
+                                            Brush.verticalGradient(
+                                                listOf(
+                                                    accentColor.copy(alpha = 0.35f),
+                                                    accentColor.copy(alpha = 0.15f),
+                                                    Color(0xFF131A26)
+                                                )
+                                            )
+                                        )
+                                        .border(
+                                            1.5.dp,
+                                            Brush.verticalGradient(
+                                                listOf(Color.White.copy(0.6f), accentColor, Color.Black.copy(0.8f))
+                                            ),
+                                            RoundedCornerShape(12.dp)
+                                        )
+                                } else {
+                                    Modifier
+                                        .shadow(4.dp, RoundedCornerShape(12.dp), spotColor = Color(0x44000000))
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(
+                                            Brush.verticalGradient(
+                                                listOf(Color(0xFF222A3A), Color(0xFF141924))
+                                            )
+                                        )
+                                        .border(
+                                            1.dp,
+                                            Brush.verticalGradient(
+                                                listOf(Color.White.copy(0.2f), Color.Black.copy(0.6f))
+                                            ),
+                                            RoundedCornerShape(12.dp)
+                                        )
+                                }
                             )
                             .clickable { onToggleShuffle() }
                             .padding(horizontal = 8.dp)
@@ -243,7 +343,7 @@ fun PlaybackQueueView(
                         Icon(
                             painter = painterResource(id = R.drawable.ic_shuffle),
                             contentDescription = "Karışık Çal",
-                            tint = shuffleTint,
+                            tint = if (isShuffle) accentColor else CarTextMuted,
                             modifier = Modifier.size(if (isCompact) 18.dp else 22.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
@@ -251,23 +351,34 @@ fun PlaybackQueueView(
                             text = if (isShuffle) "Karışık: Açık" else "Karışık: Kapalı",
                             fontSize = if (isCompact) 13.sp else 14.sp,
                             fontWeight = FontWeight.Bold,
-                            color = shuffleTint,
+                            color = if (isShuffle) accentColor else CarTextMuted,
                             maxLines = 1
                         )
                     }
 
-                    // Sıradakileri Yeniden Oluştur Butonu
+                    // Sıradakileri Yeniden Oluştur (Sırayı Yenile) 3D Butonu
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center,
                         modifier = Modifier
                             .weight(1.05f)
                             .height(if (isCompact) 42.dp else 50.dp)
+                            .shadow(6.dp, RoundedCornerShape(12.dp), spotColor = CarCyan.copy(0.4f))
                             .clip(RoundedCornerShape(12.dp))
-                            .background(CarSurfaceDark)
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(
+                                        Color(0xFF00E5FF).copy(0.25f),
+                                        Color(0xFF152232),
+                                        Color(0xFF0F1722)
+                                    )
+                                )
+                            )
                             .border(
-                                1.2.dp,
-                                CarCyan.copy(alpha = 0.7f),
+                                1.3.dp,
+                                Brush.verticalGradient(
+                                    listOf(Color.White.copy(0.5f), CarCyan, Color.Black.copy(0.7f))
+                                ),
                                 RoundedCornerShape(12.dp)
                             )
                             .clickable { onReshuffleUpcoming() }
@@ -402,7 +513,7 @@ fun PlaybackQueueView(
 }
 
 /**
- * Araç kullanımı için tasarlanmış büyük, yüksek kontrastlı filtre butonu.
+ * Araç kullanımı için tasarlanmış büyük, 3D yüksek kontrastlı filtre butonu.
  */
 @Composable
 private fun BigQueueFilterButton(
@@ -414,28 +525,84 @@ private fun BigQueueFilterButton(
 ) {
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val isCompact = configuration.screenHeightDp < 580 || configuration.screenWidthDp < 980
+    val shape = RoundedCornerShape(if (isCompact) 12.dp else 14.dp)
+
+    val bgBrush = if (isSelected) {
+        Brush.verticalGradient(
+            listOf(
+                accentColor.copy(alpha = 0.35f),
+                accentColor.copy(alpha = 0.16f)
+            )
+        )
+    } else {
+        Brush.verticalGradient(
+            listOf(
+                Color(0xFF262C38),
+                Color(0xFF161922)
+            )
+        )
+    }
+
+    val borderBrush = if (isSelected) {
+        Brush.verticalGradient(
+            listOf(
+                accentColor,
+                accentColor.copy(alpha = 0.45f)
+            )
+        )
+    } else {
+        Brush.verticalGradient(
+            listOf(
+                Color(0xFF3E4758),
+                Color(0xFF1B1E26)
+            )
+        )
+    }
 
     Box(
         modifier = modifier
+            .shadow(
+                elevation = if (isSelected) 8.dp else 4.dp,
+                shape = shape,
+                ambientColor = if (isSelected) accentColor else Color.Black,
+                spotColor = if (isSelected) accentColor else Color.Black
+            )
             .height(if (isCompact) 44.dp else 54.dp)
-            .clip(RoundedCornerShape(if (isCompact) 12.dp else 14.dp))
-            .background(if (isSelected) accentColor.copy(alpha = 0.22f) else CarSurfaceDark)
+            .clip(shape)
+            .background(bgBrush)
             .border(
                 width = if (isSelected) 2.dp else 1.2.dp,
-                color = if (isSelected) accentColor else CarBorder,
-                shape = RoundedCornerShape(if (isCompact) 12.dp else 14.dp)
+                brush = borderBrush,
+                shape = shape
             )
             .clickable { onClick() }
-            .padding(horizontal = 6.dp),
-        contentAlignment = Alignment.Center
+            .padding(horizontal = 6.dp)
     ) {
+        // Üst parlama / gloss çizgisi (3D hissi)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(
+                    Brush.horizontalGradient(
+                        listOf(
+                            Color.Transparent,
+                            if (isSelected) accentColor.copy(alpha = 0.6f) else Color.White.copy(alpha = 0.25f),
+                            Color.Transparent
+                        )
+                    )
+                )
+                .align(Alignment.TopCenter)
+        )
+
         Text(
             text = title,
             fontSize = if (isCompact) 13.sp else 16.sp,
             fontWeight = FontWeight.ExtraBold,
             color = if (isSelected) accentColor else CarTextPrimary,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.align(Alignment.Center)
         )
     }
 }
@@ -453,149 +620,236 @@ private fun QueueSongItemCard(
 ) {
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val isCompact = configuration.screenHeightDp < 580 || configuration.screenWidthDp < 980
-
-    val bgColor = when {
-        isCurrent -> accentColor.copy(alpha = 0.18f)
-        isPrevious -> CarSurfaceVariant.copy(alpha = 0.55f)
-        else -> CarSurfaceVariant
-    }
-
-    val borderColor = when {
-        isCurrent -> accentColor
-        isPrevious -> CarBorder.copy(alpha = 0.5f)
-        else -> CarBorder
-    }
-
     val cardShape = RoundedCornerShape(if (isCompact) 14.dp else 16.dp)
 
-    Row(
+    val bgBrush = when {
+        isCurrent -> Brush.verticalGradient(
+            listOf(
+                accentColor.copy(alpha = 0.28f),
+                Color(0xFF1A2332),
+                Color(0xFF121720)
+            )
+        )
+        isNext -> Brush.verticalGradient(
+            listOf(
+                Color(0xFF252B38),
+                Color(0xFF181C24)
+            )
+        )
+        else -> Brush.verticalGradient(
+            listOf(
+                Color(0xFF1C1F28),
+                Color(0xFF13151B)
+            )
+        )
+    }
+
+    val borderBrush = when {
+        isCurrent -> Brush.verticalGradient(
+            listOf(
+                accentColor,
+                accentColor.copy(alpha = 0.4f)
+            )
+        )
+        isNext -> Brush.verticalGradient(
+            listOf(
+                Color(0xFF3E4758),
+                Color(0xFF1E222B)
+            )
+        )
+        else -> Brush.verticalGradient(
+            listOf(
+                Color(0xFF2C313C),
+                Color(0xFF181A20)
+            )
+        )
+    }
+
+    val elevation = when {
+        isCurrent -> 10.dp
+        isNext -> 5.dp
+        else -> 2.dp
+    }
+
+    Box(
         modifier = Modifier
             .fillMaxWidth()
+            .shadow(
+                elevation = elevation,
+                shape = cardShape,
+                ambientColor = if (isCurrent) accentColor else Color.Black,
+                spotColor = if (isCurrent) accentColor else Color.Black
+            )
             .clip(cardShape)
-            .background(bgColor)
+            .background(bgBrush)
             .border(
                 width = if (isCurrent) 1.8.dp else 1.dp,
-                color = borderColor,
+                brush = borderBrush,
                 shape = cardShape
             )
             .clickable { onClick() }
-            .padding(
-                horizontal = if (isCompact) 10.dp else 14.dp,
-                vertical = if (isCompact) 8.dp else 12.dp
-            ),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(if (isCompact) 8.dp else 12.dp)
     ) {
-        // Sol Bölüm: Sıra Numarası veya Animasyonlu Ekolayzer
+        // Üst kenar 3D kavis ışık yansıması
         Box(
-            modifier = Modifier.width(if (isCompact) 36.dp else 42.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            if (isCurrent) {
-                PlayingIndicator(
-                    isPlaying = true,
-                    color = accentColor,
-                    size = 22.dp
-                )
-            } else if (isNext) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "+${originalIndex - currentIndex}",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = accentColor.copy(alpha = 0.95f)
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(
+                    Brush.horizontalGradient(
+                        listOf(
+                            Color.Transparent,
+                            if (isCurrent) accentColor.copy(alpha = 0.7f) else Color.White.copy(alpha = 0.2f),
+                            Color.Transparent
+                        )
                     )
+                )
+                .align(Alignment.TopCenter)
+        )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    horizontal = if (isCompact) 10.dp else 14.dp,
+                    vertical = if (isCompact) 8.dp else 12.dp
+                ),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(if (isCompact) 8.dp else 12.dp)
+        ) {
+            // Sol Bölüm: Sıra Numarası veya Animasyonlu Ekolayzer
+            Box(
+                modifier = Modifier
+                    .width(if (isCompact) 38.dp else 46.dp)
+                    .height(if (isCompact) 38.dp else 46.dp)
+                    .shadow(
+                        elevation = if (isCurrent) 6.dp else 2.dp,
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(
+                        if (isCurrent) accentColor.copy(alpha = 0.22f)
+                        else Color(0xFF1A1D26)
+                    )
+                    .border(
+                        1.dp,
+                        if (isCurrent) accentColor.copy(alpha = 0.6f) else Color(0xFF333B49),
+                        RoundedCornerShape(10.dp)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                if (isCurrent) {
+                    PlayingIndicator(
+                        isPlaying = true,
+                        color = accentColor,
+                        size = 22.dp
+                    )
+                } else if (isNext) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "+${originalIndex - currentIndex}",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = accentColor.copy(alpha = 0.95f)
+                        )
+                        Text(
+                            text = "#${originalIndex + 1}",
+                            fontSize = 9.sp,
+                            color = CarTextMuted
+                        )
+                    }
+                } else {
                     Text(
                         text = "#${originalIndex + 1}",
-                        fontSize = 10.sp,
-                        color = CarTextMuted
+                        fontSize = 12.sp,
+                        color = CarTextMuted,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
-            } else {
+            }
+
+            // Orta Bölüm: Başlık ve Sanatçı
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "#${originalIndex + 1}",
-                    fontSize = 13.sp,
-                    color = CarTextMuted,
-                    fontWeight = FontWeight.Medium
+                    text = com.example.otomuzik.util.TurkishStringFixer.fix(song.title),
+                    fontSize = if (isCompact) 15.sp else 16.sp,
+                    fontWeight = if (isCurrent) FontWeight.ExtraBold else FontWeight.Bold,
+                    color = if (isCurrent) accentColor else CarTextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = com.example.otomuzik.util.TurkishStringFixer.fix(song.artist),
+                    fontSize = if (isCompact) 12.sp else 13.sp,
+                    color = if (isCurrent) CarTextPrimary.copy(alpha = 0.9f) else CarTextMuted,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
-        }
 
-        // Orta Bölüm: Başlık ve Sanatçı
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = com.example.otomuzik.util.TurkishStringFixer.fix(song.title),
-                fontSize = if (isCompact) 15.sp else 16.sp,
-                fontWeight = if (isCurrent) FontWeight.ExtraBold else FontWeight.Bold,
-                color = if (isCurrent) accentColor else CarTextPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = com.example.otomuzik.util.TurkishStringFixer.fix(song.artist),
-                fontSize = if (isCompact) 12.sp else 13.sp,
-                color = if (isCurrent) CarTextPrimary.copy(alpha = 0.9f) else CarTextMuted,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
+            // Sağ Bölüm: Rozet (Çalıyor / Sırada / Geçmiş) ve Süre
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                if (isCurrent) {
+                    Box(
+                        modifier = Modifier
+                            .shadow(4.dp, RoundedCornerShape(8.dp), ambientColor = accentColor, spotColor = accentColor)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(accentColor, accentColor.copy(alpha = 0.8f))
+                                )
+                            )
+                            .padding(horizontal = 10.dp, vertical = 5.dp)
+                    ) {
+                        Text(
+                            text = "▶ ÇALIYOR",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFF0C0E12)
+                        )
+                    }
+                } else if (isNext) {
+                    Box(
+                        modifier = Modifier
+                            .shadow(2.dp, RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFF1E232E))
+                            .border(1.dp, Color(0xFF384357), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = "Sırada",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = CarCyan
+                        )
+                    }
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFF161820).copy(alpha = 0.8f))
+                            .border(1.dp, Color(0xFF282D38), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = "Geçmiş",
+                            fontSize = 11.sp,
+                            color = CarTextMuted
+                        )
+                    }
+                }
 
-        // Sağ Bölüm: Rozet (Çalıyor / Sırada / Geçmiş) ve Süre
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            if (isCurrent) {
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(accentColor)
-                        .padding(horizontal = 10.dp, vertical = 5.dp)
-                ) {
-                    Text(
-                        text = "▶ ÇALIYOR",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Color(0xFF0C0E12)
-                    )
-                }
-            } else if (isNext) {
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(CarSurfaceDark)
-                        .border(1.dp, CarBorder, RoundedCornerShape(8.dp))
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        text = "Sırada",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = CarCyan
-                    )
-                }
-            } else {
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(CarSurfaceDark.copy(alpha = 0.5f))
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        text = "Geçmiş",
-                        fontSize = 11.sp,
-                        color = CarTextMuted
-                    )
-                }
+                Text(
+                    text = song.durationFormatted,
+                    fontSize = 13.sp,
+                    color = if (isCurrent) accentColor else CarTextMuted,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
-
-            Text(
-                text = song.durationFormatted,
-                fontSize = 13.sp,
-                color = if (isCurrent) accentColor else CarTextMuted,
-                fontWeight = FontWeight.SemiBold
-            )
         }
     }
 }

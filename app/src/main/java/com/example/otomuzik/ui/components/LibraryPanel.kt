@@ -264,7 +264,7 @@ fun LibraryPanel(
                                     currentPlayingSongPath = currentPlayingSongPath,
                                     onPlaySong = { song ->
                                         if (onInsertAsNextSong != null) {
-                                            onInsertAsNextSong(song, false)
+                                            onInsertAsNextSong(song, true)
                                         } else {
                                             onPlaySong(song, filteredSongs)
                                         }
@@ -279,6 +279,11 @@ fun LibraryPanel(
                                         }
                                         onCloseSearch()
                                         onSearchQueryChange("")
+                                    },
+                                    onAddToNext = { song ->
+                                        if (onInsertAsNextSong != null) {
+                                            onInsertAsNextSong(song, false)
+                                        }
                                     },
                                     onSongLongClick = onSongLongClick
                                 )
@@ -1167,6 +1172,7 @@ internal fun SearchResultsView(
     currentPlayingSongPath: String?,
     onPlaySong: (Song) -> Unit,
     onPlayImmediately: ((Song) -> Unit)? = null,
+    onAddToNext: ((Song) -> Unit)? = null,
     onSongLongClick: (Song) -> Unit
 ) {
     if (songs.isEmpty()) {
@@ -1215,7 +1221,7 @@ internal fun SearchResultsView(
                         color = CarCyan
                     )
                     Text(
-                        text = "Mevcut sıra korunur",
+                        text = "Seçilen parça çalar, sıra korunur",
                         fontSize = 11.5.sp,
                         color = CarTextMuted
                     )
@@ -1227,7 +1233,7 @@ internal fun SearchResultsView(
                     song = song,
                     index = index + 1,
                     isPlaying = isPlaying,
-                    onClick = { onPlaySong(song) },
+                    onClick = { (onPlayImmediately ?: onPlaySong).invoke(song) },
                     onLongClick = { onSongLongClick(song) },
                     trailingaction = {
                         Row(
@@ -1240,7 +1246,7 @@ internal fun SearchResultsView(
                                     .clip(RoundedCornerShape(8.dp))
                                     .background(Color(0xFF202636))
                                     .border(1.dp, Color(0x33FFFFFF), RoundedCornerShape(8.dp))
-                                    .clickable { onPlaySong(song) }
+                                    .clickable { (onAddToNext ?: onPlaySong).invoke(song) }
                                     .padding(horizontal = 10.dp, vertical = 6.dp),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -1253,23 +1259,21 @@ internal fun SearchResultsView(
                             }
 
                             // 2. Şimdi Çal Butonu
-                            if (onPlayImmediately != null) {
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(Color(0xFF00E5FF).copy(alpha = 0.20f))
-                                        .border(1.dp, Color(0xFF00E5FF), RoundedCornerShape(8.dp))
-                                        .clickable { onPlayImmediately(song) }
-                                        .padding(horizontal = 10.dp, vertical = 6.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = "▶ Çal",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF00E5FF)
-                                    )
-                                }
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color(0xFF00E5FF).copy(alpha = 0.20f))
+                                    .border(1.dp, Color(0xFF00E5FF), RoundedCornerShape(8.dp))
+                                    .clickable { (onPlayImmediately ?: onPlaySong).invoke(song) }
+                                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "▶ Çal",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF00E5FF)
+                                )
                             }
                         }
                     }
@@ -1315,15 +1319,34 @@ internal fun FolderBrowserView(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
+                            .shadow(3.dp, RoundedCornerShape(12.dp))
                             .clip(RoundedCornerShape(12.dp))
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(Color(0xFF252B37), Color(0xFF171A22))
+                                )
+                            )
+                            .border(
+                                1.dp,
+                                Brush.verticalGradient(
+                                    listOf(Color(0xFF3E485A), Color(0xFF1D212B))
+                                ),
+                                RoundedCornerShape(12.dp)
+                            )
                             .clickable { onBackFolder() }
-                            .padding(vertical = 4.dp)
+                            .padding(horizontal = 8.dp, vertical = 6.dp)
                     ) {
                         Box(
                             modifier = Modifier
                                 .size(38.dp)
-                                .background(CarSurfaceVariant, RoundedCornerShape(10.dp))
-                                .border(1.dp, CarBorder, RoundedCornerShape(10.dp)),
+                                .shadow(2.dp, RoundedCornerShape(10.dp))
+                                .background(
+                                    Brush.verticalGradient(
+                                        listOf(Color(0xFF2C3444), Color(0xFF1C202B))
+                                    ),
+                                    RoundedCornerShape(10.dp)
+                                )
+                                .border(1.dp, Color(0xFF455169), RoundedCornerShape(10.dp)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -1353,13 +1376,26 @@ internal fun FolderBrowserView(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Button(
-                            onClick = onPlayallSongs,
-                            colors = ButtonDefaults.buttonColors(containerColor = CarSurfaceVariant),
-                            shape = RoundedCornerShape(10.dp),
+                        Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .height(40.dp)
+                                .shadow(4.dp, RoundedCornerShape(10.dp))
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(
+                                    Brush.verticalGradient(
+                                        listOf(Color(0xFF272D3A), Color(0xFF171A22))
+                                    )
+                                )
+                                .border(
+                                    1.2.dp,
+                                    Brush.verticalGradient(
+                                        listOf(CarCyan.copy(alpha = 0.6f), Color(0xFF222834))
+                                    ),
+                                    RoundedCornerShape(10.dp)
+                                )
+                                .clickable { onPlayallSongs() },
+                            contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = "▶ Tümünü Çal",
@@ -1369,18 +1405,24 @@ internal fun FolderBrowserView(
                             )
                         }
 
-                        Button(
-                            onClick = { onPlayFolder(currentFolderPath) },
-                            colors = ButtonDefaults.buttonColors(containerColor = CarCyan),
-                            shape = RoundedCornerShape(10.dp),
+                        Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .height(40.dp)
+                                .shadow(6.dp, RoundedCornerShape(10.dp), ambientColor = CarCyan, spotColor = CarCyan)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(
+                                    Brush.verticalGradient(
+                                        listOf(CarCyan, Color(0xFF00B0D8))
+                                    )
+                                )
+                                .clickable { onPlayFolder(currentFolderPath) },
+                            contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = "▶ Klasörü Çal",
                                 fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
+                                fontWeight = FontWeight.ExtraBold,
                                 color = Color(0xFF0C0E12)
                             )
                         }
@@ -1398,13 +1440,34 @@ internal fun FolderBrowserView(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .weight(1f)
+                            .shadow(4.dp, RoundedCornerShape(14.dp))
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(Color(0xFF252B37), Color(0xFF171A22))
+                                )
+                            )
+                            .border(
+                                1.2.dp,
+                                Brush.verticalGradient(
+                                    listOf(Color(0xFF3F4A5C), Color(0xFF1D212B))
+                                ),
+                                RoundedCornerShape(14.dp)
+                            )
                             .clickable { onBackFolder() }
+                            .padding(horizontal = 10.dp, vertical = 6.dp)
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(46.dp)
-                                .background(CarSurfaceVariant, RoundedCornerShape(12.dp))
-                                .border(1.dp, CarBorder, RoundedCornerShape(12.dp)),
+                                .size(44.dp)
+                                .shadow(3.dp, RoundedCornerShape(10.dp))
+                                .background(
+                                    Brush.verticalGradient(
+                                        listOf(Color(0xFF2D3545), Color(0xFF1B1F2A))
+                                    ),
+                                    RoundedCornerShape(10.dp)
+                                )
+                                .border(1.2.dp, Color(0xFF455169), RoundedCornerShape(10.dp)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -1426,13 +1489,30 @@ internal fun FolderBrowserView(
                         )
                     }
 
+                    Spacer(modifier = Modifier.width(10.dp))
+
                     // Butonlar Grubu
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(
-                            onClick = onPlayallSongs,
-                            colors = ButtonDefaults.buttonColors(containerColor = CarSurfaceVariant),
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.height(48.dp)
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Box(
+                            modifier = Modifier
+                                .height(48.dp)
+                                .shadow(5.dp, RoundedCornerShape(12.dp))
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(
+                                    Brush.verticalGradient(
+                                        listOf(Color(0xFF282F3D), Color(0xFF181B23))
+                                    )
+                                )
+                                .border(
+                                    1.2.dp,
+                                    Brush.verticalGradient(
+                                        listOf(CarCyan.copy(alpha = 0.65f), Color(0xFF242A38))
+                                    ),
+                                    RoundedCornerShape(12.dp)
+                                )
+                                .clickable { onPlayallSongs() }
+                                .padding(horizontal = 16.dp),
+                            contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = "▶ Tümünü Çal",
@@ -1442,16 +1522,24 @@ internal fun FolderBrowserView(
                             )
                         }
 
-                        Button(
-                            onClick = { onPlayFolder(currentFolderPath) },
-                            colors = ButtonDefaults.buttonColors(containerColor = CarCyan),
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.height(48.dp)
+                        Box(
+                            modifier = Modifier
+                                .height(48.dp)
+                                .shadow(8.dp, RoundedCornerShape(12.dp), ambientColor = CarCyan, spotColor = CarCyan)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(CarCyan, Color(0xFF00ACC1))
+                                )
+                            )
+                            .clickable { onPlayFolder(currentFolderPath) }
+                            .padding(horizontal = 16.dp),
+                            contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = "▶ Klasörü Çal",
                                 fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold,
+                                fontWeight = FontWeight.ExtraBold,
                                 color = Color(0xFF0C0E12)
                             )
                         }
@@ -1488,12 +1576,36 @@ internal fun FolderBrowserView(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .shadow(6.dp, shape)
                                 .clip(shape)
-                                .background(CarSurfaceDark)
-                                .border(1.dp, CarCyan.copy(alpha = 0.5f), shape)
+                                .background(
+                                    Brush.verticalGradient(
+                                        listOf(Color(0xFF242A36), Color(0xFF161921))
+                                    )
+                                )
+                                .border(
+                                    1.2.dp,
+                                    Brush.verticalGradient(
+                                        listOf(CarCyan.copy(alpha = 0.7f), CarCyan.copy(alpha = 0.25f))
+                                    ),
+                                    shape
+                                )
                                 .clickable { onManageFolders() }
-                                .padding(horizontal = 14.dp, vertical = 10.dp)
+                                .padding(horizontal = 14.dp, vertical = 12.dp)
                         ) {
+                            // Üst parlama çizgisi
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(1.dp)
+                                    .background(
+                                        Brush.horizontalGradient(
+                                            listOf(Color.Transparent, CarCyan.copy(alpha = 0.5f), Color.Transparent)
+                                        )
+                                    )
+                                    .align(Alignment.TopCenter)
+                            )
+
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -1503,13 +1615,27 @@ internal fun FolderBrowserView(
                                     modifier = Modifier.weight(1f),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.ic_folder),
-                                        contentDescription = null,
-                                        tint = CarCyan,
-                                        modifier = Modifier.size(22.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .size(38.dp)
+                                            .shadow(3.dp, RoundedCornerShape(10.dp))
+                                            .background(
+                                                Brush.verticalGradient(
+                                                    listOf(Color(0xFF2A3240), Color(0xFF1A1E27))
+                                                ),
+                                                RoundedCornerShape(10.dp)
+                                            )
+                                            .border(1.dp, Color(0xFF3F4A5E), RoundedCornerShape(10.dp)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.ic_folder),
+                                            contentDescription = null,
+                                            tint = CarCyan,
+                                            modifier = Modifier.size(22.dp)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(12.dp))
                                     Column {
                                         Text(
                                             text = "Müzik Klasörlerini Yönet",
@@ -1526,9 +1652,15 @@ internal fun FolderBrowserView(
                                 }
                                 Box(
                                     modifier = Modifier
+                                        .shadow(3.dp, RoundedCornerShape(8.dp), ambientColor = CarCyan, spotColor = CarCyan)
                                         .clip(RoundedCornerShape(8.dp))
-                                        .background(CarCyan.copy(alpha = 0.15f))
-                                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                                        .background(
+                                            Brush.verticalGradient(
+                                                listOf(CarCyan.copy(alpha = 0.35f), CarCyan.copy(alpha = 0.15f))
+                                            )
+                                        )
+                                        .border(1.dp, CarCyan.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
+                                        .padding(horizontal = 12.dp, vertical = 6.dp)
                                 ) {
                                     Text(
                                         text = "Yönet",
@@ -1544,59 +1676,113 @@ internal fun FolderBrowserView(
 
                 items(itemsToDisplay) { item ->
                     if (item.isDirectory) {
-                        // Klasör Satırı - Telefonda ve araçta dengeli yükseklik ve boşluk
-                        val rowHeight = if (isPhoneLayout) 58.dp else if (isCompact) 62.dp else 74.dp
-                        val iconSize = if (isPhoneLayout) 26.dp else if (isCompact) 28.dp else 34.dp
+                        // 3D Klasör Satırı - Kokpit derinliği ve dokunsal his
+                        val rowHeight = if (isPhoneLayout) 58.dp else if (isCompact) 64.dp else 74.dp
+                        val iconSize = if (isPhoneLayout) 24.dp else if (isCompact) 26.dp else 30.dp
                         val cornerRadius = if (isPhoneLayout) 12.dp else if (isCompact) 14.dp else 16.dp
+                        val shape = RoundedCornerShape(cornerRadius)
 
-                        Row(
+                        val folderAccent = if (item.isStorageRoot) CarAmber else CarCyan
+
+                        Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(rowHeight)
-                                .clip(RoundedCornerShape(cornerRadius))
-                                .background(CarSurfaceVariant)
-                                .border(1.dp, CarBorder, RoundedCornerShape(cornerRadius))
+                                .shadow(4.dp, shape)
+                                .clip(shape)
+                                .background(
+                                    Brush.verticalGradient(
+                                        listOf(Color(0xFF262C38), Color(0xFF171A22))
+                                    )
+                                )
+                                .border(
+                                    1.2.dp,
+                                    Brush.verticalGradient(
+                                        listOf(Color(0xFF3E485A), Color(0xFF1D212B))
+                                    ),
+                                    shape
+                                )
                                 .combinedClickable(
                                     onClick = { onOpenFolder(item.path) },
                                     onLongClick = { onFolderLongClick(item) }
                                 )
-                                .padding(horizontal = if (isPhoneLayout) 12.dp else if (isCompact) 12.dp else 16.dp),
-                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(
-                                painter = painterResource(
-                                    id = if (item.isStorageRoot && item.name.contains("USB")) R.drawable.ic_usb else R.drawable.ic_folder
-                                ),
-                                contentDescription = null,
-                                tint = if (item.isStorageRoot) CarAmber else CarCyan,
-                                modifier = Modifier.size(iconSize)
+                            // Üst kenar hafif gloss yansıması
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(1.dp)
+                                    .background(
+                                        Brush.horizontalGradient(
+                                            listOf(Color.Transparent, Color.White.copy(alpha = 0.18f), Color.Transparent)
+                                        )
+                                    )
+                                    .align(Alignment.TopCenter)
                             )
 
-                            Spacer(modifier = Modifier.width(if (isPhoneLayout) 10.dp else if (isCompact) 12.dp else 16.dp))
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(horizontal = if (isPhoneLayout) 12.dp else if (isCompact) 12.dp else 16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // 3D İkon Yuvası
+                                Box(
+                                    modifier = Modifier
+                                        .size(if (isPhoneLayout) 38.dp else if (isCompact) 42.dp else 48.dp)
+                                        .shadow(3.dp, RoundedCornerShape(10.dp))
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(
+                                            Brush.verticalGradient(
+                                                listOf(
+                                                    folderAccent.copy(alpha = 0.22f),
+                                                    Color(0xFF181C25)
+                                                )
+                                            )
+                                        )
+                                        .border(
+                                            1.dp,
+                                            folderAccent.copy(alpha = 0.45f),
+                                            RoundedCornerShape(10.dp)
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        painter = painterResource(
+                                            id = if (item.isStorageRoot && item.name.contains("USB")) R.drawable.ic_usb else R.drawable.ic_folder
+                                        ),
+                                        contentDescription = null,
+                                        tint = folderAccent,
+                                        modifier = Modifier.size(iconSize)
+                                    )
+                                }
 
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = item.name,
-                                    fontSize = if (isPhoneLayout) 15.sp else if (isCompact) 16.sp else 18.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = CarTextPrimary,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                if (item.songCount > 0) {
-                                    Spacer(modifier = Modifier.height(1.dp))
+                                Spacer(modifier = Modifier.width(if (isPhoneLayout) 10.dp else if (isCompact) 12.dp else 16.dp))
+
+                                Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "${item.songCount} Müzik parçası",
-                                        fontSize = if (isPhoneLayout) 11.5.sp else 13.sp,
-                                        color = CarTextMuted
+                                        text = item.name,
+                                        fontSize = if (isPhoneLayout) 15.sp else if (isCompact) 16.sp else 18.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = CarTextPrimary,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
                                     )
-                                } else {
-                                    Spacer(modifier = Modifier.height(1.dp))
-                                    Text(
-                                        text = "Klasör",
-                                        fontSize = if (isPhoneLayout) 11.sp else 12.sp,
-                                        color = CarTextMuted.copy(alpha = 0.7f)
-                                    )
+                                    if (item.songCount > 0) {
+                                        Spacer(modifier = Modifier.height(1.dp))
+                                        Text(
+                                            text = "${item.songCount} Müzik parçası",
+                                            fontSize = if (isPhoneLayout) 11.5.sp else 13.sp,
+                                            color = CarTextMuted
+                                        )
+                                    } else {
+                                        Spacer(modifier = Modifier.height(1.dp))
+                                        Text(
+                                            text = "Klasör",
+                                            fontSize = if (isPhoneLayout) 11.sp else 12.sp,
+                                            color = CarTextMuted.copy(alpha = 0.7f)
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -1779,76 +1965,140 @@ internal fun PlaylistsView(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Row(
+                Box(
                     modifier = Modifier
                         .weight(1f)
                         .height(if (isCompact) 52.dp else 60.dp)
+                        .shadow(6.dp, RoundedCornerShape(if (isCompact) 12.dp else 16.dp), ambientColor = CarCyan, spotColor = CarCyan)
                         .clip(RoundedCornerShape(if (isCompact) 12.dp else 16.dp))
-                        .background(Color(0x2800E5FF))
-                        .border(1.5.dp, CarCyan, RoundedCornerShape(if (isCompact) 12.dp else 16.dp))
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color(0xFF003E4C), Color(0xFF142432), Color(0xFF0F1621))
+                            )
+                        )
+                        .border(
+                            1.5.dp,
+                            Brush.verticalGradient(
+                                listOf(CarCyan, CarCyan.copy(alpha = 0.4f))
+                            ),
+                            RoundedCornerShape(if (isCompact) 12.dp else 16.dp)
+                        )
                         .clickable { onCreatePlaylistClick() }
-                        .padding(horizontal = if (isCompact) 10.dp else 14.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(horizontal = if (isCompact) 10.dp else 14.dp)
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(if (isCompact) 32.dp else 36.dp)
-                            .clip(CircleShape)
-                            .background(CarCyan),
-                        contentAlignment = Alignment.Center
+                            .fillMaxWidth()
+                            .height(1.dp)
+                            .background(
+                                Brush.horizontalGradient(
+                                    listOf(Color.Transparent, CarCyan.copy(alpha = 0.7f), Color.Transparent)
+                                )
+                            )
+                            .align(Alignment.TopCenter)
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_add),
-                            contentDescription = null,
-                            tint = Color(0xFF0C0E12),
-                            modifier = Modifier.size(if (isCompact) 18.dp else 22.dp)
+                        Box(
+                            modifier = Modifier
+                                .size(if (isCompact) 32.dp else 36.dp)
+                                .shadow(3.dp, CircleShape, ambientColor = CarCyan, spotColor = CarCyan)
+                                .clip(CircleShape)
+                                .background(
+                                    Brush.verticalGradient(
+                                        listOf(CarCyan, Color(0xFF00B0D8))
+                                    )
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_add),
+                                contentDescription = null,
+                                tint = Color(0xFF0C0E12),
+                                modifier = Modifier.size(if (isCompact) 18.dp else 22.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(if (isCompact) 8.dp else 12.dp))
+
+                        Text(
+                            text = "Yeni Liste",
+                            fontSize = if (isCompact) 14.sp else 16.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = CarCyan
                         )
                     }
-
-                    Spacer(modifier = Modifier.width(if (isCompact) 8.dp else 12.dp))
-
-                    Text(
-                        text = "Yeni Liste",
-                        fontSize = if (isCompact) 14.sp else 16.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = CarCyan
-                    )
                 }
 
-                Row(
+                Box(
                     modifier = Modifier
                         .weight(1f)
                         .height(if (isCompact) 52.dp else 60.dp)
+                        .shadow(6.dp, RoundedCornerShape(if (isCompact) 12.dp else 16.dp), ambientColor = CarAmber, spotColor = CarAmber)
                         .clip(RoundedCornerShape(if (isCompact) 12.dp else 16.dp))
-                        .background(Color(0x28FFB300))
-                        .border(1.5.dp, CarAmber, RoundedCornerShape(if (isCompact) 12.dp else 16.dp))
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color(0xFF45300B), Color(0xFF281F12), Color(0xFF161413))
+                            )
+                        )
+                        .border(
+                            1.5.dp,
+                            Brush.verticalGradient(
+                                listOf(CarAmber, CarAmber.copy(alpha = 0.4f))
+                            ),
+                            RoundedCornerShape(if (isCompact) 12.dp else 16.dp)
+                        )
                         .clickable { onImportM3uClick?.invoke() }
-                        .padding(horizontal = if (isCompact) 10.dp else 14.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(horizontal = if (isCompact) 10.dp else 14.dp)
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(if (isCompact) 32.dp else 36.dp)
-                            .clip(CircleShape)
-                            .background(CarAmber),
-                        contentAlignment = Alignment.Center
+                            .fillMaxWidth()
+                            .height(1.dp)
+                            .background(
+                                Brush.horizontalGradient(
+                                    listOf(Color.Transparent, CarAmber.copy(alpha = 0.7f), Color.Transparent)
+                                )
+                            )
+                            .align(Alignment.TopCenter)
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_playlist),
-                            contentDescription = null,
-                            tint = Color(0xFF0C0E12),
-                            modifier = Modifier.size(if (isCompact) 18.dp else 22.dp)
+                        Box(
+                            modifier = Modifier
+                                .size(if (isCompact) 32.dp else 36.dp)
+                                .shadow(3.dp, CircleShape, ambientColor = CarAmber, spotColor = CarAmber)
+                                .clip(CircleShape)
+                                .background(
+                                    Brush.verticalGradient(
+                                        listOf(CarAmber, Color(0xFFFF8F00))
+                                    )
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_playlist),
+                                contentDescription = null,
+                                tint = Color(0xFF0C0E12),
+                                modifier = Modifier.size(if (isCompact) 18.dp else 22.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(if (isCompact) 8.dp else 12.dp))
+
+                        Text(
+                            text = "M3U Aktar",
+                            fontSize = if (isCompact) 14.sp else 16.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = CarAmber
                         )
                     }
-
-                    Spacer(modifier = Modifier.width(if (isCompact) 8.dp else 12.dp))
-
-                    Text(
-                        text = "M3U Aktar",
-                        fontSize = if (isCompact) 14.sp else 16.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = CarAmber
-                    )
                 }
             }
 
@@ -1872,86 +2122,133 @@ internal fun PlaylistsView(
                     verticalArrangement = Arrangement.spacedBy(if (isCompact) 6.dp else 8.dp)
                 ) {
                     items(Playlists) { pl ->
-                        Row(
+                        val shape = RoundedCornerShape(if (isCompact) 14.dp else 16.dp)
+                        Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(if (isCompact) 62.dp else 74.dp)
-                                .clip(RoundedCornerShape(if (isCompact) 14.dp else 16.dp))
-                                .background(CarSurfaceVariant)
-                                .border(1.dp, CarBorder, RoundedCornerShape(if (isCompact) 14.dp else 16.dp))
+                                .height(if (isCompact) 64.dp else 74.dp)
+                                .shadow(4.dp, shape)
+                                .clip(shape)
+                                .background(
+                                    Brush.verticalGradient(
+                                        listOf(Color(0xFF262C38), Color(0xFF171A22))
+                                    )
+                                )
+                                .border(
+                                    1.2.dp,
+                                    Brush.verticalGradient(
+                                        listOf(Color(0xFF3E485A), Color(0xFF1D212B))
+                                    ),
+                                    shape
+                                )
                                 .clickable { onOpenPlaylist(pl) }
-                                .padding(horizontal = if (isCompact) 12.dp else 16.dp),
-                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(if (isCompact) 38.dp else 44.dp)
-                                    .clip(RoundedCornerShape(if (isCompact) 10.dp else 12.dp))
-                                    .background(Color(0x28FFB300)),
-                                contentAlignment = Alignment.Center
+                                    .fillMaxWidth()
+                                    .height(1.dp)
+                                    .background(
+                                        Brush.horizontalGradient(
+                                            listOf(Color.Transparent, Color.White.copy(alpha = 0.2f), Color.Transparent)
+                                        )
+                                    )
+                                    .align(Alignment.TopCenter)
+                            )
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(horizontal = if (isCompact) 12.dp else 16.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(
-                                    painter = painterResource(id = R.drawable.ic_playlist),
-                                    contentDescription = null,
-                                    tint = CarAmber,
-                                    modifier = Modifier.size(if (isCompact) 22.dp else 26.dp)
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.width(if (isCompact) 12.dp else 16.dp))
-
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = pl.name,
-                                    fontSize = if (isCompact) 16.sp else 18.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = CarTextPrimary,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = "${pl.songCount} parça",
-                                    fontSize = if (isCompact) 12.sp else 14.sp,
-                                    color = CarTextMuted
-                                )
-                            }
-
-                            // Hızlı Oynat Butonu
-                            if (pl.songCount > 0) {
                                 Box(
                                     modifier = Modifier
-                                        .size(if (isCompact) 40.dp else 46.dp)
-                                        .clip(CircleShape)
-                                        .background(CarCyan)
-                                        .clickable { onPlayPlaylist(pl) },
+                                        .size(if (isCompact) 38.dp else 44.dp)
+                                        .shadow(3.dp, RoundedCornerShape(if (isCompact) 10.dp else 12.dp))
+                                        .clip(RoundedCornerShape(if (isCompact) 10.dp else 12.dp))
+                                        .background(
+                                            Brush.verticalGradient(
+                                                listOf(CarAmber.copy(alpha = 0.25f), Color(0xFF1A1C24))
+                                            )
+                                        )
+                                        .border(1.dp, CarAmber.copy(alpha = 0.45f), RoundedCornerShape(if (isCompact) 10.dp else 12.dp)),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
-                                        painter = painterResource(id = R.drawable.ic_play),
-                                        contentDescription = "Oynat",
-                                        tint = Color(0xFF0C0E12),
-                                        modifier = Modifier.size(if (isCompact) 20.dp else 24.dp)
+                                        painter = painterResource(id = R.drawable.ic_playlist),
+                                        contentDescription = null,
+                                        tint = CarAmber,
+                                        modifier = Modifier.size(if (isCompact) 22.dp else 26.dp)
                                     )
                                 }
-                                Spacer(modifier = Modifier.width(8.dp))
-                            }
 
-                            // Sil Butonu
-                            if (pl.id > 0) {
-                                IconButton(
-                                    onClick = { onDeletePlaylist(pl) },
-                                    modifier = Modifier
-                                        .size(if (isCompact) 40.dp else 46.dp)
-                                        .background(CarSurfaceDark, RoundedCornerShape(if (isCompact) 10.dp else 12.dp))
-                                        .border(1.dp, CarBorder, RoundedCornerShape(if (isCompact) 10.dp else 12.dp))
-                                ) {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.ic_delete),
-                                        contentDescription = "Listeyi Sil",
-                                        tint = CarTextMuted,
-                                        modifier = Modifier.size(if (isCompact) 20.dp else 22.dp)
+                                Spacer(modifier = Modifier.width(if (isCompact) 12.dp else 16.dp))
+
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = pl.name,
+                                        fontSize = if (isCompact) 16.sp else 18.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = CarTextPrimary,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
                                     )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = "${pl.songCount} parça",
+                                        fontSize = if (isCompact) 12.sp else 14.sp,
+                                        color = CarTextMuted
+                                    )
+                                }
+
+                                // Hızlı Oynat Butonu
+                                if (pl.songCount > 0) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(if (isCompact) 40.dp else 46.dp)
+                                            .shadow(4.dp, CircleShape, ambientColor = CarCyan, spotColor = CarCyan)
+                                            .clip(CircleShape)
+                                            .background(
+                                                Brush.verticalGradient(
+                                                    listOf(CarCyan, Color(0xFF00ACC1))
+                                                )
+                                            )
+                                            .clickable { onPlayPlaylist(pl) },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.ic_play),
+                                            contentDescription = "Oynat",
+                                            tint = Color(0xFF0C0E12),
+                                            modifier = Modifier.size(if (isCompact) 20.dp else 24.dp)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                }
+
+                                // Sil Butonu
+                                if (pl.id > 0) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(if (isCompact) 40.dp else 46.dp)
+                                            .shadow(2.dp, RoundedCornerShape(if (isCompact) 10.dp else 12.dp))
+                                            .clip(RoundedCornerShape(if (isCompact) 10.dp else 12.dp))
+                                            .background(
+                                                Brush.verticalGradient(
+                                                    listOf(Color(0xFF242A36), Color(0xFF161820))
+                                                )
+                                            )
+                                            .border(1.dp, Color(0xFF384050), RoundedCornerShape(if (isCompact) 10.dp else 12.dp))
+                                            .clickable { onDeletePlaylist(pl) },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.ic_delete),
+                                            contentDescription = "Listeyi Sil",
+                                            tint = CarTextMuted,
+                                            modifier = Modifier.size(if (isCompact) 20.dp else 22.dp)
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -2048,99 +2345,185 @@ private fun SongItemRow(
     val cardShape = RoundedCornerShape(if (isPhoneLayout) 12.dp else if (isCompact) 14.dp else 18.dp)
     val rowHeight = if (isPhoneLayout) 60.dp else if (isCompact) 66.dp else 78.dp
 
-    Row(
+    val bgBrush = if (isPlaying) {
+        Brush.verticalGradient(
+            listOf(
+                Color(0xFF003D4D),
+                Color(0xFF142432),
+                Color(0xFF0F151F)
+            )
+        )
+    } else {
+        Brush.verticalGradient(
+            listOf(
+                Color(0xFF262C38),
+                Color(0xFF171A22)
+            )
+        )
+    }
+
+    val borderBrush = if (isPlaying) {
+        Brush.verticalGradient(
+            listOf(
+                CarCyan,
+                CarCyan.copy(alpha = 0.45f)
+            )
+        )
+    } else {
+        Brush.verticalGradient(
+            listOf(
+                Color(0xFF3F495B),
+                Color(0xFF1C2029)
+            )
+        )
+    }
+
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(rowHeight)
+            .shadow(
+                elevation = if (isPlaying) 10.dp else 4.dp,
+                shape = cardShape,
+                ambientColor = if (isPlaying) CarCyan else Color.Black,
+                spotColor = if (isPlaying) CarCyan else Color.Black
+            )
             .clip(cardShape)
-            .background(if (isPlaying) Color(0x2800E5FF) else CarSurfaceVariant)
+            .background(bgBrush)
             .border(
                 width = if (isPlaying) 1.8.dp else 1.dp,
-                color = if (isPlaying) CarCyan else CarBorder,
+                brush = borderBrush,
                 shape = cardShape
             )
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick
             )
-            .padding(horizontal = if (isPhoneLayout) 12.dp else if (isCompact) 12.dp else 16.dp),
-        verticalAlignment = Alignment.CenterVertically
     ) {
-        if (isPlaying) {
-            Box(
-                modifier = Modifier
-                    .size(if (isPhoneLayout) 32.dp else if (isCompact) 36.dp else 42.dp)
-                    .clip(CircleShape)
-                    .background(CarCyan),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_music_note),
-                    contentDescription = "Çalıyor",
-                    tint = Color(0xFF0C0E12),
-                    modifier = Modifier.size(if (isPhoneLayout) 18.dp else if (isCompact) 22.dp else 26.dp)
+        // Üst kenar specular gloss yansıması (3D cockpit hissi)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(
+                    Brush.horizontalGradient(
+                        listOf(
+                            Color.Transparent,
+                            if (isPlaying) CarCyan.copy(alpha = 0.75f) else Color.White.copy(alpha = 0.22f),
+                            Color.Transparent
+                        )
+                    )
                 )
+                .align(Alignment.TopCenter)
+        )
+
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = if (isPhoneLayout) 12.dp else if (isCompact) 12.dp else 16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (isPlaying) {
+                Box(
+                    modifier = Modifier
+                        .size(if (isPhoneLayout) 34.dp else if (isCompact) 38.dp else 44.dp)
+                        .shadow(4.dp, CircleShape, ambientColor = CarCyan, spotColor = CarCyan)
+                        .clip(CircleShape)
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(CarCyan, Color(0xFF00ACC1))
+                            )
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_music_note),
+                        contentDescription = "Çalıyor",
+                        tint = Color(0xFF0C0E12),
+                        modifier = Modifier.size(if (isPhoneLayout) 18.dp else if (isCompact) 22.dp else 26.dp)
+                    )
+                }
+            } else if (index != null) {
+                Box(
+                    modifier = Modifier
+                        .size(if (isPhoneLayout) 30.dp else if (isCompact) 34.dp else 38.dp)
+                        .shadow(2.dp, RoundedCornerShape(10.dp))
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color(0xFF262C38), Color(0xFF161921))
+                            )
+                        )
+                        .border(1.dp, Color(0xFF384355), RoundedCornerShape(10.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "%02d".format(index),
+                        fontSize = if (isPhoneLayout) 11.sp else if (isCompact) 12.sp else 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = CarTextMuted
+                    )
+                }
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(if (isPhoneLayout) 30.dp else if (isCompact) 34.dp else 38.dp)
+                        .shadow(2.dp, RoundedCornerShape(10.dp))
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color(0xFF242A36), Color(0xFF161921))
+                            )
+                        )
+                        .border(1.dp, Color(0xFF353E4E), RoundedCornerShape(10.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_music_note),
+                        contentDescription = null,
+                        tint = CarCyan.copy(alpha = 0.7f),
+                        modifier = Modifier.size(if (isPhoneLayout) 18.dp else if (isCompact) 20.dp else 24.dp)
+                    )
+                }
             }
-        } else if (index != null) {
-            Box(
-                modifier = Modifier
-                    .size(if (isPhoneLayout) 28.dp else if (isCompact) 32.dp else 36.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFF1E222B)),
-                contentAlignment = Alignment.Center
-            ) {
+
+            Spacer(modifier = Modifier.width(if (isPhoneLayout) 10.dp else if (isCompact) 12.dp else 16.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "%02d".format(index),
-                    fontSize = if (isPhoneLayout) 11.sp else if (isCompact) 12.sp else 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = CarTextMuted
+                    text = com.example.otomuzik.util.TurkishStringFixer.fix(song.title),
+                    fontSize = if (isPhoneLayout) 14.5.sp else if (isCompact) 16.sp else 19.sp,
+                    fontWeight = if (isPlaying) FontWeight.ExtraBold else FontWeight.Bold,
+                    color = if (isPlaying) CarCyan else CarTextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(modifier = Modifier.height(1.dp))
+
+                Text(
+                    text = com.example.otomuzik.util.TurkishStringFixer.fix(song.artist),
+                    fontSize = if (isPhoneLayout) 12.sp else if (isCompact) 13.sp else 15.sp,
+                    color = if (isPlaying) CarCyan.copy(alpha = 0.85f) else CarTextSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
-        } else {
-            Icon(
-                painter = painterResource(id = R.drawable.ic_music_note),
-                contentDescription = null,
-                tint = CarTextMuted,
-                modifier = Modifier.size(if (isPhoneLayout) 20.dp else if (isCompact) 24.dp else 28.dp)
-            )
-        }
 
-        Spacer(modifier = Modifier.width(if (isPhoneLayout) 10.dp else if (isCompact) 12.dp else 16.dp))
+            if (song.durationMs > 0) {
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = song.durationFormatted,
+                    fontSize = if (isPhoneLayout) 11.5.sp else if (isCompact) 12.sp else 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isPlaying) CarCyan else CarTextMuted
+                )
+            }
 
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = com.example.otomuzik.util.TurkishStringFixer.fix(song.title),
-                fontSize = if (isPhoneLayout) 14.5.sp else if (isCompact) 16.sp else 19.sp,
-                fontWeight = if (isPlaying) FontWeight.ExtraBold else FontWeight.Bold,
-                color = if (isPlaying) CarCyan else CarTextPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            Spacer(modifier = Modifier.height(1.dp))
-
-            Text(
-                text = com.example.otomuzik.util.TurkishStringFixer.fix(song.artist),
-                fontSize = if (isPhoneLayout) 12.sp else if (isCompact) 13.sp else 15.sp,
-                color = if (isPlaying) CarCyan.copy(alpha = 0.85f) else CarTextSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-
-        if (song.durationMs > 0) {
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                text = song.durationFormatted,
-                fontSize = if (isPhoneLayout) 11.5.sp else if (isCompact) 12.sp else 14.sp,
-                fontWeight = FontWeight.Bold,
-                color = if (isPlaying) CarCyan else CarTextMuted
-            )
-        }
-
-        if (trailingaction != null) {
-            Spacer(modifier = Modifier.width(8.dp))
-            trailingaction()
+            if (trailingaction != null) {
+                Spacer(modifier = Modifier.width(8.dp))
+                trailingaction()
+            }
         }
     }
 }
