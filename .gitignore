@@ -17,6 +17,11 @@ local.properties
 *.hprof
 *.orig
 
+# Keystore & Signing
+*.jks
+*.keystore
+keystore.properties
+
 # Temporary scripts
 find_*.ps1
 sample_*.ps1
