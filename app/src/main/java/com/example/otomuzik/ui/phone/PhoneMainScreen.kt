@@ -32,6 +32,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -155,85 +157,163 @@ fun PhoneMainScreen(
                 .navigationBarsPadding()
         ) {
             // ── 1. ÜST BAŞLIK (Brand & Eylemler) ───────────────────────────
-            Row(
+            val headerShape = RoundedCornerShape(16.dp)
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable { viewModel.openAboutDialog() }
-                        .padding(vertical = 2.dp, horizontal = 4.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(34.dp)
-                            .clip(CircleShape)
-                            .background(CarSurfaceDark)
-                            .border(1.5.dp, accentColor, CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_splash_logo),
-                            contentDescription = "Hakkında",
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    Text(
-                        text = "RidoPlay",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Black,
-                        color = accentColor,
-                        letterSpacing = 1.sp
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                    .shadow(
+                        elevation = 6.dp,
+                        shape = headerShape,
+                        ambientColor = Color.Black.copy(alpha = 0.5f),
+                        spotColor = Color.Black.copy(alpha = 0.7f)
                     )
-                }
+                    .clip(headerShape)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                Color(0xFF262C38),
+                                Color(0xFF171A22)
+                            )
+                        )
+                    )
+                    .border(
+                        1.2.dp,
+                        Brush.verticalGradient(
+                            listOf(
+                                Color(0xFF424D60),
+                                Color(0xFF1D212A)
+                            )
+                        ),
+                        headerShape
+                    )
+            ) {
+                // Üst kenar 3D specular gloss ışık yansıması
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(
+                            Brush.horizontalGradient(
+                                listOf(Color.Transparent, Color.White.copy(alpha = 0.28f), Color.Transparent)
+                            )
+                        )
+                        .align(Alignment.TopCenter)
+                )
 
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    // Arama Aç/Kapat
-                    IconButton(
-                        onClick = { isSearchExpanded = !isSearchExpanded },
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
-                            .size(38.dp)
-                            .background(CarSurfaceDark, CircleShape)
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { viewModel.openAboutDialog() }
+                            .padding(vertical = 2.dp, horizontal = 4.dp)
                     ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_search),
-                            contentDescription = "Ara",
-                            tint = if (isSearchExpanded || searchQuery.isNotEmpty()) accentColor else CarTextPrimary,
-                            modifier = Modifier.size(18.dp)
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .shadow(3.dp, CircleShape, ambientColor = accentColor, spotColor = accentColor)
+                                .clip(CircleShape)
+                                .background(
+                                    Brush.verticalGradient(
+                                        listOf(Color(0xFF2B3342), Color(0xFF181C25))
+                                    )
+                                )
+                                .border(1.5.dp, accentColor, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_splash_logo),
+                                contentDescription = "Hakkında",
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(10.dp))
+
+                        Text(
+                            text = "RidoPlay",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Black,
+                            color = accentColor,
+                            letterSpacing = 1.sp
                         )
                     }
 
-                    // EQ butonu
-                    IconButton(
-                        onClick = { viewModel.openEqualizerDialog() },
-                        modifier = Modifier
-                            .size(38.dp)
-                            .background(CarSurfaceDark, CircleShape)
-                    ) {
-                        Text(text = "EQ", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = accentColor)
-                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        // Arama Aç/Kapat Butonu (3D Dokunsal)
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .shadow(3.dp, CircleShape)
+                                .clip(CircleShape)
+                                .background(
+                                    Brush.verticalGradient(
+                                        listOf(Color(0xFF2D3545), Color(0xFF1A1E27))
+                                    )
+                                )
+                                .border(
+                                    1.2.dp,
+                                    if (isSearchExpanded || searchQuery.isNotEmpty()) accentColor else Color(0xFF434E62),
+                                    CircleShape
+                                )
+                                .clickable { isSearchExpanded = !isSearchExpanded },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_search),
+                                contentDescription = "Ara",
+                                tint = if (isSearchExpanded || searchQuery.isNotEmpty()) accentColor else CarTextPrimary,
+                                modifier = Modifier.size(19.dp)
+                            )
+                        }
 
-                    // Ayarlar butonu
-                    IconButton(
-                        onClick = { viewModel.openSettingsDialog() },
-                        modifier = Modifier
-                            .size(38.dp)
-                            .background(CarSurfaceDark, CircleShape)
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_settings),
-                            contentDescription = "Ayarlar",
-                            tint = CarTextPrimary,
-                            modifier = Modifier.size(20.dp)
-                        )
+                        // EQ butonu (3D Dokunsal)
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .shadow(3.dp, CircleShape)
+                                .clip(CircleShape)
+                                .background(
+                                    Brush.verticalGradient(
+                                        listOf(Color(0xFF2D3545), Color(0xFF1A1E27))
+                                    )
+                                )
+                                .border(1.2.dp, Color(0xFF434E62), CircleShape)
+                                .clickable { viewModel.openEqualizerDialog() },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(text = "EQ", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = accentColor)
+                        }
+
+                        // Ayarlar butonu (3D Dokunsal)
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .shadow(3.dp, CircleShape)
+                                .clip(CircleShape)
+                                .background(
+                                    Brush.verticalGradient(
+                                        listOf(Color(0xFF2D3545), Color(0xFF1A1E27))
+                                    )
+                                )
+                                .border(1.2.dp, Color(0xFF434E62), CircleShape)
+                                .clickable { viewModel.openSettingsDialog() },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_settings),
+                                contentDescription = "Ayarlar",
+                                tint = CarTextPrimary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -250,7 +330,7 @@ fun PhoneMainScreen(
                 }
             }
 
-            // ── 3. DİKEY TELEFON SEKMELERİ ────────────────────────────────
+            // ── 3. DİKEY TELEFON SEKMELERİ (3D Dokunsal Butonlar) ────────────────────
             if (searchQuery.isEmpty()) {
                 val tabs = listOf(
                     Triple(TabType.ALL_SONGS, "Şarkılar", allSongs.size),
@@ -279,45 +359,105 @@ fun PhoneMainScreen(
                 ) {
                     tabs.forEachIndexed { index, (tabType, title, count) ->
                         val isSelected = activeTab == tabType
+                        val tabShape = RoundedCornerShape(14.dp)
+
                         Tab(
                             selected = isSelected,
                             onClick = { viewModel.setTab(tabType) },
-                            modifier = Modifier.padding(horizontal = 2.dp, vertical = 4.dp),
+                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
                             text = {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.Center,
+                                Box(
                                     modifier = Modifier
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(if (isSelected) accentColor.copy(alpha = 0.20f) else Color(0x1AFFFFFF))
-                                        .border(
-                                            width = 1.dp,
-                                            color = if (isSelected) accentColor.copy(alpha = 0.65f) else Color(0x2EFFFFFF),
-                                            shape = RoundedCornerShape(12.dp)
+                                        .shadow(
+                                            elevation = if (isSelected) 6.dp else 2.dp,
+                                            shape = tabShape,
+                                            ambientColor = if (isSelected) accentColor else Color.Black,
+                                            spotColor = if (isSelected) accentColor else Color.Black
                                         )
-                                        .padding(horizontal = 14.dp, vertical = 6.dp)
+                                        .clip(tabShape)
+                                        .background(
+                                            if (isSelected) {
+                                                Brush.verticalGradient(
+                                                    listOf(
+                                                        accentColor.copy(alpha = 0.35f),
+                                                        accentColor.copy(alpha = 0.16f)
+                                                    )
+                                                )
+                                            } else {
+                                                Brush.verticalGradient(
+                                                    listOf(
+                                                        Color(0xFF262C38),
+                                                        Color(0xFF161922)
+                                                    )
+                                                )
+                                            }
+                                        )
+                                        .border(
+                                            width = if (isSelected) 1.5.dp else 1.dp,
+                                            brush = if (isSelected) {
+                                                Brush.verticalGradient(
+                                                    listOf(accentColor, accentColor.copy(alpha = 0.45f))
+                                                )
+                                            } else {
+                                                Brush.verticalGradient(
+                                                    listOf(Color(0xFF3F4A5C), Color(0xFF1C2029))
+                                                )
+                                            },
+                                            shape = tabShape
+                                        )
+                                        .padding(horizontal = 14.dp, vertical = 7.dp)
                                 ) {
-                                    Text(
-                                        text = title,
-                                        fontSize = 15.sp,
-                                        fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Bold,
-                                        color = if (isSelected) accentColor else Color(0xFFF3F4F6)
-                                    )
-                                    if (count > 0) {
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(8.dp))
-                                                .background(if (isSelected) accentColor.copy(alpha = 0.35f) else Color(0x30FFFFFF))
-                                                .padding(horizontal = 6.dp, vertical = 2.dp),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text(
-                                                text = "$count",
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = if (isSelected) accentColor else Color(0xFFE2E8F0)
+                                    // Üst parlama çizgisi
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(1.dp)
+                                            .background(
+                                                Brush.horizontalGradient(
+                                                    listOf(
+                                                        Color.Transparent,
+                                                        if (isSelected) accentColor.copy(alpha = 0.7f) else Color.White.copy(alpha = 0.2f),
+                                                        Color.Transparent
+                                                    )
+                                                )
                                             )
+                                            .align(Alignment.TopCenter)
+                                    )
+
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center
+                                    ) {
+                                        Text(
+                                            text = title,
+                                            fontSize = 14.5.sp,
+                                            fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Bold,
+                                            color = if (isSelected) accentColor else Color(0xFFF3F4F6)
+                                        )
+                                        if (count > 0) {
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Box(
+                                                modifier = Modifier
+                                                    .shadow(2.dp, RoundedCornerShape(8.dp))
+                                                    .clip(RoundedCornerShape(8.dp))
+                                                    .background(
+                                                        if (isSelected) accentColor.copy(alpha = 0.35f) else Color(0xFF191C24)
+                                                    )
+                                                    .border(
+                                                        1.dp,
+                                                        if (isSelected) accentColor.copy(alpha = 0.6f) else Color(0xFF363F4F),
+                                                        RoundedCornerShape(8.dp)
+                                                    )
+                                                    .padding(horizontal = 6.dp, vertical = 2.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = "$count",
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = if (isSelected) accentColor else Color(0xFFE2E8F0)
+                                                )
+                                            }
                                         }
                                     }
                                 }

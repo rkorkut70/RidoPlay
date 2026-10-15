@@ -519,7 +519,7 @@ object Id3Helper {
             }
         }
 
-        // 3. ContentResolver / MediaMetadataRetriever ile gömülü kapak resmi
+        // 3. ContentResolver / MediaMetadataRetriever ile doğrudan gömülü APIC kapak resmi
         try {
             var retriever: MediaMetadataRetriever? = null
             if (context != null && song.uriString.isNotEmpty()) {
@@ -548,30 +548,25 @@ object Id3Helper {
             }
         } catch (e: Exception) {}
 
-        // 4. Şarkı klasöründeki kapak resimleri (cover.jpg, folder.jpg vb.)
+        // 4. Şarkıya özel yardımcı kapak resmi ("ŞarkıAdı.jpg", "ŞarkıAdı.png")
         if (song.path.isNotEmpty()) {
             try {
-                val parent = File(song.path).parentFile
+                val f = File(song.path)
+                val parent = f.parentFile
                 if (parent != null && parent.exists() && parent.canRead()) {
-                    val names = listOf("cover.jpg", "folder.jpg", "album.jpg", "front.jpg", "cover.png", "folder.png")
-                    for (name in names) {
+                    val baseName = f.nameWithoutExtension
+                    val songSpecificNames = listOf(
+                        "$baseName.jpg",
+                        "$baseName.png",
+                        "$baseName.jpeg",
+                        "$baseName.cover.jpg"
+                    )
+                    for (name in songSpecificNames) {
                         val img = File(parent, name)
                         if (img.exists() && img.canRead() && img.length() > 0) {
                             return img.readBytes()
                         }
                     }
-                }
-            } catch (e: Exception) {}
-        }
-
-        // 5. MediaStore album art URI
-        if (context != null && song.albumId > 0) {
-            try {
-                val sArtworkUri = Uri.parse("content://media/external/audio/albumart")
-                val uri = ContentUris.withAppendedId(sArtworkUri, song.albumId)
-                context.contentResolver.openInputStream(uri)?.use { stream ->
-                    val bytes = stream.readBytes()
-                    if (bytes.isNotEmpty()) return bytes
                 }
             } catch (e: Exception) {}
         }
@@ -706,25 +701,26 @@ object Id3Helper {
             e.printStackTrace()
         }
 
-        // Uygulama iÃ§i Ã¶nbelleÄŸe ve klasÃ¶re kaydet
+        // Uygulama içi önbelleğe ve şarkıya özel dosya adıyla kaydet
         try {
+            val file = if (path.isNotEmpty()) File(path) else null
+            val parent = file?.parentFile
+            val baseName = file?.nameWithoutExtension
+
             if (deleteArtwork) {
                 saveCoverToAppCache(context, path, null)
-                if (path.isNotEmpty()) {
-                    val parent = File(path).parentFile
-                    if (parent != null && parent.exists() && parent.canWrite()) {
-                        val coverFile = File(parent, "cover.jpg")
-                        if (coverFile.exists()) coverFile.delete()
-                    }
+                if (parent != null && parent.exists() && parent.canWrite() && !baseName.isNullOrEmpty()) {
+                    val companionJpg = File(parent, "$baseName.jpg")
+                    if (companionJpg.exists()) companionJpg.delete()
+                    val companionCover = File(parent, "$baseName.cover.jpg")
+                    if (companionCover.exists()) companionCover.delete()
                 }
             } else if (artworkBytes != null && artworkBytes.isNotEmpty()) {
                 saveCoverToAppCache(context, path, artworkBytes)
-                if (path.isNotEmpty()) {
-                    val parent = File(path).parentFile
-                    if (parent != null && parent.exists() && parent.canWrite()) {
-                        val coverFile = File(parent, "cover.jpg")
-                        coverFile.writeBytes(artworkBytes)
-                    }
+                // Yalnızca bu şarkıya özel isimle yardımcı dosya kaydet (Asla ortak cover.jpg değil!)
+                if (parent != null && parent.exists() && parent.canWrite() && !baseName.isNullOrEmpty()) {
+                    val companionJpg = File(parent, "$baseName.jpg")
+                    companionJpg.writeBytes(artworkBytes)
                 }
             }
         } catch (e: Exception) {

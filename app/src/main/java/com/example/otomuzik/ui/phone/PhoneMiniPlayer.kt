@@ -190,6 +190,24 @@ fun PhoneMiniPlayer(
                 )
             }
     ) {
+        // Üst 3D parlama çizgisi (Top specular gloss line)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(
+                    Brush.horizontalGradient(
+                        listOf(
+                            Color.Transparent,
+                            Color.White.copy(alpha = 0.35f),
+                            accentColor.copy(alpha = 0.5f),
+                            Color.White.copy(alpha = 0.35f),
+                            Color.Transparent
+                        )
+                    )
+                )
+        )
+
         Column(modifier = Modifier.fillMaxWidth()) {
             // Yukarı çekme / sürükleme tutacağı (Swipe up handle indicator)
             Box(

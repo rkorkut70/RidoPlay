@@ -420,7 +420,22 @@ fun PhoneNowPlayingSheet(
                                         }
                                         onSetPlaybackSpeed(next)
                                     },
-                                    modifier = Modifier.size(36.dp).background(CarSurfaceDark, CircleShape)
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .shadow(3.dp, CircleShape, spotColor = Color.Black.copy(alpha = 0.5f))
+                                        .background(
+                                            Brush.verticalGradient(
+                                                listOf(Color(0xFF282E3E), Color(0xFF141720))
+                                            ),
+                                            CircleShape
+                                        )
+                                        .border(
+                                            1.dp,
+                                            Brush.verticalGradient(
+                                                listOf(Color.White.copy(alpha = 0.25f), Color.Transparent, Color.Black.copy(alpha = 0.6f))
+                                            ),
+                                            CircleShape
+                                        )
                                 ) {
                                     Text(
                                         text = if (playbackSpeed == 1.0f) "1x" else "${playbackSpeed}x",
@@ -431,19 +446,64 @@ fun PhoneNowPlayingSheet(
                                 }
                                 IconButton(
                                     onClick = onOpenEqualizer,
-                                    modifier = Modifier.size(36.dp).background(CarSurfaceDark, CircleShape)
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .shadow(3.dp, CircleShape, spotColor = Color.Black.copy(alpha = 0.5f))
+                                        .background(
+                                            Brush.verticalGradient(
+                                                listOf(Color(0xFF282E3E), Color(0xFF141720))
+                                            ),
+                                            CircleShape
+                                        )
+                                        .border(
+                                            1.dp,
+                                            Brush.verticalGradient(
+                                                listOf(Color.White.copy(alpha = 0.25f), Color.Transparent, Color.Black.copy(alpha = 0.6f))
+                                            ),
+                                            CircleShape
+                                        )
                                 ) {
                                     Text(text = "EQ", fontSize = 11.sp, fontWeight = FontWeight.Black, color = accentColor)
                                 }
                                 IconButton(
                                     onClick = onOpenId3Info,
-                                    modifier = Modifier.size(36.dp).background(CarSurfaceDark, CircleShape)
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .shadow(3.dp, CircleShape, spotColor = Color.Black.copy(alpha = 0.5f))
+                                        .background(
+                                            Brush.verticalGradient(
+                                                listOf(Color(0xFF282E3E), Color(0xFF141720))
+                                            ),
+                                            CircleShape
+                                        )
+                                        .border(
+                                            1.dp,
+                                            Brush.verticalGradient(
+                                                listOf(Color.White.copy(alpha = 0.25f), Color.Transparent, Color.Black.copy(alpha = 0.6f))
+                                            ),
+                                            CircleShape
+                                        )
                                 ) {
                                     Text(text = "ℹ", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = CarTextPrimary)
                                 }
                                 IconButton(
                                     onClick = onOpenSettings,
-                                    modifier = Modifier.size(36.dp).background(CarSurfaceDark, CircleShape)
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .shadow(3.dp, CircleShape, spotColor = Color.Black.copy(alpha = 0.5f))
+                                        .background(
+                                            Brush.verticalGradient(
+                                                listOf(Color(0xFF282E3E), Color(0xFF141720))
+                                            ),
+                                            CircleShape
+                                        )
+                                        .border(
+                                            1.dp,
+                                            Brush.verticalGradient(
+                                                listOf(Color.White.copy(alpha = 0.25f), Color.Transparent, Color.Black.copy(alpha = 0.6f))
+                                            ),
+                                            CircleShape
+                                        )
                                 ) {
                                     Icon(
                                         painter = painterResource(id = R.drawable.ic_settings),
@@ -557,7 +617,7 @@ fun PhoneNowPlayingSheet(
                             }
                         }
 
-                        // SÃ¶zler & SÄ±ra ButonlarÄ±
+                        // Sözler & Sıra Butonları
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceEvenly,
@@ -565,28 +625,62 @@ fun PhoneNowPlayingSheet(
                         ) {
                             Row(
                                 modifier = Modifier
+                                    .shadow(4.dp, RoundedCornerShape(12.dp), spotColor = Color.Black.copy(alpha = 0.5f))
                                     .clip(RoundedCornerShape(12.dp))
-                                    .background(CarSurfaceDark)
+                                    .background(
+                                        Brush.verticalGradient(
+                                            listOf(Color(0xFF282E3E), Color(0xFF141720))
+                                        )
+                                    )
+                                    .border(
+                                        1.dp,
+                                        Brush.verticalGradient(
+                                            listOf(Color.White.copy(alpha = 0.25f), Color.Transparent, Color.Black.copy(alpha = 0.6f))
+                                        ),
+                                        RoundedCornerShape(12.dp)
+                                    )
                                     .clickable { onOpenLyrics() }
                                     .padding(horizontal = 14.dp, vertical = 6.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(text = "ğŸ¤", fontSize = 13.sp)
+                                Text(text = "🎤", fontSize = 13.sp)
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text(text = "SÃ¶zler", color = CarTextPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Text(text = "Sözler", color = CarTextPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
 
                             Row(
                                 modifier = Modifier
+                                    .shadow(4.dp, RoundedCornerShape(12.dp), spotColor = Color.Black.copy(alpha = 0.5f))
                                     .clip(RoundedCornerShape(12.dp))
-                                    .background(if (showQueueOverlay) accentColor.copy(alpha = 0.25f) else CarSurfaceDark)
+                                    .background(
+                                        if (showQueueOverlay) {
+                                            Brush.verticalGradient(
+                                                listOf(accentColor.copy(alpha = 0.35f), accentColor.copy(alpha = 0.15f))
+                                            )
+                                        } else {
+                                            Brush.verticalGradient(
+                                                listOf(Color(0xFF282E3E), Color(0xFF141720))
+                                            )
+                                        }
+                                    )
+                                    .border(
+                                        1.dp,
+                                        Brush.verticalGradient(
+                                            listOf(
+                                                if (showQueueOverlay) accentColor.copy(alpha = 0.6f) else Color.White.copy(alpha = 0.25f),
+                                                Color.Transparent,
+                                                Color.Black.copy(alpha = 0.6f)
+                                            )
+                                        ),
+                                        RoundedCornerShape(12.dp)
+                                    )
                                     .clickable { showQueueOverlay = true }
                                     .padding(horizontal = 14.dp, vertical = 6.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(painter = painterResource(id = R.drawable.ic_queue), contentDescription = null, tint = accentColor, modifier = Modifier.size(15.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text(text = "SÄ±ra", color = CarTextPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Text(text = "Sıra", color = CarTextPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -611,7 +705,20 @@ fun PhoneNowPlayingSheet(
                         onClick = onDismiss,
                         modifier = Modifier
                             .size(42.dp)
-                            .background(CarSurfaceDark, CircleShape)
+                            .shadow(4.dp, CircleShape, spotColor = Color.Black.copy(alpha = 0.5f))
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(Color(0xFF282E3E), Color(0xFF141720))
+                                ),
+                                CircleShape
+                            )
+                            .border(
+                                1.dp,
+                                Brush.verticalGradient(
+                                    listOf(Color.White.copy(alpha = 0.25f), Color.Transparent, Color.Black.copy(alpha = 0.6f))
+                                ),
+                                CircleShape
+                            )
                     ) {
                         Text(text = "▼", fontSize = 16.sp, color = CarTextPrimary)
                     }
@@ -629,7 +736,20 @@ fun PhoneNowPlayingSheet(
                             },
                             modifier = Modifier
                                 .size(42.dp)
-                                .background(CarSurfaceDark, CircleShape)
+                                .shadow(4.dp, CircleShape, spotColor = Color.Black.copy(alpha = 0.5f))
+                                .background(
+                                    Brush.verticalGradient(
+                                        listOf(Color(0xFF282E3E), Color(0xFF141720))
+                                    ),
+                                    CircleShape
+                                )
+                                .border(
+                                    1.dp,
+                                    Brush.verticalGradient(
+                                        listOf(Color.White.copy(alpha = 0.25f), Color.Transparent, Color.Black.copy(alpha = 0.6f))
+                                    ),
+                                    CircleShape
+                                )
                         ) {
                             Text(
                                 text = if (playbackSpeed == 1.0f) "1x" else "${playbackSpeed}x",
@@ -643,7 +763,20 @@ fun PhoneNowPlayingSheet(
                             onClick = onOpenEqualizer,
                             modifier = Modifier
                                 .size(42.dp)
-                                .background(CarSurfaceDark, CircleShape)
+                                .shadow(4.dp, CircleShape, spotColor = Color.Black.copy(alpha = 0.5f))
+                                .background(
+                                    Brush.verticalGradient(
+                                        listOf(Color(0xFF282E3E), Color(0xFF141720))
+                                    ),
+                                    CircleShape
+                                )
+                                .border(
+                                    1.dp,
+                                    Brush.verticalGradient(
+                                        listOf(Color.White.copy(alpha = 0.25f), Color.Transparent, Color.Black.copy(alpha = 0.6f))
+                                    ),
+                                    CircleShape
+                                )
                         ) {
                             Text(text = "EQ", fontSize = 13.sp, fontWeight = FontWeight.Black, color = accentColor)
                         }
@@ -652,7 +785,20 @@ fun PhoneNowPlayingSheet(
                             onClick = onOpenId3Info,
                             modifier = Modifier
                                 .size(42.dp)
-                                .background(CarSurfaceDark, CircleShape)
+                                .shadow(4.dp, CircleShape, spotColor = Color.Black.copy(alpha = 0.5f))
+                                .background(
+                                    Brush.verticalGradient(
+                                        listOf(Color(0xFF282E3E), Color(0xFF141720))
+                                    ),
+                                    CircleShape
+                                )
+                                .border(
+                                    1.dp,
+                                    Brush.verticalGradient(
+                                        listOf(Color.White.copy(alpha = 0.25f), Color.Transparent, Color.Black.copy(alpha = 0.6f))
+                                    ),
+                                    CircleShape
+                                )
                         ) {
                             Text(text = "ℹ", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = CarTextPrimary)
                         }
@@ -661,7 +807,20 @@ fun PhoneNowPlayingSheet(
                             onClick = onOpenSettings,
                             modifier = Modifier
                                 .size(42.dp)
-                                .background(CarSurfaceDark, CircleShape)
+                                .shadow(4.dp, CircleShape, spotColor = Color.Black.copy(alpha = 0.5f))
+                                .background(
+                                    Brush.verticalGradient(
+                                        listOf(Color(0xFF282E3E), Color(0xFF141720))
+                                    ),
+                                    CircleShape
+                                )
+                                .border(
+                                    1.dp,
+                                    Brush.verticalGradient(
+                                        listOf(Color.White.copy(alpha = 0.25f), Color.Transparent, Color.Black.copy(alpha = 0.6f))
+                                    ),
+                                    CircleShape
+                                )
                         ) {
                             Icon(
                                 painter = painterResource(id = R.drawable.ic_settings),
@@ -1076,8 +1235,20 @@ fun PhoneNowPlayingSheet(
                     // Şarkı Sözleri
                     Row(
                         modifier = Modifier
+                            .shadow(4.dp, RoundedCornerShape(14.dp), spotColor = Color.Black.copy(alpha = 0.5f))
                             .clip(RoundedCornerShape(14.dp))
-                            .background(CarSurfaceDark)
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(Color(0xFF282E3E), Color(0xFF141720))
+                                )
+                            )
+                            .border(
+                                1.dp,
+                                Brush.verticalGradient(
+                                    listOf(Color.White.copy(alpha = 0.25f), Color.Transparent, Color.Black.copy(alpha = 0.6f))
+                                ),
+                                RoundedCornerShape(14.dp)
+                            )
                             .clickable { onOpenLyrics() }
                             .padding(horizontal = 18.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -1090,8 +1261,30 @@ fun PhoneNowPlayingSheet(
                     // Çalma Sırası
                     Row(
                         modifier = Modifier
+                            .shadow(4.dp, RoundedCornerShape(14.dp), spotColor = Color.Black.copy(alpha = 0.5f))
                             .clip(RoundedCornerShape(14.dp))
-                            .background(if (showQueueOverlay) accentColor.copy(alpha = 0.25f) else CarSurfaceDark)
+                            .background(
+                                if (showQueueOverlay) {
+                                    Brush.verticalGradient(
+                                        listOf(accentColor.copy(alpha = 0.35f), accentColor.copy(alpha = 0.15f))
+                                    )
+                                } else {
+                                    Brush.verticalGradient(
+                                        listOf(Color(0xFF282E3E), Color(0xFF141720))
+                                    )
+                                }
+                            )
+                            .border(
+                                1.dp,
+                                Brush.verticalGradient(
+                                    listOf(
+                                        if (showQueueOverlay) accentColor.copy(alpha = 0.6f) else Color.White.copy(alpha = 0.25f),
+                                        Color.Transparent,
+                                        Color.Black.copy(alpha = 0.6f)
+                                    )
+                                ),
+                                RoundedCornerShape(14.dp)
+                            )
                             .clickable { showQueueOverlay = true }
                             .padding(horizontal = 18.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically

@@ -28,10 +28,10 @@ object AlbumArtHelper {
         albumId: Long = -1L,
         uriString: String = ""
     ): Bitmap? = withContext(Dispatchers.IO) {
+        // Önbellek anahtarı kesinlikle şarkıya özgü dosya yolu veya URI olmalı, asla ortak albumId olmamalıdır
         val cacheKey = when {
-            uriString.isNotEmpty() -> uriString
             path.isNotEmpty() -> path
-            albumId > 0 -> "album_$albumId"
+            uriString.isNotEmpty() -> uriString
             else -> return@withContext null
         }
 
@@ -39,7 +39,7 @@ object AlbumArtHelper {
 
         var bitmap: Bitmap? = null
 
-        // 0. Uygulama içi özel önbelleğe kaydedilen kapak resmi (Kullanıcı tarafından yüklenen/indirilen)
+        // 1. Uygulama içi özel önbelleğe kaydedilen kapak resmi (Kullanıcı tarafından ID3 üzerinden kaydedilen)
         if (path.isNotEmpty()) {
             val customCover = Id3Helper.getCoverFromAppCache(context, path)
             if (customCover != null && customCover.isNotEmpty()) {
@@ -47,36 +47,7 @@ object AlbumArtHelper {
             }
         }
 
-        // 1. Android 10+ (API 29+) MediaStore thumbnail yükleyici (Scoped Storage'da en güvenli yöntem)
-        if (bitmap == null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && uriString.isNotEmpty()) {
-            try {
-                val uri = Uri.parse(uriString)
-                bitmap = context.contentResolver.loadThumbnail(uri, Size(512, 512), null)
-            } catch (e: Exception) {
-                // Fallback to retriever
-            }
-        }
-
-        // 2. ContentResolver FileDescriptor üzerinden MediaMetadataRetriever ile gömülü APIC resmi
-        if (bitmap == null && uriString.isNotEmpty()) {
-            var retriever: MediaMetadataRetriever? = null
-            try {
-                retriever = MediaMetadataRetriever()
-                context.contentResolver.openFileDescriptor(Uri.parse(uriString), "r")?.use { pfd ->
-                    retriever.setDataSource(pfd.fileDescriptor)
-                    val rawBytes = retriever.embeddedPicture
-                    if (rawBytes != null) {
-                        bitmap = decodeSampledBitmap(rawBytes, 400)
-                    }
-                }
-            } catch (e: Exception) {
-                // Devam
-            } finally {
-                try { retriever?.release() } catch (e: Exception) {}
-            }
-        }
-
-        // 3. Doğrudan dosya yolu üzerinden (USB bellekler, SD kartlar vb.)
+        // 2. Doğrudan dosyanın kendi içine gömülü (APIC frame) ID3 resmi (jaudiotagger)
         if (bitmap == null && path.isNotEmpty()) {
             val file = File(path)
             if (file.exists() && file.canRead()) {
@@ -88,58 +59,67 @@ object AlbumArtHelper {
                     }
                 } catch (e: Exception) {}
 
+                // 3. Dosya üzerinden MediaMetadataRetriever ile doğrudan gömülü resim
                 if (bitmap == null) {
                     var retriever: MediaMetadataRetriever? = null
                     try {
                         retriever = MediaMetadataRetriever()
                         retriever.setDataSource(path)
                         val rawBytes = retriever.embeddedPicture
-                        if (rawBytes != null) {
+                        if (rawBytes != null && rawBytes.isNotEmpty()) {
                             bitmap = decodeSampledBitmap(rawBytes, 400)
                         }
                     } catch (e: Exception) {
-                        // Devam
                     } finally {
                         try { retriever?.release() } catch (e: Exception) {}
                     }
                 }
+
+                // 4. Şarkıya özel yardımcı kapak resmi ("ŞarkıAdı.jpg", "ŞarkıAdı.png")
+                if (bitmap == null) {
+                    try {
+                        val parent = file.parentFile
+                        if (parent != null && parent.exists() && parent.canRead()) {
+                            val baseName = file.nameWithoutExtension
+                            val songSpecificNames = listOf(
+                                "$baseName.jpg",
+                                "$baseName.png",
+                                "$baseName.jpeg",
+                                "$baseName.cover.jpg"
+                            )
+                            for (name in songSpecificNames) {
+                                val img = File(parent, name)
+                                if (img.exists() && img.canRead() && img.length() > 0) {
+                                    val opts = BitmapFactory.Options().apply {
+                                        inSampleSize = 2
+                                        inPreferredConfig = Bitmap.Config.RGB_565
+                                    }
+                                    bitmap = BitmapFactory.decodeFile(img.absolutePath, opts)
+                                    if (bitmap != null) break
+                                }
+                            }
+                        }
+                    } catch (e: Exception) {}
+                }
             }
         }
 
-        // 4. Şarkının bulunduğu klasörde cover.jpg, folder.jpg vb. resim arama
-        if (bitmap == null && path.isNotEmpty()) {
+        // 5. ContentResolver FileDescriptor üzerinden gömülü APIC resmi
+        if (bitmap == null && uriString.isNotEmpty()) {
+            var retriever: MediaMetadataRetriever? = null
             try {
-                val parent = File(path).parentFile
-                if (parent != null && parent.exists() && parent.canRead()) {
-                    val coverNames = listOf("cover.jpg", "folder.jpg", "album.jpg", "front.jpg", "cover.png", "folder.png")
-                    for (name in coverNames) {
-                        val img = File(parent, name)
-                        if (img.exists() && img.canRead()) {
-                            val opts = BitmapFactory.Options().apply {
-                                inSampleSize = 2
-                                inPreferredConfig = Bitmap.Config.RGB_565
-                            }
-                            bitmap = BitmapFactory.decodeFile(img.absolutePath, opts)
-                            if (bitmap != null) break
-                        }
+                retriever = MediaMetadataRetriever()
+                context.contentResolver.openFileDescriptor(Uri.parse(uriString), "r")?.use { pfd ->
+                    retriever.setDataSource(pfd.fileDescriptor)
+                    val rawBytes = retriever.embeddedPicture
+                    if (rawBytes != null && rawBytes.isNotEmpty()) {
+                        bitmap = decodeSampledBitmap(rawBytes, 400)
                     }
                 }
-            } catch (e: Exception) {}
-        }
-
-        // 5. MediaStore albumart URI'si
-        if (bitmap == null && albumId > 0) {
-            try {
-                val sArtworkUri = Uri.parse("content://media/external/audio/albumart")
-                val uri = ContentUris.withAppendedId(sArtworkUri, albumId)
-                context.contentResolver.openFileDescriptor(uri, "r")?.use { pfd ->
-                    val opts = BitmapFactory.Options().apply {
-                        inSampleSize = 2
-                        inPreferredConfig = Bitmap.Config.RGB_565
-                    }
-                    bitmap = BitmapFactory.decodeFileDescriptor(pfd.fileDescriptor, null, opts)
-                }
-            } catch (e: Exception) {}
+            } catch (e: Exception) {
+            } finally {
+                try { retriever?.release() } catch (e: Exception) {}
+            }
         }
 
         if (bitmap != null) {

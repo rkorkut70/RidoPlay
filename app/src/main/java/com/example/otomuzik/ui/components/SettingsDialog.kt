@@ -721,9 +721,9 @@ fun SettingsDialog(
                                             @Suppress("DEPRECATION")
                                             context.packageManager.getPackageInfo(context.packageName, 0)
                                         }
-                                        pInfo.versionName ?: "3.6"
+                                        pInfo.versionName ?: "3.7"
                                     } catch (e: Exception) {
-                                        "3.6"
+                                        "3.7"
                                     }
                                 }
                                 Column {
