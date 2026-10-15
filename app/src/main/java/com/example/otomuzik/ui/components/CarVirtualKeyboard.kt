@@ -225,7 +225,82 @@ fun CarSearchKeyboardPanel(
 
             Spacer(modifier = Modifier.height(if (isCompact) 6.dp else 10.dp))
 
-            // ── 2. DAHİLİ SANAL KLAVYE ──
+            // ── 2. ORTA BİLGİ & SIRADAKİ PARÇA İPUCU KARTI ──
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(vertical = 2.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                if (searchQuery.isEmpty()) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFF131720).copy(alpha = 0.55f))
+                            .border(1.dp, Color(0x22FFFFFF), RoundedCornerShape(12.dp))
+                            .padding(horizontal = 14.dp, vertical = 8.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text("🛡️", fontSize = 14.sp)
+                            Text(
+                                text = "Akıllı Sıra Korumalı Arama",
+                                fontSize = if (isCompact) 12.sp else 13.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = accentColor
+                            )
+                        }
+                        Text(
+                            text = "Aramada bulduğunuz parçaya dokunduğunuzda mevcut çalma listeniz silinmez, sıradaki parça olarak eklenir.",
+                            fontSize = if (isCompact) 11.sp else 12.sp,
+                            color = CarTextMuted,
+                            textAlign = TextAlign.Center,
+                            lineHeight = 15.sp
+                        )
+                    }
+                } else {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color(0xFF131720).copy(alpha = 0.65f))
+                            .border(1.dp, accentColor.copy(alpha = 0.40f), RoundedCornerShape(10.dp))
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "Sonuç: ",
+                                fontSize = if (isCompact) 11.5.sp else 13.sp,
+                                color = CarTextMuted
+                            )
+                            Text(
+                                text = "$resultCount parça",
+                                fontSize = if (isCompact) 12.sp else 13.5.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = if (resultCount > 0) Color(0xFF00E5FF) else Color(0xFFFF5252)
+                            )
+                        }
+                        Text(
+                            text = "Dokunun ➔ Sıradaki Parça Olarak Ekler",
+                            fontSize = if (isCompact) 10.5.sp else 11.5.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = CarTextMuted
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(if (isCompact) 6.dp else 10.dp))
+
+            // ── 3. DAHİLİ SANAL KLAVYE (Ergonomik ve kullanıcı dostu yükseklik) ──
             CarVirtualKeyboard(
                 onKeyPress = { key ->
                     onSearchQueryChange(searchQuery + key)
@@ -241,16 +316,14 @@ fun CarSearchKeyboardPanel(
                 onClose = onClose,
                 accentColor = accentColor,
                 isCompact = isCompact,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
+                modifier = Modifier.fillMaxWidth()
             )
         }
     }
 }
 
 /**
- * Türkçe ve İngilizce destekli, büyük dokunma hedeflerine sahip Araç İçi Q Klavye.
+ * Türkçe ve İngilizce destekli, ergonomik yükseklikli araç içi Q klavye.
  */
 @Composable
 fun CarVirtualKeyboard(
@@ -265,18 +338,19 @@ fun CarVirtualKeyboard(
     var isNumberMode by remember { mutableStateOf(false) }
     val haptic = LocalHapticFeedback.current
 
-    // Türkçe Q Klavye Düzeni (Otomobiller için optimize edilmiş 12 ve 11 tuşlu satırlar)
+    // Türkçe Q Klavye Düzeni
     val row1Letters = listOf("Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "Ğ", "Ü")
     val row2Letters = listOf("A", "S", "D", "F", "G", "H", "J", "K", "L", "Ş", "İ")
     val row3Letters = listOf("Z", "X", "C", "V", "B", "N", "M", "Ö", "Ç")
 
     // Rakam ve Sembol Düzeni
-    val row1Numbers = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "0")
-    val row2Numbers = listOf("-", "/", ":", ";", "(", ")", "&", "@", "\"", "'")
-    val row3Numbers = listOf(".", ",", "?", "!", "_", "+", "%", "*", "#")
+    val row1Numbers = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "/")
+    val row2Numbers = listOf("!", "@", "#", "$", "%", "^", "&", "*", "(", ")", "=")
+    val row3Numbers = listOf("?", ";", ":", "\"", "'", "<", ">", ",", ".")
 
     val verticalSpacing = if (isCompact) 4.dp else 6.dp
     val horizontalSpacing = if (isCompact) 3.dp else 4.dp
+    val rowHeight = if (isCompact) 42.dp else 46.dp
 
     fun playClickSound() {
         try {
@@ -288,11 +362,11 @@ fun CarVirtualKeyboard(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(verticalSpacing)
     ) {
-        // --- 1. SATIR ---
+        // --- 1. SATIR (12 Tuş = 12.0f) ---
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f),
+                .height(rowHeight),
             horizontalArrangement = Arrangement.spacedBy(horizontalSpacing)
         ) {
             val keys = if (isNumberMode) row1Numbers else row1Letters
@@ -308,13 +382,14 @@ fun CarVirtualKeyboard(
             }
         }
 
-        // --- 2. SATIR ---
+        // --- 2. SATIR (11 Tuş, 0.5f kenar boşlukları ile toplam 12.0f, doğal klavye girintisi) ---
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f),
+                .height(rowHeight),
             horizontalArrangement = Arrangement.spacedBy(horizontalSpacing)
         ) {
+            Spacer(modifier = Modifier.weight(0.5f))
             val keys = if (isNumberMode) row2Numbers else row2Letters
             keys.forEach { key ->
                 CarKeyButton(
@@ -326,13 +401,14 @@ fun CarVirtualKeyboard(
                     modifier = Modifier.weight(1f)
                 )
             }
+            Spacer(modifier = Modifier.weight(0.5f))
         }
 
-        // --- 3. SATIR (Mod Değiştirici + Harfler + Silme) ---
+        // --- 3. SATIR (1.5f + 9 Tuş + 1.5f = 12.0f) ---
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f),
+                .height(rowHeight),
             horizontalArrangement = Arrangement.spacedBy(horizontalSpacing)
         ) {
             // 123 / ABC Mod Değiştirici Tuşu
@@ -344,7 +420,7 @@ fun CarVirtualKeyboard(
                     playClickSound()
                     isNumberMode = !isNumberMode
                 },
-                modifier = Modifier.weight(1.35f)
+                modifier = Modifier.weight(1.5f)
             )
 
             val keys = if (isNumberMode) row3Numbers else row3Letters
@@ -368,15 +444,15 @@ fun CarVirtualKeyboard(
                     playClickSound()
                     onBackspace()
                 },
-                modifier = Modifier.weight(1.35f)
+                modifier = Modifier.weight(1.5f)
             )
         }
 
-        // --- 4. SATIR (Temizle + BOŞLUK + Kapat) ---
+        // --- 4. SATIR (2.2f + 6.8f + 3.0f = 12.0f) ---
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f),
+                .height(rowHeight),
             horizontalArrangement = Arrangement.spacedBy(horizontalSpacing)
         ) {
             // Temizle Butonu
@@ -388,7 +464,7 @@ fun CarVirtualKeyboard(
                     playClickSound()
                     onClear()
                 },
-                modifier = Modifier.weight(1.6f)
+                modifier = Modifier.weight(2.2f)
             )
 
             // BÜYÜK BOŞLUK (SPACE) TUŞU
@@ -401,7 +477,7 @@ fun CarVirtualKeyboard(
                     playClickSound()
                     onKeyPress(" ")
                 },
-                modifier = Modifier.weight(4.0f)
+                modifier = Modifier.weight(6.8f)
             )
 
             // Kapat (Geri Dön) Butonu
@@ -414,7 +490,7 @@ fun CarVirtualKeyboard(
                     playClickSound()
                     onClose()
                 },
-                modifier = Modifier.weight(1.8f)
+                modifier = Modifier.weight(3.0f)
             )
         }
     }

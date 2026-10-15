@@ -124,6 +124,8 @@ fun PhoneMainScreen(
     val lyricsStatusMessage by viewModel.lyricsStatusMessage.collectAsStateWithLifecycle()
     val autoSaveId3Lyrics by viewModel.autoSaveId3Lyrics.collectAsStateWithLifecycle()
     val lyricsData by viewModel.lyricsData.collectAsStateWithLifecycle()
+    val showCoverLyrics by viewModel.showCoverLyrics.collectAsStateWithLifecycle()
+    val lyricsFontSize by viewModel.lyricsFontSize.collectAsStateWithLifecycle()
     val showAboutDialog by viewModel.showAboutDialog.collectAsStateWithLifecycle()
     val libraryStats by viewModel.libraryStats.collectAsStateWithLifecycle()
     val swipeSensitivity by viewModel.swipeSensitivity.collectAsStateWithLifecycle()
@@ -338,7 +340,10 @@ fun PhoneMainScreen(
                         query = searchQuery,
                         currentPlayingSongPath = currentSong?.path,
                         onPlaySong = { song ->
-                            viewModel.playSongFromList(song, filteredSongs)
+                            viewModel.insertAsNextSong(song, playImmediately = false)
+                        },
+                        onPlayImmediately = { song ->
+                            viewModel.insertAsNextSong(song, playImmediately = true)
                             viewModel.setSearchQuery("")
                             isSearchExpanded = false
                         },
@@ -439,6 +444,10 @@ fun PhoneMainScreen(
                 currentPositionMs = playerState.currentPositionMs,
                 durationMs = playerState.durationMs,
                 accentColor = accentColor,
+                lyricsData = lyricsData,
+                showCoverLyrics = showCoverLyrics,
+                onToggleCoverLyrics = { viewModel.toggleCoverLyrics() },
+                lyricsFontSize = lyricsFontSize,
                 onPlayPause = { viewModel.togglePlayPause() },
                 onNext = { viewModel.playNext() },
                 onPrevious = { viewModel.playPrevious() },

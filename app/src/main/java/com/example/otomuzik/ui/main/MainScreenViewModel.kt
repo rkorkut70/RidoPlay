@@ -1241,6 +1241,21 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
         MusicController.addToQueue(listOf(song))
     }
 
+    /**
+     * Arama sonuçlarından seçilen parçayı mevcut çalma sırasını bozmadan
+     * sıradaki parça olarak ekler.
+     */
+    fun insertAsNextSong(song: Song, playImmediately: Boolean = false) {
+        MusicController.insertAsNextSong(song, playImmediately)
+        val app = getApplication<android.app.Application>()
+        val msg = if (playImmediately) {
+            "▶ Çalınıyor: ${song.title}"
+        } else {
+            "✓ Sıradaki şarkı olarak eklendi: ${song.title}"
+        }
+        android.widget.Toast.makeText(app, msg, android.widget.Toast.LENGTH_SHORT).show()
+    }
+
     // --- ÇÇalma Listesi (Playlist) Fonksiyonları ---
     fun loadPlaylists() {
         viewModelScope.launch {

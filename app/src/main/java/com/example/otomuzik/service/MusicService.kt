@@ -447,6 +447,64 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
     }
 
     /**
+     * Şarkıyı mevcut çalma sırasını bozmadan, çalan şarkının hemen ardına (sıradaki şarkı olarak) ekler.
+     * [playImmediately] true ise eklenen şarkı anında çalmaya başlar, sıradaki diğer şarkılar kalmaya devam eder.
+     * [playImmediately] false ise şu anki parça kesilmez, sıradaki parça olarak sıraya girer.
+     */
+    fun insertAsNextSong(song: Song, playImmediately: Boolean = false) {
+        if (activeQueue.isEmpty()) {
+            setQueue(listOf(song), 0, autoPlay = true)
+            return
+        }
+
+        val currentIdx = currentIndex.coerceIn(0, activeQueue.size - 1)
+        val mutableActive = activeQueue.toMutableList()
+        val mutableFull = fullQueue.toMutableList()
+
+        // Eğer şarkı zaten sırada varsa ve şu an çalan şarkı değilse, eski yerinden çıkarıp sıradakine taşı
+        val existingActiveIdx = mutableActive.indexOfFirst { it.path == song.path }
+        if (existingActiveIdx != -1) {
+            if (existingActiveIdx == currentIdx) {
+                // Zaten şu an çalan şarkı
+                if (playImmediately) {
+                    seekTo(0)
+                    if (mediaPlayer?.isPlaying != true) resumePlayback()
+                }
+                return
+            }
+            mutableActive.removeAt(existingActiveIdx)
+            mutableFull.removeAll { it.path == song.path }
+        }
+
+        // Aktif şarkının yeni indeksini hesapla
+        val updatedCurrentIdx = if (existingActiveIdx != -1 && existingActiveIdx < currentIdx) {
+            (currentIdx - 1).coerceAtLeast(0)
+        } else {
+            currentIdx
+        }
+        currentIndex = updatedCurrentIdx
+
+        val insertIndex = (updatedCurrentIdx + 1).coerceAtMost(mutableActive.size)
+        mutableActive.add(insertIndex, song)
+        val insertFullIndex = insertIndex.coerceAtMost(mutableFull.size)
+        mutableFull.add(insertFullIndex, song)
+
+        activeQueue = mutableActive
+        fullQueue = mutableFull
+
+        _playerState.update {
+            it.copy(
+                currentQueue = activeQueue,
+                currentIndex = currentIndex
+            )
+        }
+
+        if (playImmediately) {
+            playSongAt(insertIndex)
+        }
+    }
+
+    /**
      * Kütüphane yeniden tarandığında (rescan) aktif çalma sırasını günceller:
      * - Silinen müzikleri sıradan temizler.
      * - Yeni eklenen müzikleri sıraya ekler.
@@ -529,24 +587,23 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
         }
     }
 
-    fun playSongAt(index: Int) {
+    fun playSongAt(index: Int, autoPlay: Boolean = true) {
         if (index !in activeQueue.indices) return
         currentIndex = index
         val song = activeQueue[index]
 
-        if (!requestAudioFocus()) {
+        if (autoPlay && !requestAudioFocus()) {
             return
         }
 
-        // Halihazırda bir şarkı çalıyorsa ve crossfade aktifse (süre > 0) crossfade ile geçiş yap
+        // Halihazırda bir şarkı çalıyorsa, crossfade aktifse ve autoPlay isteniyorsa crossfade ile geçiş yap
         val crossfadeDuration = repository.getCrossfadeDuration()
         val currentlyPlaying = mediaPlayer?.isPlaying == true
-        if (currentlyPlaying && !isCrossfading && crossfadeDuration > 0) {
+        if (autoPlay && currentlyPlaying && !isCrossfading && crossfadeDuration > 0) {
             startCrossfade(song)
             return
         }
 
-        // Crossfade kapalıysa veya zaten çalmıyorsa → doğrudan temiz ve anında geçiş
         // Crossfade kapalıysa veya zaten çalmıyorsa → doğrudan temiz ve anında geçiş
         releaseMediaPlayer()
         releaseAudioEffects()
@@ -567,13 +624,19 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
                     setDataSource(applicationContext, Uri.parse(song.uriString))
                 }
 
-                // Efektler bağlanana kadar ses sıçramasını önlemek için sessiz başlat
-                setVolume(0f, 0f)
-                prepare()
-                setupAudioEffects(this.audioSessionId)
-                start()
-                setVolume(1.0f, 1.0f)
-                applyPlaybackSpeed()
+                if (autoPlay) {
+                    setVolume(0f, 0f)
+                    prepare()
+                    setupAudioEffects(this.audioSessionId)
+                    start()
+                    setVolume(1.0f, 1.0f)
+                    applyPlaybackSpeed()
+                } else {
+                    prepare()
+                    setupAudioEffects(this.audioSessionId)
+                    setVolume(1.0f, 1.0f)
+                    applyPlaybackSpeed()
+                }
 
                 setOnCompletionListener {
                     handleTrackCompletion()
@@ -590,17 +653,24 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
             _playerState.update {
                 it.copy(
                     currentSong = song,
-                    isPlaying = true,
+                    isPlaying = autoPlay,
                     currentPositionMs = 0L,
                     durationMs = duration,
                     currentIndex = currentIndex
                 )
             }
 
-            startForegroundServiceWithNotification(song, true)
-            updateMediaSessionState(PlaybackState.STATE_PLAYING, 0L)
+            startForegroundServiceWithNotification(song, autoPlay)
+            updateMediaSessionState(
+                if (autoPlay) PlaybackState.STATE_PLAYING else PlaybackState.STATE_PAUSED,
+                0L
+            )
             updateMediaSessionMetadata(song, duration)
-            startProgressTracker()
+            if (autoPlay) {
+                startProgressTracker()
+            } else {
+                stopProgressTracker()
+            }
 
             // Son çalınan şarkıyı kaydet (araç kontağı kapandığında son durumu bilmek için)
             repository.saveLastPlaybackState(
@@ -610,8 +680,10 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
                 _playerState.value.repeatMode.name
             )
             
-            serviceScope.launch(Dispatchers.IO) {
-                repository.incrementPlayCount(song.path)
+            if (autoPlay) {
+                serviceScope.launch(Dispatchers.IO) {
+                    repository.incrementPlayCount(song.path)
+                }
             }
 
         } catch (e: Exception) {
@@ -694,10 +766,11 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
             }
             return
         }
+        val wasPlaying = _playerState.value.isPlaying
         if (currentIndex < activeQueue.size - 1) {
-            playSongAt(currentIndex + 1)
+            playSongAt(currentIndex + 1, autoPlay = wasPlaying)
         } else if (_playerState.value.repeatMode == RepeatMode.ALL) {
-            playSongAt(0)
+            playSongAt(0, autoPlay = wasPlaying)
         } else {
             // Listenin sonu
             pausePlayback()
@@ -718,14 +791,15 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
             return
         }
         val currentPos = mediaPlayer?.currentPosition ?: 0
+        val wasPlaying = _playerState.value.isPlaying
         if (currentPos > 3000) {
             // Şarkı 3 saniyeden uzun çalıyorsa başa sar
             seekTo(0)
         } else {
             if (currentIndex > 0) {
-                playSongAt(currentIndex - 1)
+                playSongAt(currentIndex - 1, autoPlay = wasPlaying)
             } else if (_playerState.value.repeatMode == RepeatMode.ALL) {
-                playSongAt(activeQueue.size - 1)
+                playSongAt(activeQueue.size - 1, autoPlay = wasPlaying)
             } else {
                 seekTo(0)
             }

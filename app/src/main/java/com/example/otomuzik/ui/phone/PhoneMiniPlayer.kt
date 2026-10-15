@@ -26,6 +26,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
@@ -122,9 +124,33 @@ fun PhoneMiniPlayer(
             .fillMaxWidth()
             .padding(horizontal = 10.dp, vertical = 6.dp)
             .offset { IntOffset(animatedOffsetX.roundToInt(), animatedOffsetY.roundToInt()) }
+            .shadow(
+                elevation = 14.dp,
+                shape = shape,
+                spotColor = accentColor.copy(alpha = 0.35f),
+                ambientColor = Color.Black
+            )
             .clip(shape)
-            .background(CarSurfaceDark.copy(alpha = 0.96f))
-            .border(1.2.dp, accentColor.copy(alpha = 0.45f), shape)
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        CarSurfaceDark.copy(alpha = 0.98f),
+                        Color(0xFF10141C),
+                        Color(0xFF090B0F)
+                    )
+                )
+            )
+            .border(
+                1.5.dp,
+                Brush.verticalGradient(
+                    listOf(
+                        Color.White.copy(alpha = 0.35f),
+                        accentColor.copy(alpha = 0.55f),
+                        Color.Black.copy(alpha = 0.8f)
+                    )
+                ),
+                shape
+            )
             .pointerInput(density, swipeThresholdPx) {
                 detectDragGestures(
                     onDragStart = {
@@ -190,8 +216,16 @@ fun PhoneMiniPlayer(
                 Box(
                     modifier = Modifier
                         .size(48.dp)
+                        .shadow(4.dp, RoundedCornerShape(10.dp))
                         .clip(RoundedCornerShape(10.dp))
-                        .background(CarSurfaceVariant),
+                        .background(CarSurfaceVariant)
+                        .border(
+                            1.dp,
+                            Brush.verticalGradient(
+                                listOf(Color.White.copy(0.3f), Color.Black.copy(0.6f))
+                            ),
+                            RoundedCornerShape(10.dp)
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     if (artworkBitmap != null) {
@@ -250,7 +284,28 @@ fun PhoneMiniPlayer(
                     onClick = onPlayPause,
                     modifier = Modifier
                         .size(42.dp)
-                        .background(accentColor, CircleShape)
+                        .shadow(6.dp, CircleShape, spotColor = accentColor.copy(alpha = 0.5f))
+                        .clip(CircleShape)
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(
+                                    Color.White.copy(alpha = 0.25f),
+                                    accentColor,
+                                    accentColor.copy(alpha = 0.85f)
+                                )
+                            )
+                        )
+                        .border(
+                            1.dp,
+                            Brush.verticalGradient(
+                                listOf(
+                                    Color.White.copy(alpha = 0.6f),
+                                    accentColor.copy(alpha = 0.3f),
+                                    Color.Black.copy(alpha = 0.5f)
+                                )
+                            ),
+                            CircleShape
+                        )
                 ) {
                     Icon(
                         painter = painterResource(id = if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play),

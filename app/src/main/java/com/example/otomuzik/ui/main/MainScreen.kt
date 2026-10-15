@@ -258,6 +258,7 @@ fun MainScreen(
                         favoriteSongs = favoriteSongs,
                         currentPlayingSongPath = currentSongPath,
                         onPlaySong = { song, List -> viewModel.playSongFromList(song, List) },
+                        onInsertAsNextSong = { song, playImmediately -> viewModel.insertAsNextSong(song, playImmediately) },
                         onSongLongClick = { viewModel.openSongContext(it) },
                         Playlists = Playlists,
                         selectedPlaylist = selectedPlaylist,

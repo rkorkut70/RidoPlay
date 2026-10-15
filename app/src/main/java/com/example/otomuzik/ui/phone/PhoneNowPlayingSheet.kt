@@ -39,6 +39,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import com.example.otomuzik.ui.components.CoverLyricsOverlay
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
@@ -116,6 +121,10 @@ fun PhoneNowPlayingSheet(
     playbackSpeed: Float = 1.0f,
     onSetPlaybackSpeed: (Float) -> Unit = {},
     showWaveform: Boolean = true,
+    lyricsData: com.example.otomuzik.model.LyricsData? = null,
+    showCoverLyrics: Boolean = false,
+    onToggleCoverLyrics: () -> Unit = {},
+    lyricsFontSize: String = "LARGE",
     onDismiss: () -> Unit
 ) {
     if (song == null) return
@@ -195,53 +204,156 @@ fun PhoneNowPlayingSheet(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
+                        val landscapeCoverShape = RoundedCornerShape(20.dp)
+                        val landscapeHaptic = LocalHapticFeedback.current
+
                         Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .aspectRatio(1f)
                                 .offset { IntOffset(animatedOffset.roundToInt(), 0) }
-                                .clip(RoundedCornerShape(20.dp))
+                                .shadow(
+                                    elevation = 20.dp,
+                                    shape = landscapeCoverShape,
+                                    ambientColor = Color.Black.copy(alpha = 0.70f),
+                                    spotColor = Color.Black.copy(alpha = 0.85f)
+                                )
+                                .clip(landscapeCoverShape)
                                 .background(CarSurfaceDark)
-                                .border(1.5.dp, accentColor.copy(alpha = 0.5f), RoundedCornerShape(20.dp))
-                                .pointerInput(density, swipeThresholdPx) {
-                                    detectHorizontalDragGestures(
-                                        onDragStart = {
-                                            isDraggingArtwork = true
-                                            dragOffsetX = 0f
-                                        },
-                                        onDragEnd = {
-                                            when {
-                                                dragOffsetX < -swipeThresholdPx -> currentOnNext()
-                                                dragOffsetX > swipeThresholdPx  -> currentOnPrevious()
-                                            }
-                                            dragOffsetX = 0f
-                                            isDraggingArtwork = false
-                                        },
-                                        onDragCancel = {
-                                            dragOffsetX = 0f
-                                            isDraggingArtwork = false
-                                        },
-                                        onHorizontalDrag = { change, dragAmount ->
-                                            change.consume()
-                                            dragOffsetX = (dragOffsetX + dragAmount).coerceIn(-240f, 240f)
+                                .border(
+                                    width = 2.dp,
+                                    brush = Brush.verticalGradient(
+                                        listOf(
+                                            Color.White.copy(alpha = 0.45f),
+                                            accentColor.copy(alpha = 0.40f),
+                                            Color(0xFF1E2330),
+                                            Color.Black.copy(alpha = 0.85f)
+                                        )
+                                    ),
+                                    shape = landscapeCoverShape
+                                )
+                                .pointerInput(Unit) {
+                                    detectTapGestures(
+                                        onLongPress = {
+                                            try {
+                                                landscapeHaptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            } catch (_: Exception) {}
+                                            onToggleCoverLyrics()
                                         }
                                     )
-                                },
+                                }
+                                .then(
+                                    if (!showCoverLyrics) {
+                                        Modifier.pointerInput(density, swipeThresholdPx) {
+                                            detectHorizontalDragGestures(
+                                                onDragStart = {
+                                                    isDraggingArtwork = true
+                                                    dragOffsetX = 0f
+                                                },
+                                                onDragEnd = {
+                                                    when {
+                                                        dragOffsetX < -swipeThresholdPx -> currentOnNext()
+                                                        dragOffsetX > swipeThresholdPx  -> currentOnPrevious()
+                                                    }
+                                                    dragOffsetX = 0f
+                                                    isDraggingArtwork = false
+                                                },
+                                                onDragCancel = {
+                                                    dragOffsetX = 0f
+                                                    isDraggingArtwork = false
+                                                },
+                                                onHorizontalDrag = { change, dragAmount ->
+                                                    change.consume()
+                                                    dragOffsetX = (dragOffsetX + dragAmount).coerceIn(-240f, 240f)
+                                                }
+                                            )
+                                        }
+                                    } else Modifier
+                                ),
                             contentAlignment = Alignment.Center
                         ) {
-                            if (artworkBitmap != null) {
-                                Image(
-                                    bitmap = artworkBitmap.asImageBitmap(),
-                                    contentDescription = "AlbÃ¼m KapaÄŸÄ±",
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize()
-                                )
+                            if (showCoverLyrics) {
+                                if (lyricsData != null && lyricsData.lines.isNotEmpty()) {
+                                    CoverLyricsOverlay(
+                                        lyricsData = lyricsData,
+                                        currentPositionMs = currentPositionMs,
+                                        durationMs = durationMs,
+                                        isPlaying = isPlaying,
+                                        accentColor = accentColor,
+                                        isCompact = true,
+                                        lyricsFontSize = lyricsFontSize,
+                                        onSeekTo = onSeekTo,
+                                        onOpenLyricsDialog = onOpenLyrics,
+                                        onToggleCoverLyrics = onToggleCoverLyrics,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                } else {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(Color(0xFF0C101A).copy(alpha = 0.94f))
+                                            .clickable { onToggleCoverLyrics() }
+                                            .padding(14.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Text(text = "🎵", fontSize = 28.sp)
+                                            Text(
+                                                text = "Bu şarkı için söz bulunamadı",
+                                                color = Color.White,
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                textAlign = TextAlign.Center
+                                            )
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(8.dp))
+                                                    .background(accentColor.copy(alpha = 0.25f))
+                                                    .border(1.dp, accentColor, RoundedCornerShape(8.dp))
+                                                    .clickable { onToggleCoverLyrics() }
+                                                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                                            ) {
+                                                Text(
+                                                    text = "🖼️ Kapağa Dön",
+                                                    color = accentColor,
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
                             } else {
-                                Icon(
-                                    painter = painterResource(id = R.drawable.ic_music_note),
-                                    contentDescription = null,
-                                    tint = accentColor,
-                                    modifier = Modifier.size(64.dp)
+                                if (artworkBitmap != null) {
+                                    Image(
+                                        bitmap = artworkBitmap.asImageBitmap(),
+                                        contentDescription = "Albüm Kapağı",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                } else {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.ic_music_note),
+                                        contentDescription = null,
+                                        tint = accentColor,
+                                        modifier = Modifier.size(64.dp)
+                                    )
+                                }
+
+                                // 3D cam ışıltısı katmanı
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .fillMaxHeight(0.40f)
+                                        .align(Alignment.TopCenter)
+                                        .background(
+                                            Brush.verticalGradient(
+                                                listOf(Color.White.copy(alpha = 0.12f), Color.Transparent)
+                                            )
+                                        )
                                 )
                             }
                         }
@@ -394,13 +506,49 @@ fun PhoneNowPlayingSheet(
                             IconButton(onClick = onToggleShuffle, modifier = Modifier.size(38.dp)) {
                                 Icon(painter = painterResource(id = R.drawable.ic_shuffle), contentDescription = "KarÄ±ÅŸtÄ±r", tint = if (isShuffle) accentColor else CarTextMuted, modifier = Modifier.size(20.dp))
                             }
-                            IconButton(onClick = onPrevious, modifier = Modifier.size(44.dp).background(CarSurfaceDark, CircleShape)) {
-                                Icon(painter = painterResource(id = R.drawable.ic_skip_previous), contentDescription = "Ã–nceki", tint = CarTextPrimary, modifier = Modifier.size(24.dp))
+                            IconButton(
+                                onClick = onPrevious,
+                                modifier = Modifier
+                                    .size(44.dp)
+                                    .shadow(4.dp, CircleShape)
+                                    .clip(CircleShape)
+                                    .background(
+                                        Brush.verticalGradient(
+                                            listOf(Color(0xFF282E3E), Color(0xFF141720))
+                                        )
+                                    )
+                                    .border(1.dp, Color(0x44FFFFFF), CircleShape)
+                            ) {
+                                Icon(painter = painterResource(id = R.drawable.ic_skip_previous), contentDescription = "Önceki", tint = CarTextPrimary, modifier = Modifier.size(24.dp))
                             }
-                            IconButton(onClick = onPlayPause, modifier = Modifier.size(56.dp).background(accentColor, CircleShape)) {
+                            IconButton(
+                                onClick = onPlayPause,
+                                modifier = Modifier
+                                    .size(56.dp)
+                                    .shadow(10.dp, CircleShape)
+                                    .clip(CircleShape)
+                                    .background(
+                                        Brush.verticalGradient(
+                                            listOf(accentColor, accentColor.copy(alpha = 0.85f))
+                                        )
+                                    )
+                                    .border(2.dp, Color.White.copy(alpha = 0.5f), CircleShape)
+                            ) {
                                 Icon(painter = painterResource(id = if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play), contentDescription = if (isPlaying) "Duraklat" else "Oynat", tint = Color(0xFF0C0E12), modifier = Modifier.size(30.dp))
                             }
-                            IconButton(onClick = onNext, modifier = Modifier.size(44.dp).background(CarSurfaceDark, CircleShape)) {
+                            IconButton(
+                                onClick = onNext,
+                                modifier = Modifier
+                                    .size(44.dp)
+                                    .shadow(4.dp, CircleShape)
+                                    .clip(CircleShape)
+                                    .background(
+                                        Brush.verticalGradient(
+                                            listOf(Color(0xFF282E3E), Color(0xFF141720))
+                                        )
+                                    )
+                                    .border(1.dp, Color(0x44FFFFFF), CircleShape)
+                            ) {
                                 Icon(painter = painterResource(id = R.drawable.ic_skip_next), contentDescription = "Sonraki", tint = CarTextPrimary, modifier = Modifier.size(24.dp))
                             }
                             IconButton(onClick = onToggleRepeat, modifier = Modifier.size(38.dp)) {
@@ -525,54 +673,164 @@ fun PhoneNowPlayingSheet(
                     }
                 }
 
-                // ── 2. BÜYÜK ALBÜM KAPAĞI (Kaydırınca şarkı değiştirir) ────────
+                // ── 2. BÜYÜK ALBÜM KAPAĞI (3D derinlik & basılı tutunca şarkı sözü geçişi) ────────
+                val coverShape = RoundedCornerShape(24.dp)
+                val haptic = LocalHapticFeedback.current
+
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(0.85f)
                         .aspectRatio(1f)
                         .offset { IntOffset(animatedOffset.roundToInt(), 0) }
-                        .clip(RoundedCornerShape(24.dp))
+                        .shadow(
+                            elevation = 22.dp,
+                            shape = coverShape,
+                            ambientColor = Color.Black.copy(alpha = 0.70f),
+                            spotColor = Color.Black.copy(alpha = 0.85f)
+                        )
+                        .clip(coverShape)
                         .background(CarSurfaceDark)
-                        .border(1.5.dp, accentColor.copy(alpha = 0.5f), RoundedCornerShape(24.dp))
-                        .pointerInput(density, swipeThresholdPx) {
-                            detectHorizontalDragGestures(
-                                onDragStart = {
-                                    isDraggingArtwork = true
-                                    dragOffsetX = 0f
-                                },
-                                onDragEnd = {
-                                    when {
-                                        dragOffsetX < -swipeThresholdPx -> currentOnNext()
-                                        dragOffsetX > swipeThresholdPx  -> currentOnPrevious()
-                                    }
-                                    dragOffsetX = 0f
-                                    isDraggingArtwork = false
-                                },
-                                onDragCancel = {
-                                    dragOffsetX = 0f
-                                    isDraggingArtwork = false
-                                },
-                                onHorizontalDrag = { change, dragAmount ->
-                                    change.consume()
-                                    dragOffsetX = (dragOffsetX + dragAmount).coerceIn(-240f, 240f)
+                        .border(
+                            width = 2.dp,
+                            brush = Brush.verticalGradient(
+                                listOf(
+                                    Color.White.copy(alpha = 0.45f),
+                                    accentColor.copy(alpha = 0.40f),
+                                    Color(0xFF1E2330),
+                                    Color.Black.copy(alpha = 0.85f)
+                                )
+                            ),
+                            shape = coverShape
+                        )
+                        .pointerInput(Unit) {
+                            detectTapGestures(
+                                onLongPress = {
+                                    try {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    } catch (_: Exception) {}
+                                    onToggleCoverLyrics()
                                 }
                             )
-                        },
+                        }
+                        .then(
+                            if (!showCoverLyrics) {
+                                Modifier.pointerInput(density, swipeThresholdPx) {
+                                    detectHorizontalDragGestures(
+                                        onDragStart = {
+                                            isDraggingArtwork = true
+                                            dragOffsetX = 0f
+                                        },
+                                        onDragEnd = {
+                                            when {
+                                                dragOffsetX < -swipeThresholdPx -> currentOnNext()
+                                                dragOffsetX > swipeThresholdPx  -> currentOnPrevious()
+                                            }
+                                            dragOffsetX = 0f
+                                            isDraggingArtwork = false
+                                        },
+                                        onDragCancel = {
+                                            dragOffsetX = 0f
+                                            isDraggingArtwork = false
+                                        },
+                                        onHorizontalDrag = { change, dragAmount ->
+                                            change.consume()
+                                            dragOffsetX = (dragOffsetX + dragAmount).coerceIn(-240f, 240f)
+                                        }
+                                    )
+                                }
+                            } else Modifier
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (artworkBitmap != null) {
-                        Image(
-                            bitmap = artworkBitmap.asImageBitmap(),
-                            contentDescription = "Albüm Kapağı",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
-                        )
+                    if (showCoverLyrics) {
+                        if (lyricsData != null && lyricsData.lines.isNotEmpty()) {
+                            CoverLyricsOverlay(
+                                lyricsData = lyricsData,
+                                currentPositionMs = currentPositionMs,
+                                durationMs = durationMs,
+                                isPlaying = isPlaying,
+                                accentColor = accentColor,
+                                isCompact = false,
+                                lyricsFontSize = lyricsFontSize,
+                                onSeekTo = onSeekTo,
+                                onOpenLyricsDialog = onOpenLyrics,
+                                onToggleCoverLyrics = onToggleCoverLyrics,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color(0xFF0C101A).copy(alpha = 0.94f))
+                                    .clickable { onToggleCoverLyrics() }
+                                    .padding(20.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Text(text = "🎵", fontSize = 36.sp)
+                                    Text(
+                                        text = "Bu şarkı için söz bulunamadı",
+                                        color = Color.White,
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        textAlign = TextAlign.Center
+                                    )
+                                    Text(
+                                        text = "Kapağa dönmek için dokunun veya basılı tutun",
+                                        color = CarTextMuted,
+                                        fontSize = 12.sp,
+                                        textAlign = TextAlign.Center
+                                    )
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(accentColor.copy(alpha = 0.25f))
+                                            .border(1.dp, accentColor, RoundedCornerShape(8.dp))
+                                            .clickable { onToggleCoverLyrics() }
+                                            .padding(horizontal = 14.dp, vertical = 6.dp)
+                                    ) {
+                                        Text(
+                                            text = "🖼️ Kapağa Dön",
+                                            color = accentColor,
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     } else {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_music_note),
-                            contentDescription = null,
-                            tint = accentColor,
-                            modifier = Modifier.size(96.dp)
+                        if (artworkBitmap != null) {
+                            Image(
+                                bitmap = artworkBitmap.asImageBitmap(),
+                                contentDescription = "Albüm Kapağı",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        } else {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_music_note),
+                                contentDescription = null,
+                                tint = accentColor,
+                                modifier = Modifier.size(96.dp)
+                            )
+                        }
+
+                        // Üst dışbükey cam ışıltısı katmanı (3D gloss efekti)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .fillMaxHeight(0.40f)
+                                .align(Alignment.TopCenter)
+                                .background(
+                                    Brush.verticalGradient(
+                                        listOf(Color.White.copy(alpha = 0.12f), Color.Transparent)
+                                    )
+                                )
                         )
                     }
                 }
@@ -685,7 +943,29 @@ fun PhoneNowPlayingSheet(
                         onClick = onPrevious,
                         modifier = Modifier
                             .size(54.dp)
-                            .background(CarSurfaceDark, CircleShape)
+                            .shadow(
+                                elevation = 6.dp,
+                                shape = CircleShape,
+                                ambientColor = Color.Black.copy(alpha = 0.5f),
+                                spotColor = Color.Black.copy(alpha = 0.7f)
+                            )
+                            .clip(CircleShape)
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(Color(0xFF282E3E), Color(0xFF141720))
+                                )
+                            )
+                            .border(
+                                width = 1.5.dp,
+                                brush = Brush.verticalGradient(
+                                    listOf(
+                                        Color.White.copy(alpha = 0.40f),
+                                        Color(0xFF282E3E),
+                                        Color.Black.copy(alpha = 0.70f)
+                                    )
+                                ),
+                                shape = CircleShape
+                            )
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_skip_previous),
@@ -695,12 +975,37 @@ fun PhoneNowPlayingSheet(
                         )
                     }
 
-                    // Dev Oynat / Duraklat Butonu
+                    // Dev Oynat / Duraklat Butonu (3D Embossed Dial)
                     IconButton(
                         onClick = onPlayPause,
                         modifier = Modifier
                             .size(72.dp)
-                            .background(accentColor, CircleShape)
+                            .shadow(
+                                elevation = 14.dp,
+                                shape = CircleShape,
+                                ambientColor = Color.Black.copy(alpha = 0.6f),
+                                spotColor = Color.Black.copy(alpha = 0.85f)
+                            )
+                            .clip(CircleShape)
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(
+                                        accentColor,
+                                        accentColor.copy(alpha = 0.85f)
+                                    )
+                                )
+                            )
+                            .border(
+                                width = 2.5.dp,
+                                brush = Brush.verticalGradient(
+                                    listOf(
+                                        Color.White.copy(alpha = 0.65f),
+                                        accentColor,
+                                        Color.Black.copy(alpha = 0.75f)
+                                    )
+                                ),
+                                shape = CircleShape
+                            )
                     ) {
                         Icon(
                             painter = painterResource(id = if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play),
@@ -715,7 +1020,29 @@ fun PhoneNowPlayingSheet(
                         onClick = onNext,
                         modifier = Modifier
                             .size(54.dp)
-                            .background(CarSurfaceDark, CircleShape)
+                            .shadow(
+                                elevation = 6.dp,
+                                shape = CircleShape,
+                                ambientColor = Color.Black.copy(alpha = 0.5f),
+                                spotColor = Color.Black.copy(alpha = 0.7f)
+                            )
+                            .clip(CircleShape)
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(Color(0xFF282E3E), Color(0xFF141720))
+                                )
+                            )
+                            .border(
+                                width = 1.5.dp,
+                                brush = Brush.verticalGradient(
+                                    listOf(
+                                        Color.White.copy(alpha = 0.40f),
+                                        Color(0xFF282E3E),
+                                        Color.Black.copy(alpha = 0.70f)
+                                    )
+                                ),
+                                shape = CircleShape
+                            )
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_skip_next),

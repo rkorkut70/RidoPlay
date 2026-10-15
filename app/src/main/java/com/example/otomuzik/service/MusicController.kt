@@ -117,6 +117,10 @@ object MusicController {
         musicService?.addToQueue(songs)
     }
 
+    fun insertAsNextSong(song: Song, playImmediately: Boolean = false) {
+        musicService?.insertAsNextSong(song, playImmediately)
+    }
+
     fun syncQueueWithLibrary(allSongs: List<Song>) {
         musicService?.syncQueueWithLibrary(allSongs)
     }

@@ -83,6 +83,7 @@ fun LibraryPanel(
     favoriteSongs: List<Song>,
     currentPlayingSongPath: String?,
     onPlaySong: (Song, List<Song>) -> Unit,
+    onInsertAsNextSong: ((Song, Boolean) -> Unit)? = null,
     onSongLongClick: (Song) -> Unit,
     // Çalma Listeleri
     Playlists: List<Playlist>,
@@ -262,7 +263,20 @@ fun LibraryPanel(
                                     query = searchQuery,
                                     currentPlayingSongPath = currentPlayingSongPath,
                                     onPlaySong = { song ->
-                                        onPlaySong(song, filteredSongs)
+                                        if (onInsertAsNextSong != null) {
+                                            onInsertAsNextSong(song, false)
+                                        } else {
+                                            onPlaySong(song, filteredSongs)
+                                        }
+                                        onCloseSearch()
+                                        onSearchQueryChange("")
+                                    },
+                                    onPlayImmediately = { song ->
+                                        if (onInsertAsNextSong != null) {
+                                            onInsertAsNextSong(song, true)
+                                        } else {
+                                            onPlaySong(song, filteredSongs)
+                                        }
                                         onCloseSearch()
                                         onSearchQueryChange("")
                                     },
@@ -1152,6 +1166,7 @@ internal fun SearchResultsView(
     query: String,
     currentPlayingSongPath: String?,
     onPlaySong: (Song) -> Unit,
+    onPlayImmediately: ((Song) -> Unit)? = null,
     onSongLongClick: (Song) -> Unit
 ) {
     if (songs.isEmpty()) {
@@ -1186,13 +1201,25 @@ internal fun SearchResultsView(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             item {
-                Text(
-                    text = "Arama sonucu: ${songs.size} şarkı bulundu",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = CarTextMuted,
-                    modifier = Modifier.padding(start = 12.dp, bottom = 4.dp, top = 4.dp)
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Arama sonucu: ${songs.size} şarkı bulundu",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = CarCyan
+                    )
+                    Text(
+                        text = "Mevcut sıra korunur",
+                        fontSize = 11.5.sp,
+                        color = CarTextMuted
+                    )
+                }
             }
             itemsIndexed(songs) { index, song ->
                 val isPlaying = song.path == currentPlayingSongPath
@@ -1201,7 +1228,51 @@ internal fun SearchResultsView(
                     index = index + 1,
                     isPlaying = isPlaying,
                     onClick = { onPlaySong(song) },
-                    onLongClick = { onSongLongClick(song) }
+                    onLongClick = { onSongLongClick(song) },
+                    trailingaction = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            // 1. Sıradaki Olarak Ekle Butonu
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color(0xFF202636))
+                                    .border(1.dp, Color(0x33FFFFFF), RoundedCornerShape(8.dp))
+                                    .clickable { onPlaySong(song) }
+                                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "➕ Sıradaki",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF00E5FF)
+                                )
+                            }
+
+                            // 2. Şimdi Çal Butonu
+                            if (onPlayImmediately != null) {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(Color(0xFF00E5FF).copy(alpha = 0.20f))
+                                        .border(1.dp, Color(0xFF00E5FF), RoundedCornerShape(8.dp))
+                                        .clickable { onPlayImmediately(song) }
+                                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "▶ Çal",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF00E5FF)
+                                    )
+                                }
+                            }
+                        }
+                    }
                 )
             }
         }
