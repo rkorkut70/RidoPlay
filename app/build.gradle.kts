@@ -8,11 +8,11 @@ android {
     namespace = "com.example.otomuzik"
     compileSdk = 36
     defaultConfig {
-        applicationId = "com.example.otomuzik"
+        applicationId = "com.ridoplay.music"
         minSdk = 24
         targetSdk = 36
-        versionCode = 21
-        versionName = "3.7"
+        versionCode = 22
+        versionName = "3.8"
     }
 
     buildTypes {
