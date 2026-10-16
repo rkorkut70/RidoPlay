@@ -705,10 +705,14 @@ fun SettingsDialog(
                         }
 
                         // Uygulama ve Sürüm Bilgisi
-                        SettingsSection(title = "Hakkında", accentColor = accentColor) {
+                        SettingsSection(title = "Hakkında & Güncelleme", accentColor = accentColor) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .clickable {
+                                        onDismissRequest()
+                                        viewModel.openAboutDialog()
+                                    }
                                     .padding(horizontal = 16.dp, vertical = 14.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
@@ -721,14 +725,14 @@ fun SettingsDialog(
                                             @Suppress("DEPRECATION")
                                             context.packageManager.getPackageInfo(context.packageName, 0)
                                         }
-                                        pInfo.versionName ?: "3.8"
+                                        pInfo.versionName ?: "3.9"
                                     } catch (e: Exception) {
-                                        "3.8"
+                                        "3.9"
                                     }
                                 }
                                 Column {
-                                    Text("Sürüm Bilgisi", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFFFFFF))
-                                    Text("RidoPlay Otomobil & Tablet", fontSize = 12.sp, color = CarTextMuted)
+                                    Text("Sürüm Bilgisi & Güncelleme", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFFFFFF))
+                                    Text("RidoPlay Otomobil & Tablet • Güncellemeleri Denetle →", fontSize = 12.sp, color = accentColor)
                                 }
                                 Column(horizontalAlignment = Alignment.End) {
                                     Text(

@@ -1,0 +1,9 @@
+{
+  "versionCode": 23,
+  "versionName": "3.9",
+  "minSupportedVersion": 1,
+  "releaseDate": "2026-10-16",
+  "changelog": "• Hakkında ve Ayarlar bölümüne canlı güncelleme denetleme özelliği eklendi.\n• Google Play Store doğrudan güncelleme ve APK indirme altyapısı hazırlandı.\n• 3D kokpit tasarımı ve performans geliştirmeleri.",
+  "playStoreUrl": "https://play.google.com/store/apps/details?id=com.ridoplay.music",
+  "downloadUrl": "https://github.com/rkorkut70/RidoPlay/releases/latest"
+}

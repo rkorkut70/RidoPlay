@@ -5,6 +5,7 @@ import android.os.Build
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -12,10 +13,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -34,6 +40,17 @@ import com.example.otomuzik.theme.CarSurfaceDark
 import com.example.otomuzik.theme.CarSurfaceVariant
 import com.example.otomuzik.theme.CarTextMuted
 import com.example.otomuzik.theme.CarTextPrimary
+import com.example.otomuzik.util.UpdateHelper
+import com.example.otomuzik.util.UpdateInfo
+import kotlinx.coroutines.launch
+
+sealed interface UpdateCheckState {
+    object Idle : UpdateCheckState
+    object Checking : UpdateCheckState
+    data class Available(val info: UpdateInfo) : UpdateCheckState
+    object UpToDate : UpdateCheckState
+    data class Error(val message: String) : UpdateCheckState
+}
 
 @Composable
 fun AboutDialog(
@@ -42,9 +59,12 @@ fun AboutDialog(
     libraryStats: LibraryStats? = null
 ) {
     val context = LocalContext.current
-    val versionName = remember(context) {
+    val coroutineScope = rememberCoroutineScope()
+    var updateState by remember { mutableStateOf<UpdateCheckState>(UpdateCheckState.Idle) }
+
+    val packageInfo = remember(context) {
         try {
-            val pInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 context.packageManager.getPackageInfo(
                     context.packageName,
                     android.content.pm.PackageManager.PackageInfoFlags.of(0)
@@ -53,10 +73,17 @@ fun AboutDialog(
                 @Suppress("DEPRECATION")
                 context.packageManager.getPackageInfo(context.packageName, 0)
             }
-            pInfo.versionName ?: "3.8"
-        } catch (e: Exception) {
-            "3.8"
+        } catch (_: Exception) {
+            null
         }
+    }
+
+    val versionName = packageInfo?.versionName ?: "3.9"
+    val versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+        packageInfo?.longVersionCode?.toInt() ?: 23
+    } else {
+        @Suppress("DEPRECATION")
+        packageInfo?.versionCode ?: 23
     }
 
     Dialog(
@@ -205,6 +232,287 @@ fun AboutDialog(
                                     fontSize = 12.sp,
                                     color = CarTextMuted
                                 )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Güncelleme ve Mağaza Kartı (3D Görünüm)
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = CarSurfaceVariant.copy(alpha = 0.5f)),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, accentColor.copy(alpha = 0.35f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(
+                                    text = "Sürüm & Güncelleme",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = accentColor
+                                )
+                            }
+                            Text(
+                                text = "v$versionName (b$versionCode)",
+                                fontSize = 11.sp,
+                                color = CarTextMuted,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+
+                        when (val state = updateState) {
+                            is UpdateCheckState.Idle -> {
+                                Text(
+                                    text = "Uygulamanızın yeni bir sürümü olup olmadığını çevrimiçi kontrol edebilirsiniz.",
+                                    fontSize = 11.sp,
+                                    color = CarTextMuted,
+                                    lineHeight = 15.sp
+                                )
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Button(
+                                        onClick = {
+                                            updateState = UpdateCheckState.Checking
+                                            coroutineScope.launch {
+                                                val result = UpdateHelper.checkForUpdates(versionCode, versionName)
+                                                updateState = result.fold(
+                                                    onSuccess = { info ->
+                                                        if (info.isUpdateAvailable) {
+                                                            UpdateCheckState.Available(info)
+                                                        } else {
+                                                            UpdateCheckState.UpToDate
+                                                        }
+                                                    },
+                                                    onFailure = { err ->
+                                                        UpdateCheckState.Error(err.message ?: "Bağlantı hatası oluştu.")
+                                                    }
+                                                )
+                                            }
+                                        },
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(38.dp),
+                                        shape = RoundedCornerShape(10.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = accentColor.copy(alpha = 0.22f),
+                                            contentColor = accentColor
+                                        ),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, accentColor.copy(alpha = 0.5f))
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.ic_refresh),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(text = "Güncellemeleri Denetle", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                    }
+
+                                    IconButton(
+                                        onClick = { UpdateHelper.openPlayStore(context) },
+                                        modifier = Modifier
+                                            .size(38.dp)
+                                            .background(CarSurfaceDark, RoundedCornerShape(10.dp))
+                                            .border(1.dp, CarBorder.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.ic_google_play),
+                                            contentDescription = "Google Play",
+                                            tint = accentColor,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            is UpdateCheckState.Checking -> {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 6.dp),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(18.dp),
+                                        color = accentColor,
+                                        strokeWidth = 2.dp
+                                    )
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Text(
+                                        text = "Güncellemeler kontrol ediliyor...",
+                                        fontSize = 12.sp,
+                                        color = CarTextPrimary
+                                    )
+                                }
+                            }
+
+                            is UpdateCheckState.UpToDate -> {
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Text(text = "✅", fontSize = 15.sp)
+                                        Text(
+                                            text = "Harika! En son sürümü kullanıyorsunuz.",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF4CAF50)
+                                        )
+                                    }
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        TextButton(
+                                            onClick = {
+                                                updateState = UpdateCheckState.Checking
+                                                coroutineScope.launch {
+                                                    val result = UpdateHelper.checkForUpdates(versionCode, versionName)
+                                                    updateState = result.fold(
+                                                        onSuccess = { info ->
+                                                            if (info.isUpdateAvailable) UpdateCheckState.Available(info) else UpdateCheckState.UpToDate
+                                                        },
+                                                        onFailure = { err -> UpdateCheckState.Error(err.message ?: "Bağlantı hatası") }
+                                                    )
+                                                }
+                                            },
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Text(text = "Tekrar Kontrol Et", fontSize = 11.sp, color = CarTextMuted)
+                                        }
+
+                                        TextButton(
+                                            onClick = { UpdateHelper.openPlayStore(context) },
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Text(text = "Google Play'de Gör", fontSize = 11.sp, color = accentColor, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                }
+                            }
+
+                            is UpdateCheckState.Available -> {
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Row(
+                                        verticalAlignment = Alignment.Top,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Text(text = "🚀", fontSize = 18.sp)
+                                        Column {
+                                            Text(
+                                                text = "Yeni Sürüm Mevcut: v${state.info.latestVersionName}",
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = accentColor
+                                            )
+                                            Spacer(modifier = Modifier.height(3.dp))
+                                            Text(
+                                                text = state.info.changelog,
+                                                fontSize = 11.sp,
+                                                color = CarTextPrimary,
+                                                lineHeight = 15.sp
+                                            )
+                                        }
+                                    }
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Button(
+                                            onClick = { UpdateHelper.openPlayStore(context) },
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(38.dp),
+                                            shape = RoundedCornerShape(10.dp),
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = accentColor,
+                                                contentColor = Color(0xFF0C0E12)
+                                            )
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(id = R.drawable.ic_google_play),
+                                                contentDescription = null,
+                                                modifier = Modifier.size(16.dp),
+                                                tint = Color(0xFF0C0E12)
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(text = "Play Store ile Güncelle", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                        }
+
+                                        if (state.info.downloadUrl.isNotBlank()) {
+                                            OutlinedButton(
+                                                onClick = { UpdateHelper.openUrl(context, state.info.downloadUrl) },
+                                                modifier = Modifier.height(38.dp),
+                                                shape = RoundedCornerShape(10.dp),
+                                                border = androidx.compose.foundation.BorderStroke(1.dp, accentColor.copy(alpha = 0.5f))
+                                            ) {
+                                                Text(text = "APK", fontSize = 11.sp, color = accentColor, fontWeight = FontWeight.Bold)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            is UpdateCheckState.Error -> {
+                                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Text(
+                                        text = state.message,
+                                        fontSize = 11.sp,
+                                        color = Color(0xFFFF5252),
+                                        lineHeight = 15.sp
+                                    )
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        TextButton(
+                                            onClick = {
+                                                updateState = UpdateCheckState.Checking
+                                                coroutineScope.launch {
+                                                    val result = UpdateHelper.checkForUpdates(versionCode, versionName)
+                                                    updateState = result.fold(
+                                                        onSuccess = { info ->
+                                                            if (info.isUpdateAvailable) UpdateCheckState.Available(info) else UpdateCheckState.UpToDate
+                                                        },
+                                                        onFailure = { err -> UpdateCheckState.Error(err.message ?: "Bağlantı hatası") }
+                                                    )
+                                                }
+                                            },
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Text(text = "Tekrar Dene", fontSize = 11.sp, color = accentColor)
+                                        }
+
+                                        TextButton(
+                                            onClick = { UpdateHelper.openPlayStore(context) },
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Text(text = "Google Play'de Aç", fontSize = 11.sp, color = CarTextMuted)
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
