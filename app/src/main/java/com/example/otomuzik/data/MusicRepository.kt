@@ -793,7 +793,7 @@ class MusicRepository(private val context: Context) {
     
     // --- Tema ve Görünüm Ayarları ---
     fun setThemeMode(mode: String) = prefs.edit().putString("themeMode", mode).apply()
-    fun getThemeMode(): String = prefs.getString("themeMode", "AUTO") ?: "AUTO"
+    fun getThemeMode(): String = prefs.getString("themeMode", "DARK") ?: "DARK"
     
     fun setThemePalette(palette: String) = prefs.edit().putString("themePalette", palette).apply()
     fun getThemePalette(): String = prefs.getString("themePalette", "NEON_CYAN") ?: "NEON_CYAN"

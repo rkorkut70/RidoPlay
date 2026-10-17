@@ -277,7 +277,7 @@ fun PhoneMiniPlayer(
                     )
                     Text(
                         text = com.example.otomuzik.util.TurkishStringFixer.fix(currentSong.artist),
-                        color = CarTextMuted,
+                        color = Color(0xFFA5B0C2),
                         fontSize = 12.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -292,7 +292,7 @@ fun PhoneMiniPlayer(
                     Icon(
                         painter = painterResource(id = R.drawable.ic_favorite),
                         contentDescription = "Favori",
-                        tint = if (isFavorite) CarAmber else CarTextMuted,
+                        tint = if (isFavorite) CarAmber else Color(0xFF94A3B8),
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -343,7 +343,7 @@ fun PhoneMiniPlayer(
                     Icon(
                         painter = painterResource(id = R.drawable.ic_skip_next),
                         contentDescription = "Sonraki",
-                        tint = CarTextPrimary,
+                        tint = Color(0xFFF1F5F9),
                         modifier = Modifier.size(22.dp)
                     )
                 }

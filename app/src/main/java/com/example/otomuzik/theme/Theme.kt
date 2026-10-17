@@ -147,14 +147,14 @@ private val DeepBlueLightColorScheme = lightColorScheme(
 
 @Composable
 fun OtoMuzikTheme(
-    themeMode: String = "AUTO",
+    themeMode: String = "DARK",
     themePalette: String = "NEON_CYAN",
     content: @Composable () -> Unit
 ) {
     val darkTheme = when (themeMode) {
         "DARK" -> true
         "LIGHT" -> false
-        else -> isSystemInDarkTheme()
+        else -> true
     }
 
     val palette = try {

@@ -139,7 +139,7 @@ fun PhoneMainScreen(
     val availableM3uFiles by viewModel.availableM3uFiles.collectAsStateWithLifecycle()
     val showDuplicateFinderDialog by viewModel.showDuplicateFinderDialog.collectAsStateWithLifecycle()
 
-    var showFullscreenPlayer by rememberSaveable { mutableStateOf(true) }
+    var showFullscreenPlayer by rememberSaveable { mutableStateOf(false) }
     var isSearchExpanded by remember { mutableStateOf(false) }
 
     val currentSong = playerState.currentSong ?: allSongs.firstOrNull()
@@ -269,7 +269,7 @@ fun PhoneMainScreen(
                             Icon(
                                 painter = painterResource(id = R.drawable.ic_search),
                                 contentDescription = "Ara",
-                                tint = if (isSearchExpanded || searchQuery.isNotEmpty()) accentColor else CarTextPrimary,
+                                tint = if (isSearchExpanded || searchQuery.isNotEmpty()) accentColor else Color(0xFFF1F5F9),
                                 modifier = Modifier.size(19.dp)
                             )
                         }
@@ -310,7 +310,7 @@ fun PhoneMainScreen(
                             Icon(
                                 painter = painterResource(id = R.drawable.ic_settings),
                                 contentDescription = "Ayarlar",
-                                tint = CarTextPrimary,
+                                tint = Color(0xFFF1F5F9),
                                 modifier = Modifier.size(20.dp)
                             )
                         }

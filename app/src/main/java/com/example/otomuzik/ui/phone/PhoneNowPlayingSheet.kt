@@ -166,11 +166,12 @@ fun PhoneNowPlayingSheet(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(BaseCarBgDark)
-        ) {
+        com.example.otomuzik.theme.OtoMuzikTheme {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(BaseCarBgDark)
+            ) {
             // Arka planda kapağın yumuşak renk ışıması
             Box(
                 modifier = Modifier
@@ -371,13 +372,13 @@ fun PhoneNowPlayingSheet(
                         Text(
                             text = com.example.otomuzik.util.TurkishStringFixer.fix(song.artist),
                             fontSize = 12.sp,
-                            color = CarTextMuted,
+                            color = Color(0xFFA5B0C2),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
                     }
 
-                    // SaÄŸ Taraf: Kontroller, Slider & Butonlar
+                    // Sağ Taraf: Kontroller, Slider & Butonlar
                     Column(
                         modifier = Modifier
                             .weight(0.60f)
@@ -385,7 +386,7 @@ fun PhoneNowPlayingSheet(
                         verticalArrangement = Arrangement.SpaceBetween,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        // Ãœst Bar
+                        // Üst Bar
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -395,7 +396,7 @@ fun PhoneNowPlayingSheet(
                                 onClick = onDismiss,
                                 modifier = Modifier.size(36.dp).background(CarSurfaceDark, CircleShape)
                             ) {
-                                Text(text = "â–¼", fontSize = 14.sp, color = CarTextPrimary)
+                                Text(text = "▼", fontSize = 14.sp, color = Color.White, fontWeight = FontWeight.Bold)
                             }
 
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -406,7 +407,7 @@ fun PhoneNowPlayingSheet(
                                     Icon(
                                         painter = painterResource(id = R.drawable.ic_favorite),
                                         contentDescription = "Favori",
-                                        tint = if (isFavorite) CarAmber else CarTextMuted,
+                                        tint = if (isFavorite) CarAmber else Color(0xFF94A3B8),
                                         modifier = Modifier.size(18.dp)
                                     )
                                 }
@@ -441,7 +442,7 @@ fun PhoneNowPlayingSheet(
                                         text = if (playbackSpeed == 1.0f) "1x" else "${playbackSpeed}x",
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = if (playbackSpeed != 1.0f) accentColor else CarTextPrimary
+                                        color = if (playbackSpeed != 1.0f) accentColor else Color.White
                                     )
                                 }
                                 IconButton(
@@ -484,7 +485,7 @@ fun PhoneNowPlayingSheet(
                                             CircleShape
                                         )
                                 ) {
-                                    Text(text = "ℹ", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = CarTextPrimary)
+                                    Text(text = "ℹ", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White)
                                 }
                                 IconButton(
                                     onClick = onOpenSettings,
@@ -508,7 +509,7 @@ fun PhoneNowPlayingSheet(
                                     Icon(
                                         painter = painterResource(id = R.drawable.ic_settings),
                                         contentDescription = "Ayarlar",
-                                        tint = CarTextPrimary,
+                                        tint = Color.White,
                                         modifier = Modifier.size(18.dp)
                                     )
                                 }
@@ -542,7 +543,7 @@ fun PhoneNowPlayingSheet(
                                 colors = SliderDefaults.colors(
                                     thumbColor = accentColor,
                                     activeTrackColor = accentColor,
-                                    inactiveTrackColor = CarBorder
+                                    inactiveTrackColor = Color(0xFF334155)
                                 ),
                                 modifier = Modifier.fillMaxWidth()
                             )
@@ -552,19 +553,19 @@ fun PhoneNowPlayingSheet(
                             ) {
                                 val posText = formatTime(if (isDraggingSlider) (sliderPosition * durationMs).toLong() else currentPositionMs)
                                 val durText = formatTime(durationMs)
-                                Text(text = posText, fontSize = 11.sp, color = CarTextMuted)
-                                Text(text = durText, fontSize = 11.sp, color = CarTextMuted)
+                                Text(text = posText, fontSize = 11.sp, color = Color(0xFFA5B0C2))
+                                Text(text = durText, fontSize = 11.sp, color = Color(0xFFA5B0C2))
                             }
                         }
 
-                        // Oynatma ButonlarÄ±
+                        // Oynatma Butonları
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceEvenly,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             IconButton(onClick = onToggleShuffle, modifier = Modifier.size(38.dp)) {
-                                Icon(painter = painterResource(id = R.drawable.ic_shuffle), contentDescription = "KarÄ±ÅŸtÄ±r", tint = if (isShuffle) accentColor else CarTextMuted, modifier = Modifier.size(20.dp))
+                                Icon(painter = painterResource(id = R.drawable.ic_shuffle), contentDescription = "Karıştır", tint = if (isShuffle) accentColor else Color(0xFF94A3B8), modifier = Modifier.size(20.dp))
                             }
                             IconButton(
                                 onClick = onPrevious,
@@ -579,7 +580,7 @@ fun PhoneNowPlayingSheet(
                                     )
                                     .border(1.dp, Color(0x44FFFFFF), CircleShape)
                             ) {
-                                Icon(painter = painterResource(id = R.drawable.ic_skip_previous), contentDescription = "Önceki", tint = CarTextPrimary, modifier = Modifier.size(24.dp))
+                                Icon(painter = painterResource(id = R.drawable.ic_skip_previous), contentDescription = "Önceki", tint = Color.White, modifier = Modifier.size(24.dp))
                             }
                             IconButton(
                                 onClick = onPlayPause,
@@ -609,11 +610,11 @@ fun PhoneNowPlayingSheet(
                                     )
                                     .border(1.dp, Color(0x44FFFFFF), CircleShape)
                             ) {
-                                Icon(painter = painterResource(id = R.drawable.ic_skip_next), contentDescription = "Sonraki", tint = CarTextPrimary, modifier = Modifier.size(24.dp))
+                                Icon(painter = painterResource(id = R.drawable.ic_skip_next), contentDescription = "Sonraki", tint = Color.White, modifier = Modifier.size(24.dp))
                             }
                             IconButton(onClick = onToggleRepeat, modifier = Modifier.size(38.dp)) {
                                 val iconRes = when (repeatMode) { RepeatMode.ONE -> R.drawable.ic_repeat_one else -> R.drawable.ic_repeat }
-                                Icon(painter = painterResource(id = iconRes), contentDescription = "Tekrar", tint = if (repeatMode != RepeatMode.OFF) accentColor else CarTextMuted, modifier = Modifier.size(20.dp))
+                                Icon(painter = painterResource(id = iconRes), contentDescription = "Tekrar", tint = if (repeatMode != RepeatMode.OFF) accentColor else Color(0xFF94A3B8), modifier = Modifier.size(20.dp))
                             }
                         }
 
@@ -645,7 +646,7 @@ fun PhoneNowPlayingSheet(
                             ) {
                                 Text(text = "🎤", fontSize = 13.sp)
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text(text = "Sözler", color = CarTextPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Text(text = "Sözler", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
 
                             Row(
@@ -680,7 +681,7 @@ fun PhoneNowPlayingSheet(
                             ) {
                                 Icon(painter = painterResource(id = R.drawable.ic_queue), contentDescription = null, tint = accentColor, modifier = Modifier.size(15.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text(text = "Sıra", color = CarTextPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Text(text = "Sıra", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -720,7 +721,7 @@ fun PhoneNowPlayingSheet(
                                 CircleShape
                             )
                     ) {
-                        Text(text = "▼", fontSize = 16.sp, color = CarTextPrimary)
+                        Text(text = "▼", fontSize = 16.sp, color = Color.White, fontWeight = FontWeight.Bold)
                     }
 
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -755,7 +756,7 @@ fun PhoneNowPlayingSheet(
                                 text = if (playbackSpeed == 1.0f) "1x" else "${playbackSpeed}x",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = if (playbackSpeed != 1.0f) accentColor else CarTextPrimary
+                                color = if (playbackSpeed != 1.0f) accentColor else Color.White
                             )
                         }
 
@@ -800,7 +801,7 @@ fun PhoneNowPlayingSheet(
                                     CircleShape
                                 )
                         ) {
-                            Text(text = "ℹ", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = CarTextPrimary)
+                            Text(text = "ℹ", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
                         }
 
                         IconButton(
@@ -825,7 +826,7 @@ fun PhoneNowPlayingSheet(
                             Icon(
                                 painter = painterResource(id = R.drawable.ic_settings),
                                 contentDescription = "Ayarlar",
-                                tint = CarTextPrimary,
+                                tint = Color.White,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -1015,7 +1016,7 @@ fun PhoneNowPlayingSheet(
                         Text(
                             text = "${com.example.otomuzik.util.TurkishStringFixer.fix(song.artist)} • ${com.example.otomuzik.util.TurkishStringFixer.fix(song.album)}",
                             fontSize = 14.sp,
-                            color = CarTextMuted,
+                            color = Color(0xFFA5B0C2),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -1030,7 +1031,7 @@ fun PhoneNowPlayingSheet(
                         Icon(
                             painter = painterResource(id = R.drawable.ic_favorite),
                             contentDescription = "Favori",
-                            tint = if (isFavorite) CarAmber else CarTextMuted,
+                            tint = if (isFavorite) CarAmber else Color(0xFF94A3B8),
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -1063,7 +1064,7 @@ fun PhoneNowPlayingSheet(
                         colors = SliderDefaults.colors(
                             thumbColor = accentColor,
                             activeTrackColor = accentColor,
-                            inactiveTrackColor = CarBorder
+                            inactiveTrackColor = Color(0xFF334155)
                         ),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -1076,8 +1077,8 @@ fun PhoneNowPlayingSheet(
                             if (isDraggingSlider) (sliderPosition * durationMs).toLong() else currentPositionMs
                         )
                         val durText = formatTime(durationMs)
-                        Text(text = posText, fontSize = 12.sp, color = CarTextMuted)
-                        Text(text = durText, fontSize = 12.sp, color = CarTextMuted)
+                        Text(text = posText, fontSize = 12.sp, color = Color(0xFFA5B0C2))
+                        Text(text = durText, fontSize = 12.sp, color = Color(0xFFA5B0C2))
                     }
                 }
 
@@ -1092,7 +1093,7 @@ fun PhoneNowPlayingSheet(
                         Icon(
                             painter = painterResource(id = R.drawable.ic_shuffle),
                             contentDescription = "Karıştır",
-                            tint = if (isShuffle) accentColor else CarTextMuted,
+                            tint = if (isShuffle) accentColor else Color(0xFF94A3B8),
                             modifier = Modifier.size(26.dp)
                         )
                     }
@@ -1129,7 +1130,7 @@ fun PhoneNowPlayingSheet(
                         Icon(
                             painter = painterResource(id = R.drawable.ic_skip_previous),
                             contentDescription = "Önceki",
-                            tint = CarTextPrimary,
+                            tint = Color.White,
                             modifier = Modifier.size(30.dp)
                         )
                     }
@@ -1206,7 +1207,7 @@ fun PhoneNowPlayingSheet(
                         Icon(
                             painter = painterResource(id = R.drawable.ic_skip_next),
                             contentDescription = "Sonraki",
-                            tint = CarTextPrimary,
+                            tint = Color.White,
                             modifier = Modifier.size(30.dp)
                         )
                     }
@@ -1220,7 +1221,7 @@ fun PhoneNowPlayingSheet(
                         Icon(
                             painter = painterResource(id = iconRes),
                             contentDescription = "Tekrar",
-                            tint = if (repeatMode != RepeatMode.OFF) accentColor else CarTextMuted,
+                            tint = if (repeatMode != RepeatMode.OFF) accentColor else Color(0xFF94A3B8),
                             modifier = Modifier.size(26.dp)
                         )
                     }
@@ -1255,7 +1256,7 @@ fun PhoneNowPlayingSheet(
                     ) {
                         Text(text = "🎤", fontSize = 16.sp)
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text(text = "Şarkı Sözleri", color = CarTextPrimary, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        Text(text = "Şarkı Sözleri", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
 
                     // Çalma Sırası
@@ -1296,7 +1297,7 @@ fun PhoneNowPlayingSheet(
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text(text = "Çalma Sırası", color = CarTextPrimary, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        Text(text = "Çalma Sırası", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -1335,4 +1336,5 @@ fun PhoneNowPlayingSheet(
             }
         }
     }
+}
 }

@@ -2461,7 +2461,7 @@ private fun SongItemRow(
                         text = "%02d".format(index),
                         fontSize = if (isPhoneLayout) 11.sp else if (isCompact) 12.sp else 14.sp,
                         fontWeight = FontWeight.Bold,
-                        color = CarTextMuted
+                        color = Color(0xFF8E9BAE)
                     )
                 }
             } else {
@@ -2494,7 +2494,7 @@ private fun SongItemRow(
                     text = com.example.otomuzik.util.TurkishStringFixer.fix(song.title),
                     fontSize = if (isPhoneLayout) 14.5.sp else if (isCompact) 16.sp else 19.sp,
                     fontWeight = if (isPlaying) FontWeight.ExtraBold else FontWeight.Bold,
-                    color = if (isPlaying) CarCyan else CarTextPrimary,
+                    color = if (isPlaying) CarCyan else Color(0xFFF1F5F9),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -2504,7 +2504,7 @@ private fun SongItemRow(
                 Text(
                     text = com.example.otomuzik.util.TurkishStringFixer.fix(song.artist),
                     fontSize = if (isPhoneLayout) 12.sp else if (isCompact) 13.sp else 15.sp,
-                    color = if (isPlaying) CarCyan.copy(alpha = 0.85f) else CarTextSecondary,
+                    color = if (isPlaying) CarCyan.copy(alpha = 0.85f) else Color(0xFFA5B0C2),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -2516,7 +2516,7 @@ private fun SongItemRow(
                     text = song.durationFormatted,
                     fontSize = if (isPhoneLayout) 11.5.sp else if (isCompact) 12.sp else 14.sp,
                     fontWeight = FontWeight.Bold,
-                    color = if (isPlaying) CarCyan else CarTextMuted
+                    color = if (isPlaying) CarCyan else Color(0xFF8E9BAE)
                 )
             }
 
