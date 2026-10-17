@@ -1,9 +1,9 @@
 {
-  "versionCode": 24,
-  "versionName": "4.0",
+  "versionCode": 25,
+  "versionName": "4.1",
   "minSupportedVersion": 1,
   "releaseDate": "2026-10-17",
-  "changelog": "• Cep telefonu modunda renk ve kontrast uyumsuzlukları giderildi.\n• Açık sistem temasında buton ve yazıların siyah kalma sorunu düzeltildi.\n• Uygulama açılışında doğrudan oynatıcı yerine ana kütüphane listesinin açılması sağlandı.",
+  "changelog": "• Uygulama açılışında tam ekran oynatıcı tercihi korundu.\n• Ayarlar Sistem/Hakkında kartındaki dikey metin kayması (vibecoded by RK) düzeltildi.",
   "playStoreUrl": "https://play.google.com/store/apps/details?id=com.ridoplay.music",
   "downloadUrl": "https://github.com/rkorkut70/RidoPlay/releases/latest"
 }

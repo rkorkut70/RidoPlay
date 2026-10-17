@@ -139,7 +139,7 @@ fun PhoneMainScreen(
     val availableM3uFiles by viewModel.availableM3uFiles.collectAsStateWithLifecycle()
     val showDuplicateFinderDialog by viewModel.showDuplicateFinderDialog.collectAsStateWithLifecycle()
 
-    var showFullscreenPlayer by rememberSaveable { mutableStateOf(false) }
+    var showFullscreenPlayer by rememberSaveable { mutableStateOf(true) }
     var isSearchExpanded by remember { mutableStateOf(false) }
 
     val currentSong = playerState.currentSong ?: allSongs.firstOrNull()

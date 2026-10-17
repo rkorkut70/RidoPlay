@@ -730,7 +730,7 @@ fun SettingsDialog(
                                         "3.9"
                                     }
                                 }
-                                Column {
+                                Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
                                     Text("Sürüm Bilgisi & Güncelleme", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFFFFFF))
                                     Text("RidoPlay Otomobil & Tablet • Güncellemeleri Denetle →", fontSize = 12.sp, color = accentColor)
                                 }
@@ -741,7 +741,13 @@ fun SettingsDialog(
                                         fontWeight = FontWeight.ExtraBold,
                                         color = accentColor
                                     )
-                                    Text("vibecoded by RK", fontSize = 11.5.sp, color = CarTextMuted)
+                                    Text(
+                                        "vibecoded by RK",
+                                        fontSize = 11.5.sp,
+                                        color = CarTextMuted,
+                                        maxLines = 1,
+                                        softWrap = false
+                                    )
                                 }
                             }
                         }
