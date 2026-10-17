@@ -59,9 +59,10 @@ class MusicRepository(private val context: Context) {
      * Cihazdaki (Dahili Hafıza ve tüm USB/SD depolama alanları) müzik dosyalarını tarar,
      * ID3 ve meta verilerini SQLite kütüphanesine kaydeder.
      */
-    suspend fun scanAndIndexLibrary(): List<Song> = withContext(Dispatchers.IO) {
+    suspend fun scanAndIndexLibrary(onProgress: ((currentDir: String, foundCount: Int) -> Unit)? = null): List<Song> = withContext(Dispatchers.IO) {
         val foundSongs = mutableListOf<Song>()
         val seenPaths = mutableSetOf<String>()
+        onProgress?.invoke("Android Medya Deposu taranıyor...", 0)
 
         // 1. Android MediaStore üzerinden hızlı tarama
         // API 30+ (Android 11) cihazlarda YEAR ve GENRE MediaStore'dan doğrudan alınabilir.
@@ -178,14 +179,16 @@ class MusicRepository(private val context: Context) {
             for (root in roots) {
                 val rootFile = File(root.path)
                 if (rootFile.exists() && rootFile.isDirectory) {
-                    scanDirectoryForSongs(rootFile, seenPaths, foundSongs)
+                    onProgress?.invoke(rootFile.name, foundSongs.size)
+                    scanDirectoryForSongs(rootFile, seenPaths, foundSongs, 0, onProgress)
                 }
             }
             // Dahil edilen özel klasörleri de doğrudan dosya sistemi olarak tara
             for (folderPath in getIncludedFolders()) {
                 val folderFile = File(folderPath)
                 if (folderFile.exists() && folderFile.isDirectory) {
-                    scanDirectoryForSongs(folderFile, seenPaths, foundSongs)
+                    onProgress?.invoke(folderFile.name, foundSongs.size)
+                    scanDirectoryForSongs(folderFile, seenPaths, foundSongs, 0, onProgress)
                 }
             }
         } catch (e: Exception) {
@@ -193,6 +196,7 @@ class MusicRepository(private val context: Context) {
         }
 
         // 3. Veritabanına toplu kaydet ve artık var olmayanları temizle
+        onProgress?.invoke("Veritabanı güncelleniyor...", foundSongs.size)
         dbHelper.saveSongs(foundSongs)
         dbHelper.syncWithExistingPaths(seenPaths)
 
@@ -203,13 +207,15 @@ class MusicRepository(private val context: Context) {
         currentDir: File,
         seenPaths: MutableSet<String>,
         outList: MutableList<Song>,
-        depth: Int = 0
+        depth: Int = 0,
+        onProgress: ((currentDir: String, foundCount: Int) -> Unit)? = null
     ) {
         if (depth > 6) return // Derin döngüleri engelle
+        onProgress?.invoke(currentDir.name, outList.size)
         val files = currentDir.listFiles() ?: return
         for (f in files) {
             if (f.isDirectory && !f.isHidden && f.canRead()) {
-                scanDirectoryForSongs(f, seenPaths, outList, depth + 1)
+                scanDirectoryForSongs(f, seenPaths, outList, depth + 1, onProgress)
             } else if (f.isFile && isAudioFile(f.name) && !seenPaths.contains(f.absolutePath) && isPathAllowed(f.absolutePath, getIncludedFolders())) {
                 seenPaths.add(f.absolutePath)
                 val name = f.nameWithoutExtension

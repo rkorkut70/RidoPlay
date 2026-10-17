@@ -8,6 +8,7 @@ import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -30,6 +31,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -72,6 +74,10 @@ fun SettingsDialog(
     val playbackSpeed by viewModel.playbackSpeed.collectAsStateWithLifecycle()
     val libraryStats by viewModel.libraryStats.collectAsStateWithLifecycle()
     val accentColor by viewModel.accentColor.collectAsStateWithLifecycle()
+    val isLibraryScanning by viewModel.isLibraryScanning.collectAsStateWithLifecycle()
+    val libraryScanStatus by viewModel.libraryScanStatus.collectAsStateWithLifecycle()
+    val libraryScanCount by viewModel.libraryScanCount.collectAsStateWithLifecycle()
+    val libraryScanCompletedMessage by viewModel.libraryScanCompletedMessage.collectAsStateWithLifecycle()
 
     val roleManager = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
         context.getSystemService(Context.ROLE_SERVICE) as? RoleManager
@@ -604,10 +610,83 @@ fun SettingsDialog(
                                     onClick = { viewModel.openFolderSelectionDialog() }
                                 )
                                 Settings3DActionButton(
-                                    title = "🔄 Kütüphaneyi Yeniden Tara",
-                                    accentColor = Color(0xFF81C784),
+                                    title = if (isLibraryScanning) "🔄 Taranıyor... ($libraryScanCount Şarkı)" else "🔄 Kütüphaneyi Yeniden Tara",
+                                    accentColor = if (isLibraryScanning) accentColor else Color(0xFF81C784),
+                                    enabled = !isLibraryScanning,
                                     onClick = { viewModel.rescanLibrary() }
                                 )
+
+                                AnimatedVisibility(visible = isLibraryScanning || libraryScanCompletedMessage != null) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = 4.dp, bottom = 4.dp)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(Color(0xFF141923))
+                                            .border(
+                                                1.dp,
+                                                if (isLibraryScanning) accentColor.copy(alpha = 0.5f) else Color(0xFF4CAF50).copy(alpha = 0.5f),
+                                                RoundedCornerShape(12.dp)
+                                            )
+                                            .padding(horizontal = 14.dp, vertical = 10.dp)
+                                    ) {
+                                        if (isLibraryScanning) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier.weight(1f)
+                                                ) {
+                                                    CircularProgressIndicator(
+                                                        modifier = Modifier.size(15.dp),
+                                                        strokeWidth = 2.dp,
+                                                        color = accentColor
+                                                    )
+                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                    Text(
+                                                        text = "📁 Taranan: $libraryScanStatus",
+                                                        fontSize = 12.sp,
+                                                        color = Color(0xFFE2E8F0),
+                                                        fontWeight = FontWeight.Medium,
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Text(
+                                                    text = "$libraryScanCount şarkı",
+                                                    fontSize = 12.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = accentColor
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            LinearProgressIndicator(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .height(4.dp)
+                                                    .clip(RoundedCornerShape(2.dp)),
+                                                color = accentColor,
+                                                trackColor = accentColor.copy(alpha = 0.2f)
+                                            )
+                                        } else if (libraryScanCompletedMessage != null) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier.fillMaxWidth()
+                                            ) {
+                                                Text(
+                                                    text = libraryScanCompletedMessage ?: "",
+                                                    fontSize = 12.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = if (libraryScanCompletedMessage?.startsWith("❌") == true) MaterialTheme.colorScheme.error else Color(0xFF81C784)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
                                 Settings3DActionButton(
                                     title = "🗑️ Çalma Geçmişini Temizle",
                                     accentColor = Color(0xFFE57373),
@@ -1103,33 +1182,43 @@ fun TabButton(
 fun Settings3DActionButton(
     title: String,
     accentColor: Color,
+    enabled: Boolean = true,
     onClick: () -> Unit
 ) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .shadow(6.dp, RoundedCornerShape(12.dp), spotColor = accentColor.copy(0.35f))
+            .shadow(if (enabled) 6.dp else 2.dp, RoundedCornerShape(12.dp), spotColor = accentColor.copy(0.35f))
             .clip(RoundedCornerShape(12.dp))
             .background(
-                Brush.verticalGradient(
-                    listOf(
-                        Color(0xFF242E40),
-                        Color(0xFF161C27)
+                if (enabled) {
+                    Brush.verticalGradient(
+                        listOf(
+                            Color(0xFF242E40),
+                            Color(0xFF161C27)
+                        )
                     )
-                )
+                } else {
+                    Brush.verticalGradient(
+                        listOf(
+                            Color(0xFF181D26),
+                            Color(0xFF10131B)
+                        )
+                    )
+                }
             )
             .border(
                 1.2.dp,
                 Brush.verticalGradient(
                     listOf(
-                        Color.White.copy(alpha = 0.35f),
-                        accentColor.copy(alpha = 0.45f),
+                        Color.White.copy(alpha = if (enabled) 0.35f else 0.10f),
+                        accentColor.copy(alpha = if (enabled) 0.45f else 0.20f),
                         Color.Black.copy(alpha = 0.75f)
                     )
                 ),
                 RoundedCornerShape(12.dp)
             )
-            .clickable { onClick() }
+            .clickable(enabled = enabled) { onClick() }
             .padding(horizontal = 16.dp, vertical = 12.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -1137,7 +1226,7 @@ fun Settings3DActionButton(
             text = title,
             fontWeight = FontWeight.Bold,
             fontSize = 14.5.sp,
-            color = Color(0xFFFFFFFF)
+            color = if (enabled) Color(0xFFFFFFFF) else Color(0xFF7E8C9D)
         )
     }
 }

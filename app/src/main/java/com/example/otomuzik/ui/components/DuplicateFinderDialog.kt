@@ -4,9 +4,11 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -41,7 +43,8 @@ import kotlin.math.abs
 enum class MatchConfidence(val label: String, val emoji: String) {
     EXACT("Kesin Kopya", "🔴"),
     HIGH("Yüksek İhtimal", "🟠"),
-    MEDIUM("Muhtemel", "🟡")
+    MEDIUM("Muhtemel", "🟡"),
+    LOW("Düşük İhtimal", "⚪")
 }
 
 data class DuplicateGroupItem(
@@ -71,6 +74,17 @@ fun DuplicateFinderDialog(
     var renameInput by remember { mutableStateOf("") }
     var showDeleteAllExactDialog by remember { mutableStateOf(false) }
     var isDeletingAllExact by remember { mutableStateOf(false) }
+    var selectedConfidenceFilter by remember { mutableStateOf<MatchConfidence?>(null) }
+
+    val exactCount = remember(duplicateGroups) { duplicateGroups.count { it.confidence == MatchConfidence.EXACT } }
+    val highCount = remember(duplicateGroups) { duplicateGroups.count { it.confidence == MatchConfidence.HIGH } }
+    val mediumCount = remember(duplicateGroups) { duplicateGroups.count { it.confidence == MatchConfidence.MEDIUM } }
+    val lowCount = remember(duplicateGroups) { duplicateGroups.count { it.confidence == MatchConfidence.LOW } }
+
+    val displayedGroups = remember(duplicateGroups, selectedConfidenceFilter) {
+        if (selectedConfidenceFilter == null) duplicateGroups
+        else duplicateGroups.filter { it.confidence == selectedConfidenceFilter }
+    }
 
     // Kesin kopya (MD5 Hash) grupları ve silinecek fazlalık kopyalar
     val exactGroups = remember(duplicateGroups) {
@@ -304,46 +318,136 @@ fun DuplicateFinderDialog(
                         }
 
                         else -> {
-                            LazyColumn(
-                                modifier = Modifier.fillMaxSize(),
-                                verticalArrangement = Arrangement.spacedBy(14.dp)
-                            ) {
-                                itemsIndexed(duplicateGroups, key = { _, item -> item.id }) { index, group ->
-                                    DuplicateGroupCard(
-                                        groupIndex = index + 1,
-                                        totalGroups = duplicateGroups.size,
-                                        group = group,
-                                        accentColor = accentColor,
-                                        onSelectSong = { songPath ->
-                                            duplicateGroups = duplicateGroups.map {
-                                                if (it.id == group.id) it.copy(selectedSongPath = songPath) else it
-                                            }
-                                        },
-                                        onDeleteSelected = {
-                                            val selected = group.songs.firstOrNull { it.path == group.selectedSongPath }
-                                                ?: group.songs.firstOrNull()
-                                            if (selected != null) {
-                                                songToDelete = Pair(selected, group.id)
-                                            }
-                                        },
-                                        onRenameSelected = {
-                                            val selected = group.songs.firstOrNull { it.path == group.selectedSongPath }
-                                                ?: group.songs.firstOrNull()
-                                            if (selected != null) {
-                                                renameInput = try {
-                                                    File(selected.path).nameWithoutExtension
-                                                } catch (e: Exception) {
-                                                    selected.title
-                                                }
-                                                songToRename = Pair(selected, group.id)
-                                            }
-                                        },
-                                        onKeepBoth = {
-                                            // İkisini de tut: Bu grubu mükerrer listesinden kaldır
-                                            duplicateGroups = duplicateGroups.filter { it.id != group.id }
-                                        },
-                                        onPreview = onPreviewSong
+                            Column(modifier = Modifier.fillMaxSize()) {
+                                // ── KATEGORİ FİLTRELEME ÇUBUĞU ──
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .horizontalScroll(rememberScrollState())
+                                        .padding(bottom = 10.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    FilterChip(
+                                        selected = selectedConfidenceFilter == null,
+                                        onClick = { selectedConfidenceFilter = null },
+                                        label = { Text("Tümü (${duplicateGroups.size})", fontSize = 11.5.sp, fontWeight = FontWeight.Bold) },
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = accentColor.copy(alpha = 0.25f),
+                                            selectedLabelColor = Color.White,
+                                            containerColor = Color(0xFF1E2430),
+                                            labelColor = Color(0xFFA5B0C2)
+                                        )
                                     )
+                                    if (exactCount > 0) {
+                                        FilterChip(
+                                            selected = selectedConfidenceFilter == MatchConfidence.EXACT,
+                                            onClick = { selectedConfidenceFilter = if (selectedConfidenceFilter == MatchConfidence.EXACT) null else MatchConfidence.EXACT },
+                                            label = { Text("🔴 Kesin Kopya ($exactCount)", fontSize = 11.5.sp, fontWeight = FontWeight.Bold) },
+                                            colors = FilterChipDefaults.filterChipColors(
+                                                selectedContainerColor = Color(0xFF4CAF50).copy(alpha = 0.25f),
+                                                selectedLabelColor = Color(0xFF81C784),
+                                                containerColor = Color(0xFF1E2430),
+                                                labelColor = Color(0xFFA5B0C2)
+                                            )
+                                        )
+                                    }
+                                    if (highCount > 0) {
+                                        FilterChip(
+                                            selected = selectedConfidenceFilter == MatchConfidence.HIGH,
+                                            onClick = { selectedConfidenceFilter = if (selectedConfidenceFilter == MatchConfidence.HIGH) null else MatchConfidence.HIGH },
+                                            label = { Text("🟠 Yüksek ($highCount)", fontSize = 11.5.sp, fontWeight = FontWeight.Bold) },
+                                            colors = FilterChipDefaults.filterChipColors(
+                                                selectedContainerColor = Color(0xFFFF9800).copy(alpha = 0.25f),
+                                                selectedLabelColor = Color(0xFFFFB74D),
+                                                containerColor = Color(0xFF1E2430),
+                                                labelColor = Color(0xFFA5B0C2)
+                                            )
+                                        )
+                                    }
+                                    if (mediumCount > 0) {
+                                        FilterChip(
+                                            selected = selectedConfidenceFilter == MatchConfidence.MEDIUM,
+                                            onClick = { selectedConfidenceFilter = if (selectedConfidenceFilter == MatchConfidence.MEDIUM) null else MatchConfidence.MEDIUM },
+                                            label = { Text("🟡 Muhtemel ($mediumCount)", fontSize = 11.5.sp, fontWeight = FontWeight.Bold) },
+                                            colors = FilterChipDefaults.filterChipColors(
+                                                selectedContainerColor = Color(0xFFFFC107).copy(alpha = 0.25f),
+                                                selectedLabelColor = Color(0xFFFFD54F),
+                                                containerColor = Color(0xFF1E2430),
+                                                labelColor = Color(0xFFA5B0C2)
+                                            )
+                                        )
+                                    }
+                                    if (lowCount > 0) {
+                                        FilterChip(
+                                            selected = selectedConfidenceFilter == MatchConfidence.LOW,
+                                            onClick = { selectedConfidenceFilter = if (selectedConfidenceFilter == MatchConfidence.LOW) null else MatchConfidence.LOW },
+                                            label = { Text("⚪ Düşük İhtimal ($lowCount)", fontSize = 11.5.sp, fontWeight = FontWeight.Bold) },
+                                            colors = FilterChipDefaults.filterChipColors(
+                                                selectedContainerColor = Color(0xFF78909C).copy(alpha = 0.35f),
+                                                selectedLabelColor = Color(0xFFECEFF1),
+                                                containerColor = Color(0xFF1E2430),
+                                                labelColor = Color(0xFFA5B0C2)
+                                            )
+                                        )
+                                    }
+                                }
+
+                                if (displayedGroups.isEmpty()) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .padding(24.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "Bu kategoride mükerrer grup bulunamadı.",
+                                            fontSize = 13.sp,
+                                            color = CarTextMuted
+                                        )
+                                    }
+                                } else {
+                                    LazyColumn(
+                                        modifier = Modifier.fillMaxSize(),
+                                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                                    ) {
+                                        itemsIndexed(displayedGroups, key = { _, item -> item.id }) { index, group ->
+                                            DuplicateGroupCard(
+                                                groupIndex = index + 1,
+                                                totalGroups = displayedGroups.size,
+                                                group = group,
+                                                accentColor = accentColor,
+                                                onSelectSong = { songPath ->
+                                                    duplicateGroups = duplicateGroups.map {
+                                                        if (it.id == group.id) it.copy(selectedSongPath = songPath) else it
+                                                    }
+                                                },
+                                                onDeleteSelected = {
+                                                    val selected = group.songs.firstOrNull { it.path == group.selectedSongPath }
+                                                        ?: group.songs.firstOrNull()
+                                                    if (selected != null) {
+                                                        songToDelete = Pair(selected, group.id)
+                                                    }
+                                                },
+                                                onRenameSelected = {
+                                                    val selected = group.songs.firstOrNull { it.path == group.selectedSongPath }
+                                                        ?: group.songs.firstOrNull()
+                                                    if (selected != null) {
+                                                        renameInput = try {
+                                                            File(selected.path).nameWithoutExtension
+                                                        } catch (e: Exception) {
+                                                            selected.title
+                                                        }
+                                                        songToRename = Pair(selected, group.id)
+                                                    }
+                                                },
+                                                onKeepBoth = {
+                                                    // İkisini de tut: Bu grubu mükerrer listesinden kaldır
+                                                    duplicateGroups = duplicateGroups.filter { it.id != group.id }
+                                                },
+                                                onPreview = onPreviewSong
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -627,6 +731,7 @@ private fun DuplicateGroupCard(
                                 MatchConfidence.EXACT -> Color(0xFF4CAF50).copy(alpha = 0.2f)
                                 MatchConfidence.HIGH -> Color(0xFFFF9800).copy(alpha = 0.2f)
                                 MatchConfidence.MEDIUM -> Color(0xFFFFC107).copy(alpha = 0.2f)
+                                MatchConfidence.LOW -> Color(0xFF78909C).copy(alpha = 0.25f)
                             }
                         )
                         .padding(horizontal = 8.dp, vertical = 3.dp)
@@ -639,7 +744,30 @@ private fun DuplicateGroupCard(
                             MatchConfidence.EXACT -> Color(0xFF4CAF50)
                             MatchConfidence.HIGH -> Color(0xFFFF9800)
                             MatchConfidence.MEDIUM -> Color(0xFFFFC107)
+                            MatchConfidence.LOW -> Color(0xFFB0BEC5)
                         }
+                    )
+                }
+            }
+
+            if (group.confidence == MatchConfidence.LOW) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0xFF263238).copy(alpha = 0.5f))
+                        .border(1.dp, Color(0xFF546E7A).copy(alpha = 0.35f), RoundedCornerShape(8.dp))
+                        .padding(horizontal = 8.dp, vertical = 5.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("ℹ️", fontSize = 11.sp)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Farklı sanatçı veya dosya boyutu. Birebir uyuşma olmadığından aynı şarkı olma olasılığı düşüktür.",
+                        fontSize = 10.5.sp,
+                        color = Color(0xFFCFD8DC),
+                        lineHeight = 14.sp
                     )
                 }
             }
@@ -797,7 +925,16 @@ private fun findDuplicateSongGroups(
             .replace(Regex("""[^\p{L}\p{Nd}]+"""), "")
     }
 
+    fun cleanArtist(str: String): String {
+        val s = str.trim().lowercase(Locale.ROOT)
+        if (s.contains("bilinmeyen") || s.contains("unknown") || s == "<unknown>" || s.isBlank()) {
+            return ""
+        }
+        return s.replace(Regex("""[^\p{L}\p{Nd}]+"""), "")
+    }
+
     val titles = Array(n) { idx -> clean(songs[idx].title) }
+    val artists = Array(n) { idx -> cleanArtist(songs[idx].artist) }
     val fileNames = Array(n) { idx ->
         try { clean(File(songs[idx].path).nameWithoutExtension) }
         catch (_: Exception) { "" }
@@ -960,35 +1097,58 @@ private fun findDuplicateSongGroups(
         }
     }
 
-    // 3B) Boyut+süre eşleşip kısmi hash farklı olanlar → HIGH
+    // 3B) Boyut+süre eşleşip kısmi hash farklı olanlar
     for (candidates in sizeDurCandidates) {
         val unusedInGroup = candidates.filter { it !in usedIndices }
         if (unusedInGroup.size > 1) {
-            // Aynı isim de varsa daha da güçlü
             val firstIdx = unusedInGroup[0]
             val sameNameToo = unusedInGroup.all {
                 (titles[it].isNotEmpty() && titles[it] == titles[firstIdx]) ||
                 (fileNames[it].isNotEmpty() && fileNames[it] == fileNames[firstIdx])
             }
+            val sameArtistToo = unusedInGroup.all {
+                artists[it].isNotEmpty() && artists[it] == artists[firstIdx]
+            }
+            val hasDifferentArtist = unusedInGroup.any {
+                artists[it].isNotEmpty() && artists[firstIdx].isNotEmpty() && artists[it] != artists[firstIdx]
+            }
+            val hasDifferentTitle = unusedInGroup.any {
+                titles[it].isNotEmpty() && titles[firstIdx].isNotEmpty() && titles[it] != titles[firstIdx] &&
+                fileNames[it].isNotEmpty() && fileNames[firstIdx].isNotEmpty() && fileNames[it] != fileNames[firstIdx]
+            }
+
             val groupSongs = unusedInGroup.map { songs[it] }
             groupCounter++
+
+            val conf = when {
+                sameNameToo && sameArtistToo -> MatchConfidence.HIGH
+                sameNameToo || sameArtistToo -> MatchConfidence.HIGH
+                hasDifferentArtist && hasDifferentTitle -> MatchConfidence.LOW
+                else -> MatchConfidence.MEDIUM
+            }
+
+            val typeStr = when (conf) {
+                MatchConfidence.HIGH -> if (sameNameToo) "⚖️🏷️ Aynı Boyut, Süre ve İsim" else "⚖️🎤 Aynı Boyut, Süre ve Sanatçı"
+                MatchConfidence.LOW -> "⚪ Aynı Boyut/Süre Fakat Farklı Sanatçı & İsim"
+                else -> "⚖️ Aynı Boyut ve Süre (${formatBytes(fileSizes[firstIdx])})"
+            }
+
             result.add(
                 DuplicateGroupItem(
                     id = "dup_high_$groupCounter",
-                    matchType = if (sameNameToo) "⚖️🏷️ Aynı Boyut, Süre ve İsim"
-                                else "⚖️ Aynı Boyut ve Süre (${formatBytes(fileSizes[firstIdx])})",
-                    matchDetail = formatBytes(fileSizes[firstIdx]),
+                    matchType = typeStr,
+                    matchDetail = if (conf == MatchConfidence.LOW) "Aynı şarkı olma olasılığı düşüktür" else formatBytes(fileSizes[firstIdx]),
                     songs = groupSongs,
                     selectedSongPath = groupSongs.first().path,
-                    confidence = MatchConfidence.HIGH
+                    confidence = conf
                 )
             )
             usedIndices.addAll(unusedInGroup)
         }
     }
 
-    // 3C) Sadece aynı isim (boyut/süre farklı) → MEDIUM
-    onProgress("İsim eşleştirmesi yapılıyor...")
+    // 3C) İsim eşleştirmesi (boyut/süre farklı olabilir)
+    onProgress("İsim ve sanatçı eşleştirmesi yapılıyor...")
     val nameMap = mutableMapOf<String, MutableList<Int>>()
     for (i in 0 until n) {
         if (i in usedIndices) continue
@@ -1005,22 +1165,55 @@ private fun findDuplicateSongGroups(
     }
     for ((_, indices) in nameMap) {
         if (indices.size > 1) {
+            val firstIdx = indices[0]
+            val hasDifferentArtist = indices.any {
+                artists[it].isNotEmpty() && artists[firstIdx].isNotEmpty() && artists[it] != artists[firstIdx]
+            }
+            val hasDifferentSize = indices.any {
+                abs(fileSizes[it] - fileSizes[firstIdx]) > 100_000L
+            }
+            val sameArtist = indices.all {
+                artists[it].isNotEmpty() && artists[it] == artists[firstIdx]
+            }
+            val similarDuration = indices.all {
+                abs(songs[it].durationMs - songs[firstIdx].durationMs) <= 4000L
+            }
+
             val groupSongs = indices.map { songs[it] }
             groupCounter++
+
+            // Kullanıcı kuralı: Şarkı veya sanatçı isimleri farklı ise VE dosya boyutları farklı ise birebir uyuşma yoksa ayrı kategoride (LOW) göster
+            val conf = when {
+                sameArtist && similarDuration -> MatchConfidence.HIGH
+                sameArtist -> MatchConfidence.MEDIUM
+                similarDuration && !hasDifferentArtist && !hasDifferentSize -> MatchConfidence.MEDIUM
+                hasDifferentArtist && hasDifferentSize -> MatchConfidence.LOW
+                hasDifferentArtist -> MatchConfidence.LOW
+                hasDifferentSize && !similarDuration -> MatchConfidence.LOW
+                else -> MatchConfidence.MEDIUM
+            }
+
+            val typeStr = when (conf) {
+                MatchConfidence.HIGH -> "🏷️🎤 Aynı Şarkı ve Sanatçı"
+                MatchConfidence.MEDIUM -> "🏷️ Aynı Şarkı Adı (${groupSongs.first().title})"
+                MatchConfidence.LOW -> if (hasDifferentArtist) "⚪ Farklı Sanatçı & Boyut (${groupSongs.first().title})" else "⚪ Farklı Boyut & Süre (${groupSongs.first().title})"
+                else -> "🏷️ Aynı Şarkı / Dosya Adı"
+            }
+
             result.add(
                 DuplicateGroupItem(
                     id = "dup_name_$groupCounter",
-                    matchType = "🏷️ Aynı Şarkı / Dosya Adı",
-                    matchDetail = groupSongs.first().title,
+                    matchType = typeStr,
+                    matchDetail = if (conf == MatchConfidence.LOW) "Aynı şarkı olma olasılığı düşüktür" else groupSongs.first().title,
                     songs = groupSongs,
                     selectedSongPath = groupSongs.first().path,
-                    confidence = MatchConfidence.MEDIUM
+                    confidence = conf
                 )
             )
         }
     }
 
-    // Güvenilirlik sırasına göre sırala: EXACT → HIGH → MEDIUM
+    // Güvenilirlik sırasına göre sırala: EXACT → HIGH → MEDIUM → LOW
     return result.sortedBy { it.confidence.ordinal }
 }
 

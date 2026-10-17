@@ -1,9 +1,9 @@
 {
-  "versionCode": 26,
-  "versionName": "4.2",
+  "versionCode": 27,
+  "versionName": "4.3",
   "minSupportedVersion": 1,
   "releaseDate": "2026-10-17",
-  "changelog": "• Uygulama açılışında tam ekran oynatıcı tercihi korundu.\n• Ayarlar Sistem/Hakkında kartındaki dikey metin kayması (vibecoded by RK) düzeltildi.",
+  "changelog": "• Kütüphaneyi yeniden tara butonuna anlık taranan dizin ve ilerleme çubuğu göstergesi eklendi.\n• Mükerrer şarkı algoritması güncellendi: farklı sanatçı/isim ve dosya boyutuna sahip parçalar 'Düşük İhtimal' kategorisine ayrıldı.\n• Mükerrer şarkı arama diyaloğuna kategori filtreleme sekmeleri (Tümü, Kesin, Yüksek, Muhtemel, Düşük) eklendi.",
   "playStoreUrl": "https://play.google.com/store/apps/details?id=com.ridoplay.music",
   "downloadUrl": "https://github.com/rkorkut70/RidoPlay/releases/latest"
 }

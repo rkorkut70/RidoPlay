@@ -171,6 +171,19 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
     private val _showDuplicateFinderDialog = MutableStateFlow(false)
     val showDuplicateFinderDialog: StateFlow<Boolean> = _showDuplicateFinderDialog.asStateFlow()
 
+    // Kütüphane Tarama İlerleme Durumu
+    private val _isLibraryScanning = MutableStateFlow(false)
+    val isLibraryScanning: StateFlow<Boolean> = _isLibraryScanning.asStateFlow()
+
+    private val _libraryScanStatus = MutableStateFlow("")
+    val libraryScanStatus: StateFlow<String> = _libraryScanStatus.asStateFlow()
+
+    private val _libraryScanCount = MutableStateFlow(0)
+    val libraryScanCount: StateFlow<Int> = _libraryScanCount.asStateFlow()
+
+    private val _libraryScanCompletedMessage = MutableStateFlow<String?>(null)
+    val libraryScanCompletedMessage: StateFlow<String?> = _libraryScanCompletedMessage.asStateFlow()
+
     fun openDuplicateFinderDialog() {
         _showDuplicateFinderDialog.value = true
     }
@@ -1059,13 +1072,22 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
     }
 
     /**
-     * Ktphaneyi sıfırdan tm depolama alanlarında tarar ve SQLite veritabanını güncelLER.
+     * Kütüphaneyi sıfırdan tüm depolama alanlarında tarar ve SQLite veritabanını günceller.
+     * Taranan dizin ve bulunan şarkı sayısını anlık olarak yayar.
      */
     fun rescanLibrary() {
+        if (_isLibraryScanning.value) return
         viewModelScope.launch {
             _isLoading.value = true
+            _isLibraryScanning.value = true
+            _libraryScanCompletedMessage.value = null
+            _libraryScanStatus.value = "Tarama başlatılıyor..."
+            _libraryScanCount.value = 0
             try {
-                val updatedSongs = repository.scanAndIndexLibrary()
+                val updatedSongs = repository.scanAndIndexLibrary { currentDir, count ->
+                    _libraryScanStatus.value = currentDir
+                    _libraryScanCount.value = count
+                }
                 _allSongs.value = updatedSongs
                 val roots = repository.getStorageRoots()
                 _storageRoots.value = roots
@@ -1078,10 +1100,13 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
                 loadPlaylists()
                 // Aktif çalma sırasını güncel kütüphane ile senkronize et (Silinenleri çıkar, yenileri ekle, sayıyı güncelle)
                 MusicController.syncQueueWithLibrary(updatedSongs)
+                _libraryScanCompletedMessage.value = "✅ Tarama tamamlandı: ${updatedSongs.size} şarkı güncellendi."
             } catch (e: Exception) {
                 e.printStackTrace()
+                _libraryScanCompletedMessage.value = "❌ Tarama sırasında hata: ${e.message}"
             } finally {
                 _isLoading.value = false
+                _isLibraryScanning.value = false
             }
         }
     }
