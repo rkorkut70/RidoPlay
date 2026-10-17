@@ -1,6 +1,6 @@
 {
-  "versionCode": 25,
-  "versionName": "4.1",
+  "versionCode": 26,
+  "versionName": "4.2",
   "minSupportedVersion": 1,
   "releaseDate": "2026-10-17",
   "changelog": "• Uygulama açılışında tam ekran oynatıcı tercihi korundu.\n• Ayarlar Sistem/Hakkında kartındaki dikey metin kayması (vibecoded by RK) düzeltildi.",
