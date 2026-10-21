@@ -468,7 +468,6 @@ fun LibraryPanel(
                                                     accentColor = accentColor,
                                                     onClick = {
                                                         onPlayPlaylist(selectedPlaylist)
-                                                        onTabSelected(TabType.HOME)
                                                     }
                                                 )
                                             } else {
@@ -498,14 +497,12 @@ fun LibraryPanel(
                                             onClosePlaylist = onClosePlaylist,
                                             onPlayPlaylist = {
                                                 onPlayPlaylist(it)
-                                                onTabSelected(TabType.HOME)
                                             },
                                             onDeletePlaylist = onDeletePlaylist,
                                             onRemoveSongFromPlaylist = onRemoveSongFromPlaylist,
                                             onCreatePlaylistClick = onCreatePlaylistClick,
                                             onPlaySong = { song ->
                                                 onPlaySong(song, selectedPlaylistSongs)
-                                                onTabSelected(TabType.HOME)
                                             },
                                             onSongLongClick = onSongLongClick,
                                             onExportPlaylist = onExportPlaylist,
@@ -529,7 +526,6 @@ fun LibraryPanel(
                                                     accentColor = CarAmber,
                                                     onClick = {
                                                         onPlayFavorites()
-                                                        onTabSelected(TabType.HOME)
                                                     }
                                                 )
                                             }
@@ -548,7 +544,6 @@ fun LibraryPanel(
                                             currentPlayingSongPath = currentPlayingSongPath,
                                             onPlaySong = { song ->
                                                 onPlaySong(song, favoriteSongs)
-                                                onTabSelected(TabType.HOME)
                                             },
                                             onSongLongClick = onSongLongClick,
                                             accentColor = accentColor,

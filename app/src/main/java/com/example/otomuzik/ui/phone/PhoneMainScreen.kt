@@ -351,7 +351,7 @@ fun PhoneMainScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     tabs.forEach { (tabType, title, count) ->
-                        val isSelected = activeTab == tabType
+                        val isSelected = activeTab == tabType || (activeTab == TabType.HOME && tabType == TabType.ALL_SONGS)
                         val tabShape = RoundedCornerShape(12.dp)
 
                         Box(

@@ -1205,7 +1205,6 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
                 val songs = repository.getAllSongsInDirectory(folderPath)
                 if (songs.isNotEmpty()) {
                     MusicController.setQueue(songs, 0, autoPlay = true)
-                    _activeTab.value = TabType.HOME
                     _isQueueVisible.value = false
                 }
             } finally {
@@ -1218,7 +1217,6 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
         val index = List.indexOfFirst { it.path == song.path || (it.id != 0L && it.id == song.id) }
         val startIdx = if (index != -1) index else 0
         MusicController.setQueue(List, startIdx, autoPlay = true)
-        _activeTab.value = TabType.HOME
         _isQueueVisible.value = false
     }
 
@@ -1226,7 +1224,6 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
         val songs = favoriteSongs.value
         if (songs.isNotEmpty()) {
             MusicController.setQueue(songs, 0, autoPlay = true)
-            _activeTab.value = TabType.HOME
             _isQueueVisible.value = false
         }
     }
@@ -1353,7 +1350,6 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
                 val songs = repository.getSongsForPlaylist(Playlist.id)
                 if (songs.isNotEmpty()) {
                     MusicController.setQueue(songs, 0, autoPlay = true)
-                    _activeTab.value = TabType.HOME
                     _isQueueVisible.value = false
                 }
             } finally {
