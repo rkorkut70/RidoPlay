@@ -37,6 +37,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -88,6 +90,7 @@ fun PhoneMainScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val configuration = LocalConfiguration.current
     val playerState by viewModel.playerState.collectAsStateWithLifecycle()
     val allSongs by viewModel.allSongs.collectAsStateWithLifecycle()
     val filteredSongs by viewModel.filteredSongs.collectAsStateWithLifecycle()
@@ -339,130 +342,104 @@ fun PhoneMainScreen(
                     Triple(TabType.FAVORITES, "Favoriler", favoriteSongs.size)
                 )
 
-                val selectedTabIndex = tabs.indexOfFirst { it.first == activeTab }.coerceAtLeast(0)
-
-                ScrollableTabRow(
-                    selectedTabIndex = selectedTabIndex,
-                    containerColor = Color.Transparent,
-                    contentColor = accentColor,
-                    edgePadding = 12.dp,
-                    indicator = { tabPositions ->
-                        if (selectedTabIndex in tabPositions.indices) {
-                            TabRowDefaults.SecondaryIndicator(
-                                modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
-                                color = accentColor,
-                                height = 3.dp
-                            )
-                        }
-                    },
-                    divider = {}
+                // Ekranı tam kaplayan 4'lü eşit 3D Segmented Bar (Asla ekrandan taşmaz)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    tabs.forEachIndexed { index, (tabType, title, count) ->
+                    tabs.forEach { (tabType, title, count) ->
                         val isSelected = activeTab == tabType
-                        val tabShape = RoundedCornerShape(14.dp)
+                        val tabShape = RoundedCornerShape(12.dp)
 
-                        Tab(
-                            selected = isSelected,
-                            onClick = { viewModel.setTab(tabType) },
-                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
-                            text = {
-                                Box(
-                                    modifier = Modifier
-                                        .shadow(
-                                            elevation = if (isSelected) 6.dp else 2.dp,
-                                            shape = tabShape,
-                                            ambientColor = if (isSelected) accentColor else Color.Black,
-                                            spotColor = if (isSelected) accentColor else Color.Black
-                                        )
-                                        .clip(tabShape)
-                                        .background(
-                                            if (isSelected) {
-                                                Brush.verticalGradient(
-                                                    listOf(
-                                                        accentColor.copy(alpha = 0.35f),
-                                                        accentColor.copy(alpha = 0.16f)
-                                                    )
-                                                )
-                                            } else {
-                                                Brush.verticalGradient(
-                                                    listOf(
-                                                        Color(0xFF262C38),
-                                                        Color(0xFF161922)
-                                                    )
-                                                )
-                                            }
-                                        )
-                                        .border(
-                                            width = if (isSelected) 1.5.dp else 1.dp,
-                                            brush = if (isSelected) {
-                                                Brush.verticalGradient(
-                                                    listOf(accentColor, accentColor.copy(alpha = 0.45f))
-                                                )
-                                            } else {
-                                                Brush.verticalGradient(
-                                                    listOf(Color(0xFF3F4A5C), Color(0xFF1C2029))
-                                                )
-                                            },
-                                            shape = tabShape
-                                        )
-                                        .padding(horizontal = 14.dp, vertical = 7.dp)
-                                ) {
-                                    // Üst parlama çizgisi
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(1.dp)
-                                            .background(
-                                                Brush.horizontalGradient(
-                                                    listOf(
-                                                        Color.Transparent,
-                                                        if (isSelected) accentColor.copy(alpha = 0.7f) else Color.White.copy(alpha = 0.2f),
-                                                        Color.Transparent
-                                                    )
-                                                )
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(40.dp)
+                                .shadow(
+                                    elevation = if (isSelected) 5.dp else 1.dp,
+                                    shape = tabShape,
+                                    ambientColor = if (isSelected) accentColor else Color.Black,
+                                    spotColor = if (isSelected) accentColor else Color.Black
+                                )
+                                .clip(tabShape)
+                                .background(
+                                    if (isSelected) {
+                                        Brush.verticalGradient(
+                                            listOf(
+                                                accentColor.copy(alpha = 0.35f),
+                                                accentColor.copy(alpha = 0.16f)
                                             )
-                                            .align(Alignment.TopCenter)
-                                    )
-
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.Center
-                                    ) {
-                                        Text(
-                                            text = title,
-                                            fontSize = 14.5.sp,
-                                            fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Bold,
-                                            color = if (isSelected) accentColor else Color(0xFFF3F4F6)
                                         )
-                                        if (count > 0) {
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Box(
-                                                modifier = Modifier
-                                                    .shadow(2.dp, RoundedCornerShape(8.dp))
-                                                    .clip(RoundedCornerShape(8.dp))
-                                                    .background(
-                                                        if (isSelected) accentColor.copy(alpha = 0.35f) else Color(0xFF191C24)
-                                                    )
-                                                    .border(
-                                                        1.dp,
-                                                        if (isSelected) accentColor.copy(alpha = 0.6f) else Color(0xFF363F4F),
-                                                        RoundedCornerShape(8.dp)
-                                                    )
-                                                    .padding(horizontal = 6.dp, vertical = 2.dp),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Text(
-                                                    text = "$count",
-                                                    fontSize = 11.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = if (isSelected) accentColor else Color(0xFFE2E8F0)
-                                                )
-                                            }
-                                        }
+                                    } else {
+                                        Brush.verticalGradient(
+                                            listOf(
+                                                Color(0xFF242A36),
+                                                Color(0xFF161922)
+                                            )
+                                        )
                                     }
+                                )
+                                .border(
+                                    width = if (isSelected) 1.5.dp else 1.dp,
+                                    brush = if (isSelected) {
+                                        Brush.verticalGradient(
+                                            listOf(accentColor, accentColor.copy(alpha = 0.50f))
+                                        )
+                                    } else {
+                                        Brush.verticalGradient(
+                                            listOf(Color(0xFF384355), Color(0xFF1C2029))
+                                        )
+                                    },
+                                    shape = tabShape
+                                )
+                                .clickable { viewModel.setTab(tabType) },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            // Üst parlama çizgisi (Glossy sheen)
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(1.dp)
+                                    .background(
+                                        Brush.horizontalGradient(
+                                            listOf(
+                                                Color.Transparent,
+                                                if (isSelected) accentColor.copy(alpha = 0.7f) else Color.White.copy(alpha = 0.18f),
+                                                Color.Transparent
+                                            )
+                                        )
+                                    )
+                                    .align(Alignment.TopCenter)
+                            )
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center,
+                                modifier = Modifier.padding(horizontal = 2.dp)
+                            ) {
+                                Text(
+                                    text = title,
+                                    fontSize = if (configuration.screenWidthDp < 360) 11.sp else 12.sp,
+                                    fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Bold,
+                                    color = if (isSelected) accentColor else Color(0xFFF1F5F9),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                if (count > 0) {
+                                    Spacer(modifier = Modifier.width(3.dp))
+                                    Text(
+                                        text = if (count > 999) "999+" else "$count",
+                                        fontSize = if (configuration.screenWidthDp < 360) 9.sp else 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isSelected) accentColor.copy(alpha = 0.85f) else Color(0xFF8E9BAE),
+                                        maxLines = 1
+                                    )
                                 }
                             }
-                        )
+                        }
                     }
                 }
             }

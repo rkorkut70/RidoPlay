@@ -1,9 +1,9 @@
 {
-  "versionCode": 29,
-  "versionName": "4.5",
+  "versionCode": 30,
+  "versionName": "4.6",
   "minSupportedVersion": 1,
   "releaseDate": "2026-10-21",
-  "changelog": "• Şarkı işlem menüsüne (basılı tutma) 'Kütüphaneden Sil' ve 'Dosyayı Sil' seçenekleri ile güvenli onay ekranları eklendi.\n• Ayarlar > Sistem bölümüne tablet/araç açıldığında RidoPlay'in otomatik başlamasını sağlayan ayar (Boot Completed) eklendi.\n• Ayarlar > Kütüphane Yönetimi bölümüne gizlenen şarkıları tek tıkla geri yükleme seçeneği eklendi.",
+  "changelog": "• Mobil (telefon) arayüzünde ekran dışına taşan 4'lü sekme çubuğu (Şarkılar, Klasörler, Listeler, Favoriler) her ekran genişliğine tam sığacak şekilde optimize edildi.\n• Google Play yerel kod hata ayıklama sembolleri (NDK debug symbols) derleme paketine dahil edildi.",
   "playStoreUrl": "https://play.google.com/store/apps/details?id=com.ridoplay.music",
   "downloadUrl": "https://github.com/rkorkut70/RidoPlay/releases/latest"
 }
