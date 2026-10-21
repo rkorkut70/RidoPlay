@@ -456,55 +456,18 @@ fun SwipeableCoverandInfo(
                         Spacer(modifier = Modifier.height(if (isCompact) 4.dp else 10.dp))
                     }
 
-                    Row(
+                    Text(
+                        text = songTitle,
+                        fontSize = if (isCompact) 18.sp else 22.sp,
+                        fontWeight = FontWeight.Black,
+                        color = Color.White,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 8.dp),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = songTitle,
-                            fontSize = if (isCompact) 18.sp else 22.sp,
-                            fontWeight = FontWeight.Black,
-                            color = Color.White,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.weight(1f, fill = false)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        if (onPlayMoreFromArtist != null && songartist.isNotBlank() && songartist != "Bilinmeyen Sanatçı") {
-                            IconButton(
-                                onClick = onPlayMoreFromArtist,
-                                modifier = Modifier
-                                    .size(if (isCompact) 34.dp else 40.dp)
-                                    .clip(CircleShape)
-                                    .background(if (isArtistModeActive) accentColor.copy(alpha = 0.35f) else Color(0x22FFFFFF))
-                                    .border(
-                                        width = if (isArtistModeActive) 1.5.dp else 1.dp,
-                                        color = if (isArtistModeActive) accentColor else CarBorder,
-                                        shape = CircleShape
-                                    )
-                            ) {
-                                Text(
-                                    text = "🎙️",
-                                    fontSize = if (isCompact) 18.sp else 22.sp
-                                )
-                            }
-                        }
-                        IconButton(
-                            onClick = onToggleFavorite,
-                            modifier = Modifier.size(if (isCompact) 34.dp else 40.dp)
-                        ) {
-                            Icon(
-                                painter = painterResource(id = if (isFavorite) R.drawable.ic_favorite else R.drawable.ic_favorite_border),
-                                contentDescription = if (isFavorite) "Favorilerden Çıkar" else "Favorilere Ekle",
-                                tint = if (isFavorite) Color(0xFFE53935) else Color.White.copy(alpha = 0.75f),
-                                modifier = Modifier.size(if (isCompact) 22.dp else 26.dp)
-                            )
-                        }
-                    }
+                            .padding(horizontal = 8.dp)
+                    )
 
                     Spacer(modifier = Modifier.height(if (isCompact) 2.dp else 4.dp))
 
@@ -875,55 +838,18 @@ fun SwipeableCoverandInfo(
                     ),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Row(
+                Text(
+                    text = songTitle,
+                    fontSize = if (isCompact) 18.sp else 22.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color(0xFFFFFFFF),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 8.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = songTitle,
-                        fontSize = if (isCompact) 18.sp else 22.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Color(0xFFFFFFFF),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.weight(1f, fill = false)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    if (onPlayMoreFromArtist != null && songartist.isNotBlank() && songartist != "Bilinmeyen Sanatçı") {
-                        IconButton(
-                            onClick = onPlayMoreFromArtist,
-                            modifier = Modifier
-                                .size(if (isCompact) 34.dp else 40.dp)
-                                .clip(CircleShape)
-                                .background(if (isArtistModeActive) accentColor.copy(alpha = 0.35f) else Color(0x22FFFFFF))
-                                .border(
-                                    width = if (isArtistModeActive) 1.5.dp else 1.dp,
-                                    color = if (isArtistModeActive) accentColor else CarBorder,
-                                    shape = CircleShape
-                                )
-                        ) {
-                            Text(
-                                text = "🎙️",
-                                fontSize = if (isCompact) 18.sp else 22.sp
-                            )
-                        }
-                    }
-                    IconButton(
-                        onClick = onToggleFavorite,
-                        modifier = Modifier.size(if (isCompact) 34.dp else 40.dp)
-                    ) {
-                        Icon(
-                            painter = painterResource(id = if (isFavorite) R.drawable.ic_favorite else R.drawable.ic_favorite_border),
-                            contentDescription = if (isFavorite) "Favorilerden Çıkar" else "Favorilere Ekle",
-                            tint = if (isFavorite) Color(0xFFE53935) else Color.White.copy(alpha = 0.75f),
-                            modifier = Modifier.size(if (isCompact) 22.dp else 26.dp)
-                        )
-                    }
-                }
+                        .padding(horizontal = 8.dp)
+                )
 
                 Spacer(modifier = Modifier.height(if (isCompact) 1.dp else 3.dp))
 

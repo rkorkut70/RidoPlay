@@ -428,6 +428,108 @@ fun NowPlayingPanel(
                     .weight(1f)
             )
 
+            // ── 2.5 HIZLI EYLEM BUTONLARI (Sanatçı Modu & Favori Butonu) ────
+            // İlerleme çubuğunun sol başlangıç ve sağ bitiş noktası üstünde sabit hizalı
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = if (isCompact) 4.dp else 6.dp, end = if (isCompact) 4.dp else 6.dp, bottom = if (isCompact) 2.dp else 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                val actionBtnSize = if (isCompact) 44.dp else 52.dp
+                val actionIconSize = if (isCompact) 22.dp else 26.dp
+
+                // SOL: Sanatçının Diğer Şarkılarını Çal Butonu (🎙️)
+                Box(
+                    modifier = Modifier
+                        .size(actionBtnSize)
+                        .shadow(
+                            elevation = if (isArtistModeActive) 8.dp else 4.dp,
+                            shape = CircleShape,
+                            ambientColor = if (isArtistModeActive) animatedaccent else Color.Black,
+                            spotColor = if (isArtistModeActive) animatedaccent else Color.Black
+                        )
+                        .clip(CircleShape)
+                        .background(
+                            if (isArtistModeActive)
+                                Brush.radialGradient(
+                                    listOf(
+                                        animatedaccent.copy(alpha = 0.45f),
+                                        Color(0xFF0F1A28)
+                                    )
+                                )
+                            else
+                                Brush.verticalGradient(
+                                    listOf(Color(0xFF252D3D), Color(0xFF131722), Color(0xFF0C0F17))
+                                )
+                        )
+                        .border(
+                            width = if (isArtistModeActive) 2.dp else 1.4.dp,
+                            brush = if (isArtistModeActive)
+                                Brush.verticalGradient(listOf(animatedaccent, animatedaccent.copy(alpha = 0.6f)))
+                            else
+                                Brush.verticalGradient(listOf(Color(0xFF4A5568), Color(0xFF1E2432))),
+                            shape = CircleShape
+                        )
+                        .clickable { onPlayMoreFromArtist?.invoke() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "🎙️",
+                        fontSize = if (isCompact) 19.sp else 23.sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                // SAĞ: Favorilere Ekle Butonu (❤️)
+                Box(
+                    modifier = Modifier
+                        .size(actionBtnSize)
+                        .shadow(
+                            elevation = if (isFavorite) 8.dp else 4.dp,
+                            shape = CircleShape,
+                            ambientColor = if (isFavorite) Color(0xFFE53935) else Color.Black,
+                            spotColor = if (isFavorite) Color(0xFFE53935) else Color.Black
+                        )
+                        .clip(CircleShape)
+                        .background(
+                            if (isFavorite)
+                                Brush.radialGradient(
+                                    listOf(
+                                        Color(0xFFE53935).copy(alpha = 0.35f),
+                                        Color(0xFF2A1015),
+                                        Color(0xFF120A0D)
+                                    )
+                                )
+                            else
+                                Brush.verticalGradient(
+                                    listOf(Color(0xFF252D3D), Color(0xFF131722), Color(0xFF0C0F17))
+                                )
+                        )
+                        .border(
+                            width = if (isFavorite) 2.dp else 1.4.dp,
+                            brush = if (isFavorite)
+                                Brush.verticalGradient(listOf(Color(0xFFFF5252), Color(0xFFD32F2F)))
+                            else
+                                Brush.verticalGradient(listOf(Color(0xFF4A5568), Color(0xFF1E2432))),
+                            shape = CircleShape
+                        )
+                        .clickable { onToggleFavorite() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = painterResource(
+                            id = if (isFavorite) R.drawable.ic_favorite else R.drawable.ic_favorite_border
+                        ),
+                        contentDescription = if (isFavorite) "Favorilerden Çıkar" else "Favorilere Ekle",
+                        tint = if (isFavorite) Color(0xFFFF3D00) else Color.White.copy(alpha = 0.85f),
+                        modifier = Modifier.size(actionIconSize)
+                    )
+                }
+            }
+
             // ── 3. İLERLEME ÇUBUĞU ───────────────────────────────────────────
             CarProgressBar(
                 progress = playerState.progressFraction,

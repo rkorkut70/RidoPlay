@@ -494,6 +494,19 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
                 }
                 lastLoadedSongPath = currentPath
 
+                // Sanatçı modu aktifken parça sanatçı dışındaki bir şarkıya geçtiğinde (sanatçı parçaları bittiğinde) modu kapat
+                val activeArtist = _activeArtistMode.value
+                if (activeArtist != null && song != null) {
+                    val a = song.artist.trim()
+                    val matches = a.equals(activeArtist, ignoreCase = true) ||
+                            a.contains(activeArtist, ignoreCase = true) ||
+                            activeArtist.contains(a, ignoreCase = true)
+                    if (!matches) {
+                        _activeArtistMode.value = null
+                        savedQueueBeforeArtistMode = null
+                    }
+                }
+
                 if (song != null) {
                     val artwork = com.example.otomuzik.util.AlbumArtHelper.getArtwork(
                         context = getApplication<android.app.Application>(),
@@ -1300,18 +1313,27 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
             val currentQ = playerState.value.currentQueue
             savedQueueBeforeArtistMode = if (currentQ.isNotEmpty()) currentQ else all
         }
+        val originalQueue = savedQueueBeforeArtistMode ?: all
         _activeArtistMode.value = cleanArtist
 
         val playingSong = playerState.value.currentSong
         val targetFirstSong = triggerSong ?: playingSong ?: artistSongs.first()
 
         val otherSongs = artistSongs.filter { it.path != targetFirstSong.path }.shuffled()
-        val finalQueue = listOf(targetFirstSong) + otherSongs
+        val artistQueue = listOf(targetFirstSong) + otherSongs
+
+        // Sanatçının parçaları bittiğinde (örn. 2 şarkısı varsa 2. şarkıdan sonra) müzik durmasın;
+        // normal çalma sırası kaldığı yerden kesintisiz devam etsin:
+        val remainingQueue = originalQueue.filter { origSong ->
+            artistSongs.none { it.path == origSong.path }
+        }
+        val finalQueue = artistQueue + remainingQueue
 
         if (playingSong != null && playingSong.path == targetFirstSong.path && playerState.value.isPlaying) {
             MusicController.replaceQueueKeepCurrent(finalQueue, targetFirstSong)
         } else {
-            MusicController.setQueue(finalQueue, startIndex = 0, autoPlay = true)
+            val startIndex = finalQueue.indexOfFirst { it.path == targetFirstSong.path }.coerceAtLeast(0)
+            MusicController.setQueue(finalQueue, startIndex = startIndex, autoPlay = true)
         }
         _isQueueVisible.value = false
 

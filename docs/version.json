@@ -1,9 +1,9 @@
 {
-  "versionCode": 36,
-  "versionName": "5.2",
+  "versionCode": 37,
+  "versionName": "5.3",
   "minSupportedVersion": 1,
   "releaseDate": "2026-10-22",
-  "changelog": "• Tablet sol panel üst barı Pusula & Piksel tasarım ilkelerine göre baştan uca optimize edildi.\n• Siyah daire butonuna araç konsoluna gömülü 3D titanyum/karbon yuva (recessed bezel) ve piyano siyahı çekirdek kazandırıldı.\n• Gece saati simgesi parlak sarı emoji yerine kristal netliğinde gümüşi neon hilal (☾) vektörel tipografisine yükseltildi.",
+  "changelog": "• Şarkı başlığı yanındaki Favori ve Sanatçı Modu butonlarının şarkı ismi uzunluğuna göre kayması engellendi; başlık ortalandı.\n• Favorilere Ekle (❤️) ve Sanatçı Modu (🎙️) butonları ilerleme çubuğunun hemen üstünde, sol başlangıç ve sağ bitiş hizasında büyük 3D kokpit tuşları olarak sabitlendi.\n• Sanatçı Modu (🎙️) parçaları bittiğinde (örn. 2 şarkıdan sonra) müziğin durması sorunu çözüldü; normal çalma listesi/sırası kesintisiz çalmaya devam eder.",
   "playStoreUrl": "https://play.google.com/store/apps/details?id=com.ridoplay.music",
   "downloadUrl": "https://github.com/rkorkut70/RidoPlay/releases/latest"
 }
