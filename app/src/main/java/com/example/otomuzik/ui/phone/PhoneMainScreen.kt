@@ -636,6 +636,8 @@ fun PhoneMainScreen(
                 onaddToQueue = { viewModel.AddSongToQueue(song) },
                 onToggleFavorite = { viewModel.toggleFavorite(song) },
                 onSetAsRingtone = { RingtoneHelper.setAsRingtone(context, song) },
+                onRemoveFromLibrary = { viewModel.hideSongFromLibrary(song) },
+                onDeletePhysicalFile = { viewModel.deleteSong(song) },
                 onDismiss = { viewModel.closeSongContext() }
             )
         }

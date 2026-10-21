@@ -529,6 +529,8 @@ fun MainScreen(
                 onaddToQueue = { viewModel.AddSongToQueue(song) },
                 onToggleFavorite = { viewModel.toggleFavorite(song) },
                 onSetAsRingtone = { com.example.otomuzik.util.RingtoneHelper.setAsRingtone(context, song) },
+                onRemoveFromLibrary = { viewModel.hideSongFromLibrary(song) },
+                onDeletePhysicalFile = { viewModel.deleteSong(song) },
                 onDismiss = { viewModel.closeSongContext() }
             )
         }

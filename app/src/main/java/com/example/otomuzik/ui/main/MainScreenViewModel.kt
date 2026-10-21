@@ -376,6 +376,13 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
     private val _stopOnTaskRemoved = MutableStateFlow(repository.getStopOnTaskRemoved())
     val stopOnTaskRemoved: StateFlow<Boolean> = _stopOnTaskRemoved.asStateFlow()
 
+    private val _startOnBoot = MutableStateFlow(repository.getStartOnBoot())
+    val startOnBoot: StateFlow<Boolean> = _startOnBoot.asStateFlow()
+
+    private val _hiddenSongsCount = MutableStateFlow(repository.getHiddenSongsCount())
+    val hiddenSongsCount: StateFlow<Int> = _hiddenSongsCount.asStateFlow()
+
+
     private val _swipeSensitivity = MutableStateFlow(repository.getSwipeSensitivity())
     val swipeSensitivity: StateFlow<String> = _swipeSensitivity.asStateFlow()
 
@@ -1574,6 +1581,49 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
     fun setIsAlbumArtCropped(cropped: Boolean) {
         _isalbumartCropped.value = cropped
         repository.setIsAlbumArtCropped(cropped)
+    }
+
+    fun setStartOnBoot(enabled: Boolean) {
+        _startOnBoot.value = enabled
+        repository.setStartOnBoot(enabled)
+    }
+
+    fun hideSongFromLibrary(song: Song, onComplete: (() -> Unit)? = null) {
+        viewModelScope.launch {
+            val app = getApplication<android.app.Application>()
+            repository.hideSongFromLibrary(song)
+            _hiddenSongsCount.value = repository.getHiddenSongsCount()
+
+            if (MusicController.playerState.value.currentSong?.path == song.path) {
+                MusicController.playNext()
+            }
+            val updated = _allSongs.value.filter { it.path != song.path }
+            _allSongs.value = updated
+            MusicController.syncQueueWithLibrary(updated)
+
+            val currentPath = _currentFolderPath.value
+            if (!currentPath.isNullOrEmpty()) {
+                _currentFolderItems.value = repository.getFolderContents(currentPath)
+            }
+            loadPlaylists()
+
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                android.widget.Toast.makeText(app, "👁️ '${song.title}' kütüphaneden gizlendi", android.widget.Toast.LENGTH_SHORT).show()
+            }
+            onComplete?.invoke()
+        }
+    }
+
+    fun clearHiddenSongs() {
+        viewModelScope.launch {
+            val app = getApplication<android.app.Application>()
+            repository.clearHiddenSongs()
+            _hiddenSongsCount.value = 0
+            rescanLibrary()
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                android.widget.Toast.makeText(app, "Gizlenen tüm şarkılar kütüphaneye geri yüklendi", android.widget.Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     fun setStopOnTaskRemoved(stop: Boolean) {

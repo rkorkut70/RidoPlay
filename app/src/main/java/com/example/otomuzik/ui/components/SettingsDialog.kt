@@ -64,6 +64,8 @@ fun SettingsDialog(
     val equalizerState by viewModel.equalizerState.collectAsStateWithLifecycle()
     val isalbumartCropped by viewModel.isalbumartCropped.collectAsStateWithLifecycle()
     val stopOnTaskRemoved by viewModel.stopOnTaskRemoved.collectAsStateWithLifecycle()
+    val startOnBoot by viewModel.startOnBoot.collectAsStateWithLifecycle()
+    val hiddenSongsCount by viewModel.hiddenSongsCount.collectAsStateWithLifecycle()
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
     val themePalette by viewModel.themePalette.collectAsStateWithLifecycle()
     val uiMode by viewModel.uiMode.collectAsStateWithLifecycle()
@@ -711,6 +713,21 @@ fun SettingsDialog(
                                 StatRow("⏱️ Toplam Çalma Süresi", libraryStats.totalDurationFormatted, accentColor)
                                 StatRow("💾 Medya Boyutu", libraryStats.totalSizeFormatted, accentColor)
                             }
+                            if (hiddenSongsCount > 0) {
+                                SettingsDivider()
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                                ) {
+                                    Settings3DActionButton(
+                                        title = "👁️ Kütüphaneden Gizlenen Şarkıları Geri Yükle ($hiddenSongsCount Parça)",
+                                        accentColor = CarAmber,
+                                        onClick = { viewModel.clearHiddenSongs() }
+                                    )
+                                }
+                            }
+
                         }
                     }
 
@@ -738,6 +755,15 @@ fun SettingsDialog(
                     // 5. Sekme / Bölüm: Sistem (Tab 4)
                     if (selectedSettingsTab == 4) {
                         SettingsSection(title = "Sistem", accentColor = accentColor) {
+                            SettingSwitchRow(
+                                title = "Cihaz Açılışında RidoPlay'i Başlat",
+                                description = "Tablet veya araç multimedya ekranı açıldığında RidoPlay otomatik olarak açılsın.",
+                                checked = startOnBoot,
+                                accentColor = accentColor,
+                                onCheckedChange = { viewModel.setStartOnBoot(it) }
+                            )
+                            SettingsDivider()
+
                             SettingSwitchRow(
                                 title = "Kapatılınca Müziği Durdur",
                                 description = "Arka plandan uygulamayı sildiğinizde müziği anında durdurur.",

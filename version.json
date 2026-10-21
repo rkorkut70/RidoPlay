@@ -1,9 +1,9 @@
 {
-  "versionCode": 28,
-  "versionName": "4.4",
+  "versionCode": 29,
+  "versionName": "4.5",
   "minSupportedVersion": 1,
-  "releaseDate": "2026-10-20",
-  "changelog": "• Tablet/Araç ana ekranındaki parça akış kartında gösterilen şarkı sayısı 4'e çıkarıldı (Önceki, Çalan, Sıradaki 1 ve Sıradaki 2).\n• Sıradaki şarkılara tek dokunuşla geçiş desteği ve optimize edilmiş 3D kokpit arayüzü.",
+  "releaseDate": "2026-10-21",
+  "changelog": "• Şarkı işlem menüsüne (basılı tutma) 'Kütüphaneden Sil' ve 'Dosyayı Sil' seçenekleri ile güvenli onay ekranları eklendi.\n• Ayarlar > Sistem bölümüne tablet/araç açıldığında RidoPlay'in otomatik başlamasını sağlayan ayar (Boot Completed) eklendi.\n• Ayarlar > Kütüphane Yönetimi bölümüne gizlenen şarkıları tek tıkla geri yükleme seçeneği eklendi.",
   "playStoreUrl": "https://play.google.com/store/apps/details?id=com.ridoplay.music",
   "downloadUrl": "https://github.com/rkorkut70/RidoPlay/releases/latest"
 }

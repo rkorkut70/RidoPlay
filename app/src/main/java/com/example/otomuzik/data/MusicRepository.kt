@@ -42,12 +42,12 @@ class MusicRepository(private val context: Context) {
      * Disk veya dosya taraması kesinlikle yapmaz. Anında (milisaniyeler içinde) döner.
      */
     suspend fun getSongsFromCacheOnly(): List<Song> = withContext(Dispatchers.IO) {
-        dbHelper.getAllSongs()
+        dbHelper.getAllSongs().filterNot { isSongHidden(it.path) }
     }
 
     suspend fun getAllSongs(forceRefresh: Boolean = false): List<Song> = withContext(Dispatchers.IO) {
         if (!forceRefresh) {
-            val cached = dbHelper.getAllSongs()
+            val cached = dbHelper.getAllSongs().filterNot { isSongHidden(it.path) }
             if (cached.isNotEmpty()) {
                 return@withContext cached
             }
@@ -113,7 +113,7 @@ class MusicRepository(private val context: Context) {
 
                 while (it.moveToNext()) {
                     val path = if (dataCol >= 0) it.getString(dataCol) ?: "" else ""
-                    if (path.isEmpty() || seenPaths.contains(path) || !isPathAllowed(path, includedFolders)) {
+                    if (path.isEmpty() || seenPaths.contains(path) || !isPathAllowed(path, includedFolders) || isSongHidden(path)) {
                         continue
                     }
 
@@ -200,7 +200,7 @@ class MusicRepository(private val context: Context) {
         dbHelper.saveSongs(foundSongs)
         dbHelper.syncWithExistingPaths(seenPaths)
 
-        dbHelper.getAllSongs()
+        dbHelper.getAllSongs().filterNot { isSongHidden(it.path) }
     }
 
     private fun scanDirectoryForSongs(
@@ -216,7 +216,7 @@ class MusicRepository(private val context: Context) {
         for (f in files) {
             if (f.isDirectory && !f.isHidden && f.canRead()) {
                 scanDirectoryForSongs(f, seenPaths, outList, depth + 1, onProgress)
-            } else if (f.isFile && isAudioFile(f.name) && !seenPaths.contains(f.absolutePath) && isPathAllowed(f.absolutePath, getIncludedFolders())) {
+            } else if (f.isFile && isAudioFile(f.name) && !seenPaths.contains(f.absolutePath) && isPathAllowed(f.absolutePath, getIncludedFolders()) && !isSongHidden(f.absolutePath)) {
                 seenPaths.add(f.absolutePath)
                 val name = f.nameWithoutExtension
                 val ext = f.extension.uppercase(Locale.ROOT)
@@ -367,7 +367,7 @@ class MusicRepository(private val context: Context) {
         }
 
         // Sonra müzik dosyaları
-        val audioFiles = files.filter { it.isFile && isAudioFile(it.name) }
+        val audioFiles = files.filter { it.isFile && isAudioFile(it.name) && !isSongHidden(it.absolutePath) }
             .sortedBy { it.name.lowercase(Locale.ROOT) }
 
         var dummyId = 1000000L
@@ -623,6 +623,7 @@ class MusicRepository(private val context: Context) {
             } catch (ignored: Exception) {}
 
             dbHelper.deleteSong(song.path)
+            unhideSong(song.path)
 
             val favs = getFavoritePaths().toMutableSet()
             if (favs.contains(song.path)) {
@@ -793,6 +794,50 @@ class MusicRepository(private val context: Context) {
 
     fun setIsAlbumArtCropped(cropped: Boolean) = prefs.edit().putBoolean("isAlbumArtCropped", cropped).apply()
     fun getIsAlbumArtCropped(): Boolean = prefs.getBoolean("isAlbumArtCropped", false)
+
+
+    // --- Başlangıçta Otomatik Başlat (Boot Completed) ---
+    fun setStartOnBoot(enabled: Boolean) = prefs.edit().putBoolean("startOnBoot", enabled).apply()
+    fun getStartOnBoot(): Boolean = prefs.getBoolean("startOnBoot", false)
+
+    // --- Kütüphaneden Gizlenen / Çıkarılan Şarkılar ---
+    private val KEY_HIDDEN_SONGS = "hidden_songs_set"
+    fun getHiddenSongPaths(): Set<String> = prefs.getStringSet(KEY_HIDDEN_SONGS, emptySet()) ?: emptySet()
+    fun isSongHidden(path: String): Boolean = getHiddenSongPaths().contains(path)
+    fun hideSongFromLibrary(path: String) {
+        val current = getHiddenSongPaths().toMutableSet()
+        current.add(path)
+        prefs.edit().putStringSet(KEY_HIDDEN_SONGS, current).apply()
+    }
+    fun unhideSong(path: String) {
+        val current = getHiddenSongPaths().toMutableSet()
+        current.remove(path)
+        prefs.edit().putStringSet(KEY_HIDDEN_SONGS, current).apply()
+    }
+    fun clearHiddenSongs() {
+        prefs.edit().remove(KEY_HIDDEN_SONGS).apply()
+    }
+    fun getHiddenSongsCount(): Int = getHiddenSongPaths().size
+
+    suspend fun hideSongFromLibrary(song: Song): Boolean = withContext(Dispatchers.IO) {
+        try {
+            hideSongFromLibrary(song.path)
+            dbHelper.deleteSong(song.path)
+
+            val favs = getFavoritePaths().toMutableSet()
+            if (favs.contains(song.path)) {
+                favs.remove(song.path)
+                prefs.edit().putStringSet(KEY_FAVORITES, favs).apply()
+            }
+            if (getLastPlayedPath() == song.path) {
+                prefs.edit().remove(KEY_LAST_PATH).apply()
+            }
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
 
     fun setStopOnTaskRemoved(stop: Boolean) = prefs.edit().putBoolean("stopOnTaskRemoved", stop).apply()
     fun getStopOnTaskRemoved(): Boolean = prefs.getBoolean("stopOnTaskRemoved", true)
