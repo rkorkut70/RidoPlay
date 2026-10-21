@@ -1,9 +1,9 @@
 {
-  "versionCode": 32,
-  "versionName": "4.8",
+  "versionCode": 33,
+  "versionName": "4.9",
   "minSupportedVersion": 1,
   "releaseDate": "2026-10-21",
-  "changelog": "• 'Sanatçı Modu' (Bu Sanatçıdan Daha Fazla Dinle) özelliği eklendi:\n  1. Çalan şarkıda Sanatçı ismine dokunarak tek tıkla sanatçı karışımı başlatma,\n  2. Albüm kapağı altındaki Favori butonunun yanındaki 3D '🎙️' kokpit butonu,\n  3. Şarkılara basılı tutulunca açılan işlem menüsünde 'Bu Sanatçıdan Daha Fazla Dinle' seçeneği.\n• Sanatçı modu etkinleştirildiğinde çalan şarkı kesilmeden sanatçının tüm şarkıları karıştırılarak sıraya alınır.",
+  "changelog": "• 'Sanatçı Modu' geçişli (aç/kapat) hale getirildi: Aktifken aynı 🎙️ simgesine tekrar basıldığında mod iptal edilir ve önceki çalma sırası parça kesilmeden geri yüklenir.\n• Sanatçı modu aktif olduğunda butonlar ve sanatçı etiketi neon vurguyla açık olduğunu gösterir.",
   "playStoreUrl": "https://play.google.com/store/apps/details?id=com.ridoplay.music",
   "downloadUrl": "https://github.com/rkorkut70/RidoPlay/releases/latest"
 }

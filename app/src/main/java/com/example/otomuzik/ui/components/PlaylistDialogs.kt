@@ -216,6 +216,7 @@ fun SongactionDialog(
     onaddToQueue: () -> Unit,
     onToggleFavorite: () -> Unit,
     onPlayMoreFromArtist: (() -> Unit)? = null,
+    isArtistModeActive: Boolean = false,
     onSetAsRingtone: (() -> Unit)? = null,
     onRemoveFromLibrary: () -> Unit = {},
     onDeletePhysicalFile: () -> Unit = {},
@@ -542,10 +543,10 @@ fun SongactionDialog(
                         Spacer(modifier = Modifier.height(8.dp))
                         CaractionMenuButton(
                             iconText = "🎙️",
-                            title = "Bu Sanatçıdan Daha Fazla Dinle",
-                            subtitle = "${song.artist} şarkılarını sıraya al ve aralıksız dinle",
-                            accentColor = CarCyan,
-                            isPrimary = true,
+                            title = if (isArtistModeActive) "Sanatçı Modunu Kapat" else "Bu Sanatçıdan Daha Fazla Dinle",
+                            subtitle = if (isArtistModeActive) "${song.artist} modunu kapatıp önceki çalma sırasına dön" else "${song.artist} şarkılarını sıraya al ve aralıksız dinle",
+                            accentColor = if (isArtistModeActive) CarAmber else CarCyan,
+                            isPrimary = !isArtistModeActive,
                             onClick = {
                                 onDismiss()
                                 onPlayMoreFromArtist()

@@ -53,6 +53,7 @@ fun MainScreen(
 ) {
     val playerState by viewModel.playerState.collectAsStateWithLifecycle()
     val activeTab by viewModel.activeTab.collectAsStateWithLifecycle()
+    val activeArtistMode by viewModel.activeArtistMode.collectAsStateWithLifecycle()
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val filteredSongs by viewModel.filteredSongs.collectAsStateWithLifecycle()
     val favoriteSongs by viewModel.favoriteSongs.collectAsStateWithLifecycle()
@@ -217,6 +218,7 @@ fun MainScreen(
                             onToggleCoverLyrics = { viewModel.toggleCoverLyrics() },
                             onToggleFavorite = { playerState.currentSong?.let { viewModel.toggleFavorite(it) } },
                             onPlayMoreFromArtist = { playerState.currentSong?.let { viewModel.playMoreFromArtist(it.artist, it) } },
+                            isArtistModeActive = activeArtistMode != null && (currentSongId3?.artist ?: playerState.currentSong?.artist)?.trim()?.equals(activeArtistMode, ignoreCase = true) == true,
                             onOpenEqualizer = { viewModel.openEqualizerDialog() },
                             onOpenId3Info = { viewModel.openId3Dialog() },
                             onOpenLyrics = { viewModel.openLyricsDialog() },
@@ -415,6 +417,7 @@ fun MainScreen(
                             onToggleCoverLyrics = { viewModel.toggleCoverLyrics() },
                             onToggleFavorite = { playerState.currentSong?.let { viewModel.toggleFavorite(it) } },
                             onPlayMoreFromArtist = { playerState.currentSong?.let { viewModel.playMoreFromArtist(it.artist, it) } },
+                            isArtistModeActive = activeArtistMode != null && (currentSongId3?.artist ?: playerState.currentSong?.artist)?.trim()?.equals(activeArtistMode, ignoreCase = true) == true,
                             onOpenEqualizer = { viewModel.openEqualizerDialog() },
                             onOpenId3Info = { viewModel.openId3Dialog() },
                             onOpenLyrics = { viewModel.openLyricsDialog() },
@@ -531,6 +534,7 @@ fun MainScreen(
                 onaddToQueue = { viewModel.AddSongToQueue(song) },
                 onToggleFavorite = { viewModel.toggleFavorite(song) },
                 onPlayMoreFromArtist = { viewModel.playMoreFromArtist(song.artist, song) },
+                isArtistModeActive = activeArtistMode != null && song.artist.trim().equals(activeArtistMode, ignoreCase = true),
                 onSetAsRingtone = { com.example.otomuzik.util.RingtoneHelper.setAsRingtone(context, song) },
                 onRemoveFromLibrary = { viewModel.hideSongFromLibrary(song) },
                 onDeletePhysicalFile = { viewModel.deleteSong(song) },

@@ -126,6 +126,7 @@ fun SwipeableCoverandInfo(
     isFavorite: Boolean = false,
     onToggleFavorite: () -> Unit = {},
     onPlayMoreFromArtist: (() -> Unit)? = null,
+    isArtistModeActive: Boolean = false,
     onToggleCoverLyrics: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -476,7 +477,15 @@ fun SwipeableCoverandInfo(
                         if (onPlayMoreFromArtist != null && songartist.isNotBlank() && songartist != "Bilinmeyen Sanatçı") {
                             IconButton(
                                 onClick = onPlayMoreFromArtist,
-                                modifier = Modifier.size(if (isCompact) 34.dp else 40.dp)
+                                modifier = Modifier
+                                    .size(if (isCompact) 34.dp else 40.dp)
+                                    .clip(CircleShape)
+                                    .background(if (isArtistModeActive) accentColor.copy(alpha = 0.35f) else Color(0x22FFFFFF))
+                                    .border(
+                                        width = if (isArtistModeActive) 1.5.dp else 1.dp,
+                                        color = if (isArtistModeActive) accentColor else CarBorder,
+                                        shape = CircleShape
+                                    )
                             ) {
                                 Text(
                                     text = "🎙️",
@@ -507,18 +516,20 @@ fun SwipeableCoverandInfo(
                             .then(
                                 if (onPlayMoreFromArtist != null && songartist.isNotBlank() && songartist != "Bilinmeyen Sanatçı") {
                                     Modifier
-                                        .background(Color(0x2200E5FF))
-                                        .border(1.dp, Color(0x4400E5FF), RoundedCornerShape(8.dp))
+                                        .background(if (isArtistModeActive) accentColor.copy(alpha = 0.25f) else Color(0x2200E5FF))
+                                        .border(1.dp, if (isArtistModeActive) accentColor else Color(0x4400E5FF), RoundedCornerShape(8.dp))
                                         .clickable { onPlayMoreFromArtist() }
                                         .padding(horizontal = 8.dp, vertical = 2.dp)
                                 } else Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
                             )
                     ) {
                         Text(
-                            text = if (onPlayMoreFromArtist != null && songartist.isNotBlank() && songartist != "Bilinmeyen Sanatçı") "🎙️ $songartist" else songartist,
+                            text = if (onPlayMoreFromArtist != null && songartist.isNotBlank() && songartist != "Bilinmeyen Sanatçı") {
+                                if (isArtistModeActive) "🎙️ $songartist • Açık" else "🎙️ $songartist"
+                            } else songartist,
                             fontSize = if (isCompact) 13.sp else 16.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = Color.White.copy(alpha = 0.95f),
+                            color = if (isArtistModeActive) accentColor else Color.White.copy(alpha = 0.95f),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             textAlign = TextAlign.Center
@@ -885,7 +896,15 @@ fun SwipeableCoverandInfo(
                     if (onPlayMoreFromArtist != null && songartist.isNotBlank() && songartist != "Bilinmeyen Sanatçı") {
                         IconButton(
                             onClick = onPlayMoreFromArtist,
-                            modifier = Modifier.size(if (isCompact) 34.dp else 40.dp)
+                            modifier = Modifier
+                                .size(if (isCompact) 34.dp else 40.dp)
+                                .clip(CircleShape)
+                                .background(if (isArtistModeActive) accentColor.copy(alpha = 0.35f) else Color(0x22FFFFFF))
+                                .border(
+                                    width = if (isArtistModeActive) 1.5.dp else 1.dp,
+                                    color = if (isArtistModeActive) accentColor else CarBorder,
+                                    shape = CircleShape
+                                )
                         ) {
                             Text(
                                 text = "🎙️",
@@ -916,18 +935,20 @@ fun SwipeableCoverandInfo(
                         .then(
                             if (onPlayMoreFromArtist != null && songartist.isNotBlank() && songartist != "Bilinmeyen Sanatçı") {
                                 Modifier
-                                    .background(CarSurfaceVariant)
-                                    .border(1.dp, CarBorder, RoundedCornerShape(8.dp))
+                                    .background(if (isArtistModeActive) accentColor.copy(alpha = 0.25f) else CarSurfaceVariant)
+                                    .border(1.dp, if (isArtistModeActive) accentColor else CarBorder, RoundedCornerShape(8.dp))
                                     .clickable { onPlayMoreFromArtist() }
                                     .padding(horizontal = 8.dp, vertical = 2.dp)
                             } else Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
                         )
                 ) {
                     Text(
-                        text = if (onPlayMoreFromArtist != null && songartist.isNotBlank() && songartist != "Bilinmeyen Sanatçı") "🎙️ $songartist" else songartist,
+                        text = if (onPlayMoreFromArtist != null && songartist.isNotBlank() && songartist != "Bilinmeyen Sanatçı") {
+                            if (isArtistModeActive) "🎙️ $songartist • Açık" else "🎙️ $songartist"
+                        } else songartist,
                         fontSize = if (isCompact) 13.sp else 16.sp,
                         fontWeight = FontWeight.Medium,
-                        color = CarTextSecondary,
+                        color = if (isArtistModeActive) accentColor else CarTextSecondary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         textAlign = TextAlign.Center

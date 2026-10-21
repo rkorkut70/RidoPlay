@@ -110,6 +110,7 @@ fun PhoneNowPlayingSheet(
     onToggleRepeat: () -> Unit,
     onToggleFavorite: () -> Unit,
     onPlayMoreFromArtist: (() -> Unit)? = null,
+    isArtistModeActive: Boolean = false,
     onOpenLyrics: () -> Unit,
     onOpenEqualizer: () -> Unit,
     onOpenId3Info: () -> Unit,
@@ -1015,10 +1016,10 @@ fun PhoneNowPlayingSheet(
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "🎙️ ${com.example.otomuzik.util.TurkishStringFixer.fix(song.artist)} • ${com.example.otomuzik.util.TurkishStringFixer.fix(song.album)}",
+                            text = if (isArtistModeActive) "🎙️ ${com.example.otomuzik.util.TurkishStringFixer.fix(song.artist)} • Açık" else "🎙️ ${com.example.otomuzik.util.TurkishStringFixer.fix(song.artist)} • ${com.example.otomuzik.util.TurkishStringFixer.fix(song.album)}",
                             fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = if (onPlayMoreFromArtist != null) accentColor.copy(alpha = 0.95f) else Color(0xFFA5B0C2),
+                            fontWeight = if (isArtistModeActive) FontWeight.Bold else FontWeight.Medium,
+                            color = if (isArtistModeActive) accentColor else if (onPlayMoreFromArtist != null) accentColor.copy(alpha = 0.95f) else Color(0xFFA5B0C2),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             modifier = if (onPlayMoreFromArtist != null) {
@@ -1036,7 +1037,13 @@ fun PhoneNowPlayingSheet(
                                 onClick = onPlayMoreFromArtist,
                                 modifier = Modifier
                                     .size(48.dp)
-                                    .background(CarSurfaceDark, CircleShape)
+                                    .clip(CircleShape)
+                                    .background(if (isArtistModeActive) accentColor.copy(alpha = 0.35f) else CarSurfaceDark)
+                                    .border(
+                                        width = if (isArtistModeActive) 2.dp else 1.dp,
+                                        color = if (isArtistModeActive) accentColor else CarBorder,
+                                        shape = CircleShape
+                                    )
                             ) {
                                 Text(text = "🎙️", fontSize = 20.sp)
                             }

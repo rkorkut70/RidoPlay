@@ -79,6 +79,7 @@ fun PhoneMiniPlayer(
     onPrevious: () -> Unit = {},
     onToggleFavorite: () -> Unit,
     onPlayMoreFromArtist: (() -> Unit)? = null,
+    isArtistModeActive: Boolean = false,
     onClick: () -> Unit,
     swipeSensitivity: String = "HIGH",
     modifier: Modifier = Modifier
@@ -277,10 +278,10 @@ fun PhoneMiniPlayer(
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = "🎙️ " + com.example.otomuzik.util.TurkishStringFixer.fix(currentSong.artist),
-                        color = if (onPlayMoreFromArtist != null) accentColor.copy(alpha = 0.9f) else Color(0xFFA5B0C2),
+                        text = if (isArtistModeActive) "🎙️ " + com.example.otomuzik.util.TurkishStringFixer.fix(currentSong.artist) + " • Açık" else "🎙️ " + com.example.otomuzik.util.TurkishStringFixer.fix(currentSong.artist),
+                        color = if (isArtistModeActive) accentColor else if (onPlayMoreFromArtist != null) accentColor.copy(alpha = 0.9f) else Color(0xFFA5B0C2),
                         fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
+                        fontWeight = if (isArtistModeActive) FontWeight.Bold else FontWeight.Medium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = if (onPlayMoreFromArtist != null) {
@@ -293,7 +294,15 @@ fun PhoneMiniPlayer(
                 if (onPlayMoreFromArtist != null && currentSong.artist.isNotBlank() && currentSong.artist != "Bilinmeyen Sanatçı") {
                     IconButton(
                         onClick = onPlayMoreFromArtist,
-                        modifier = Modifier.size(36.dp)
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(if (isArtistModeActive) accentColor.copy(alpha = 0.35f) else Color.Transparent)
+                            .border(
+                                width = if (isArtistModeActive) 1.5.dp else 0.dp,
+                                color = if (isArtistModeActive) accentColor else Color.Transparent,
+                                shape = CircleShape
+                            )
                     ) {
                         Text(
                             text = "🎙️",

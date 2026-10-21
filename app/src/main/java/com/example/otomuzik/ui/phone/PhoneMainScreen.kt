@@ -96,6 +96,7 @@ fun PhoneMainScreen(
     val filteredSongs by viewModel.filteredSongs.collectAsStateWithLifecycle()
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val activeTab by viewModel.activeTab.collectAsStateWithLifecycle()
+    val activeArtistMode by viewModel.activeArtistMode.collectAsStateWithLifecycle()
     val storageRoots by viewModel.storageRoots.collectAsStateWithLifecycle()
     val currentFolderPath by viewModel.currentFolderPath.collectAsStateWithLifecycle()
     val currentFolderItems by viewModel.currentFolderItems.collectAsStateWithLifecycle()
@@ -549,6 +550,7 @@ fun PhoneMainScreen(
                     onPrevious = { viewModel.playPrevious() },
                     onToggleFavorite = { viewModel.toggleFavorite(currentSong) },
                     onPlayMoreFromArtist = { viewModel.playMoreFromArtist(currentSong.artist, currentSong) },
+                    isArtistModeActive = activeArtistMode != null && currentSong.artist.trim().equals(activeArtistMode, ignoreCase = true),
                     onClick = { showFullscreenPlayer = true },
                     swipeSensitivity = swipeSensitivity
                 )
@@ -579,6 +581,7 @@ fun PhoneMainScreen(
                 onToggleRepeat = { viewModel.toggleRepeatMode() },
                 onToggleFavorite = { viewModel.toggleFavorite(currentSong) },
                 onPlayMoreFromArtist = { viewModel.playMoreFromArtist(currentSong.artist, currentSong) },
+                isArtistModeActive = activeArtistMode != null && currentSong.artist.trim().equals(activeArtistMode, ignoreCase = true),
                 onOpenLyrics = { viewModel.openLyricsDialog() },
                 onOpenEqualizer = { viewModel.openEqualizerDialog() },
                 onOpenId3Info = { viewModel.openId3Dialog() },
@@ -615,6 +618,7 @@ fun PhoneMainScreen(
                 onaddToQueue = { viewModel.AddSongToQueue(song) },
                 onToggleFavorite = { viewModel.toggleFavorite(song) },
                 onPlayMoreFromArtist = { viewModel.playMoreFromArtist(song.artist, song) },
+                isArtistModeActive = activeArtistMode != null && song.artist.trim().equals(activeArtistMode, ignoreCase = true),
                 onSetAsRingtone = { RingtoneHelper.setAsRingtone(context, song) },
                 onRemoveFromLibrary = { viewModel.hideSongFromLibrary(song) },
                 onDeletePhysicalFile = { viewModel.deleteSong(song) },

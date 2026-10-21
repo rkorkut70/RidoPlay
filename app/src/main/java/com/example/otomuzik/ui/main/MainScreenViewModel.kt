@@ -39,6 +39,11 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
     private val _activeTab = MutableStateFlow(TabType.HOME)
     val activeTab: StateFlow<TabType> = _activeTab.asStateFlow()
 
+    private val _activeArtistMode = MutableStateFlow<String?>(null)
+    val activeArtistMode: StateFlow<String?> = _activeArtistMode.asStateFlow()
+
+    private var savedQueueBeforeArtistMode: List<Song>? = null
+
     private val _allSongs = MutableStateFlow<List<Song>>(emptyList())
     val allSongs: StateFlow<List<Song>> = _allSongs.asStateFlow()
 
@@ -1136,6 +1141,8 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
     fun playallSongs() {
         val songs = _allSongs.value
         if (songs.isNotEmpty()) {
+            _activeArtistMode.value = null
+            savedQueueBeforeArtistMode = null
             MusicController.setQueue(songs, 0, autoPlay = true)
             _activeTab.value = TabType.HOME
             _isQueueVisible.value = false
@@ -1204,6 +1211,8 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
             try {
                 val songs = repository.getAllSongsInDirectory(folderPath)
                 if (songs.isNotEmpty()) {
+                    _activeArtistMode.value = null
+                    savedQueueBeforeArtistMode = null
                     MusicController.setQueue(songs, 0, autoPlay = true)
                     _isQueueVisible.value = false
                 }
@@ -1216,6 +1225,8 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
     fun playSongFromList(song: Song, List: List<Song>) {
         val index = List.indexOfFirst { it.path == song.path || (it.id != 0L && it.id == song.id) }
         val startIdx = if (index != -1) index else 0
+        _activeArtistMode.value = null
+        savedQueueBeforeArtistMode = null
         MusicController.setQueue(List, startIdx, autoPlay = true)
         _isQueueVisible.value = false
     }
@@ -1223,6 +1234,8 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
     fun playFavorites() {
         val songs = favoriteSongs.value
         if (songs.isNotEmpty()) {
+            _activeArtistMode.value = null
+            savedQueueBeforeArtistMode = null
             MusicController.setQueue(songs, 0, autoPlay = true)
             _isQueueVisible.value = false
         }
@@ -1249,6 +1262,26 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
             return
         }
 
+        // Eğer bu sanatçı için Sanatçı Modu zaten aktifse -> İPTAL ET (KAPAT)
+        if (_activeArtistMode.value?.equals(cleanArtist, ignoreCase = true) == true) {
+            val playingSong = playerState.value.currentSong
+            val originalQueue = savedQueueBeforeArtistMode ?: _allSongs.value
+            _activeArtistMode.value = null
+            savedQueueBeforeArtistMode = null
+
+            if (playingSong != null && originalQueue.isNotEmpty()) {
+                val targetSong = if (originalQueue.any { it.path == playingSong.path }) playingSong else originalQueue.first()
+                if (playerState.value.isPlaying) {
+                    MusicController.replaceQueueKeepCurrent(originalQueue, targetSong)
+                } else {
+                    val idx = originalQueue.indexOfFirst { it.path == targetSong.path }.coerceAtLeast(0)
+                    MusicController.setQueue(originalQueue, startIndex = idx, autoPlay = false)
+                }
+            }
+            android.widget.Toast.makeText(app, "🎙️ $cleanArtist Modu Kapatıldı", android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
+
         val all = _allSongs.value
         val artistSongs = all.filter { song ->
             val a = song.artist.trim()
@@ -1261,6 +1294,13 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
             android.widget.Toast.makeText(app, "Kütüphanede $cleanArtist sanatçısına ait şarkı bulunamadı", android.widget.Toast.LENGTH_SHORT).show()
             return
         }
+
+        // Önceki sırayı yedekle
+        if (savedQueueBeforeArtistMode == null) {
+            val currentQ = playerState.value.currentQueue
+            savedQueueBeforeArtistMode = if (currentQ.isNotEmpty()) currentQ else all
+        }
+        _activeArtistMode.value = cleanArtist
 
         val playingSong = playerState.value.currentSong
         val targetFirstSong = triggerSong ?: playingSong ?: artistSongs.first()
@@ -1396,6 +1436,8 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
             try {
                 val songs = repository.getSongsForPlaylist(Playlist.id)
                 if (songs.isNotEmpty()) {
+                    _activeArtistMode.value = null
+                    savedQueueBeforeArtistMode = null
                     MusicController.setQueue(songs, 0, autoPlay = true)
                     _isQueueVisible.value = false
                 }
