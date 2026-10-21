@@ -5,8 +5,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -20,18 +20,19 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.otomuzik.model.Song
 import com.example.otomuzik.theme.CarSurfaceDark
 import com.example.otomuzik.theme.CarTextMuted
+import com.example.otomuzik.util.SongSortHelper
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
  * Şarkı ve kütüphane listelerinde alfabetik hızlı zıplama ve kaydırma sağlayan dikey indeks çubuğu.
+ * Dokunulduğunda doğrudan ilgili harfle başlayan ilk şarkıya anında atlar.
  */
 @Composable
 fun AlphabetFastScroller(
@@ -45,18 +46,13 @@ fun AlphabetFastScroller(
 
     val coroutineScope = rememberCoroutineScope()
     var selectedLetter by remember { mutableStateOf<Char?>(null) }
-    var isDragging by remember { mutableStateOf(false) }
+    var isInteracting by remember { mutableStateOf(false) }
 
     // Şarkılardan harf -> ilk indeks haritası
-    val letterMap = remember(songs) {
+    val letterMap = remember(songs, headerOffset) {
         val map = linkedMapOf<Char, Int>()
         songs.forEachIndexed { index, song ->
-            val title = song.title.trim()
-            val firstChar = title.firstOrNull()?.uppercaseChar() ?: '#'
-            val letter = when (firstChar) {
-                in 'A'..'Z', 'Ç', 'Ğ', 'İ', 'I', 'Ö', 'Ş', 'Ü' -> firstChar
-                else -> '#'
-            }
+            val letter = SongSortHelper.getFirstLetter(song.title)
             if (!map.containsKey(letter)) {
                 map[letter] = index + headerOffset
             }
@@ -64,15 +60,15 @@ fun AlphabetFastScroller(
         map
     }
 
-    val letters = remember(letterMap) { letterMap.keys.toList() }
+    val letters = remember(letterMap) {
+        SongSortHelper.ALPHABET_ORDER.filter { letterMap.containsKey(it) }
+    }
     if (letters.size < 2) return
 
-    var columnHeightPx by remember { mutableFloatStateOf(1f) }
-
-    // Kaydırma bittiğinde baloncuk bir süre sonra sönsün
-    LaunchedEffect(isDragging) {
-        if (!isDragging) {
-            delay(500)
+    // Dokunma / kaydırma bittiğinde baloncuk bir süre sonra sönsün
+    LaunchedEffect(isInteracting) {
+        if (!isInteracting) {
+            delay(600)
             selectedLetter = null
         }
     }
@@ -83,27 +79,27 @@ fun AlphabetFastScroller(
     ) {
         // 1. Ortada çıkan büyük harf önizleme baloncuğu
         AnimatedVisibility(
-            visible = isDragging && selectedLetter != null,
+            visible = selectedLetter != null,
             enter = fadeIn(),
             exit = fadeOut(),
-            modifier = Modifier.padding(end = 40.dp)
+            modifier = Modifier.padding(end = 46.dp)
         ) {
             Box(
                 modifier = Modifier
-                    .size(64.dp)
-                    .shadow(12.dp, CircleShape)
+                    .size(68.dp)
+                    .shadow(16.dp, CircleShape)
                     .clip(CircleShape)
                     .background(
                         Brush.radialGradient(
                             listOf(accentColor, CarSurfaceDark)
                         )
                     )
-                    .border(2.dp, Color.White.copy(alpha = 0.8f), CircleShape),
+                    .border(2.dp, Color.White.copy(alpha = 0.85f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = (selectedLetter ?: ' ').toString(),
-                    fontSize = 32.sp,
+                    fontSize = 34.sp,
                     fontWeight = FontWeight.Black,
                     color = Color.White
                 )
@@ -113,83 +109,65 @@ fun AlphabetFastScroller(
         // 2. Sağ kenardaki alfabetik dikey şerit
         Column(
             modifier = Modifier
-                .width(26.dp)
+                .width(28.dp)
+                .fillMaxHeight()
                 .clip(RoundedCornerShape(14.dp))
-                .background(Color(0xFF0F141C).copy(alpha = 0.82f))
+                .background(Color(0xFF0F141C).copy(alpha = 0.88f))
+                .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(14.dp))
                 .padding(vertical = 4.dp)
-                .onGloballyPositioned {
-                    columnHeightPx = it.size.height.toFloat().coerceAtLeast(1f)
-                }
-                .pointerInput(letters) {
-                    val onLetterTouch = { y: Float ->
-                        val itemHeight = columnHeightPx / letters.size
-                        val index = (y / itemHeight).toInt().coerceIn(0, letters.lastIndex)
-                        val letter = letters[index]
-                        selectedLetter = letter
-                        isDragging = true
-                        letterMap[letter]?.let { targetIndex ->
-                            coroutineScope.launch {
-                                listState.scrollToItem(targetIndex)
-                            }
-                        }
-                    }
+                .pointerInput(letters, letterMap, headerOffset) {
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
 
-                    detectTapGestures(
-                        onPress = { offset ->
-                            onLetterTouch(offset.y)
-                            tryAwaitRelease()
-                            isDragging = false
-                        }
-                    )
-                }
-                .pointerInput(letters) {
-                    detectDragGestures(
-                        onDragStart = { offset ->
-                            val itemHeight = columnHeightPx / letters.size
-                            val index = (offset.y / itemHeight).toInt().coerceIn(0, letters.lastIndex)
+                        fun jumpToLetterAt(y: Float) {
+                            if (letters.isEmpty()) return
+                            val itemHeight = size.height.toFloat() / letters.size
+                            val index = (y / itemHeight).toInt().coerceIn(0, letters.lastIndex)
                             val letter = letters[index]
-                            selectedLetter = letter
-                            isDragging = true
-                            letterMap[letter]?.let { targetIndex ->
-                                coroutineScope.launch {
-                                    listState.scrollToItem(targetIndex)
-                                }
-                            }
-                        },
-                        onDrag = { change, _ ->
-                            change.consume()
-                            val itemHeight = columnHeightPx / letters.size
-                            val index = (change.position.y / itemHeight).toInt().coerceIn(0, letters.lastIndex)
-                            val letter = letters[index]
-                            if (selectedLetter != letter) {
+                            if (selectedLetter != letter || !isInteracting) {
                                 selectedLetter = letter
+                                isInteracting = true
                                 letterMap[letter]?.let { targetIndex ->
                                     coroutineScope.launch {
-                                        listState.scrollToItem(targetIndex)
+                                        val scrollPos = if (targetIndex <= headerOffset) 0 else targetIndex
+                                        listState.scrollToItem(scrollPos)
                                     }
                                 }
                             }
-                        },
-                        onDragEnd = {
-                            isDragging = false
-                        },
-                        onDragCancel = {
-                            isDragging = false
                         }
-                    )
+
+                        // İlk dokunmada anında ilgili harfe zıpla
+                        jumpToLetterAt(down.position.y)
+                        down.consume()
+
+                        // Kaydırma boyunca harfleri gerçek zamanlı takip et
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            val currentChange = event.changes.firstOrNull { it.id == down.id } ?: break
+                            if (!currentChange.pressed) break
+                            currentChange.consume()
+                            jumpToLetterAt(currentChange.position.y)
+                        }
+                        isInteracting = false
+                    }
                 },
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceEvenly
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             letters.forEach { char ->
                 val isSelected = selectedLetter == char
-                Text(
-                    text = char.toString(),
-                    fontSize = if (letters.size > 22) 9.sp else 10.5.sp,
-                    fontWeight = if (isSelected) FontWeight.Black else FontWeight.Bold,
-                    color = if (isSelected) accentColor else CarTextMuted.copy(alpha = 0.85f),
-                    modifier = Modifier.padding(vertical = 0.5.dp)
-                )
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = char.toString(),
+                        fontSize = if (letters.size > 26) 8.5.sp else if (letters.size > 20) 9.5.sp else 11.sp,
+                        fontWeight = if (isSelected) FontWeight.Black else FontWeight.Bold,
+                        color = if (isSelected) accentColor else CarTextMuted.copy(alpha = 0.85f)
+                    )
+                }
             }
         }
     }

@@ -130,7 +130,7 @@ class MusicDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
     }
 
     /**
-     * Kütüphanedeki tüm şarkıları başlığa göre sıralı döner.
+     * Kütüphanedeki tüm şarkıları Türkçe alfabe düzenine göre sıralı döner.
      */
     fun getAllSongs(): List<Song> {
         val list = mutableListOf<Song>()
@@ -141,7 +141,7 @@ class MusicDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
                 list.add(cursorToSong(it))
             }
         }
-        return list
+        return com.example.otomuzik.util.SongSortHelper.sortSongs(list)
     }
 
     /**

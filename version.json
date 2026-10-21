@@ -1,9 +1,9 @@
 {
-  "versionCode": 33,
-  "versionName": "4.9",
+  "versionCode": 34,
+  "versionName": "5.0",
   "minSupportedVersion": 1,
   "releaseDate": "2026-10-21",
-  "changelog": "• 'Sanatçı Modu' geçişli (aç/kapat) hale getirildi: Aktifken aynı 🎙️ simgesine tekrar basıldığında mod iptal edilir ve önceki çalma sırası parça kesilmeden geri yüklenir.\n• Sanatçı modu aktif olduğunda butonlar ve sanatçı etiketi neon vurguyla açık olduğunu gösterir.",
+  "changelog": "• Şarkılar listesindeki dikey alfabetik hızlı kaydırma (fast-scroller) çubuğu tamamen yenilendi: Dokunulan veya kaydırılan harfin ilk şarkısına anında ve doğrudan zıplama sağlandı.\n• Türkçe karakterler (Ç, Ğ, I, İ, Ö, Ş, Ü) ve parça numarası ön ekleri ('01 - ', '02. ') için akıllı alfabetik indeksleme ve sıralama eklendi.\n• Harfe basıldığında net görsel önizleme baloncuğu ve pürüzsüz dokunma tepkisi getirildi.",
   "playStoreUrl": "https://play.google.com/store/apps/details?id=com.ridoplay.music",
   "downloadUrl": "https://github.com/rkorkut70/RidoPlay/releases/latest"
 }

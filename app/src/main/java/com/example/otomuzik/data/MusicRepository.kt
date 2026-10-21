@@ -457,7 +457,7 @@ class MusicRepository(private val context: Context) {
         }
 
         scanDir(folder)
-        val sorted = result.sortedBy { it.title.lowercase(Locale.ROOT) }
+        val sorted = com.example.otomuzik.util.SongSortHelper.sortSongs(result)
         if (sorted.isNotEmpty()) {
             dbHelper.saveSongs(sorted)
         }

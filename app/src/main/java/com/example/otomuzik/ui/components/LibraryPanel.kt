@@ -2305,7 +2305,7 @@ internal fun SongListView(
                 state = listState,
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(end = if (songs.size >= 12) 30.dp else 0.dp),
+                    .padding(end = if (songs.size >= 12) 32.dp else 0.dp),
                 verticalArrangement = Arrangement.spacedBy(if (isCompact) 6.dp else 8.dp)
             ) {
                 item {
