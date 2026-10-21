@@ -1,9 +1,9 @@
 {
-  "versionCode": 35,
-  "versionName": "5.1",
+  "versionCode": 36,
+  "versionName": "5.2",
   "minSupportedVersion": 1,
   "releaseDate": "2026-10-22",
-  "changelog": "• Tablet versiyonu sol üst menü kapsülünden 'Çalma Listesi / Sıra' butonu kaldırıldı.\n• RidoPlay logosu ile EQ menü simgesi arasına şık 3D siyah daire butonu eklendi.\n• Siyah daireye dokunulduğunda göz almayan saf OLED 'Gece Saati / Screen Off' modu açılır: Sadece büyük dijital saati, tarihi ve çalan şarkıyı gösterir; ekrana dokunulduğunda arayüze geri döner.",
+  "changelog": "• Tablet sol panel üst barı Pusula & Piksel tasarım ilkelerine göre baştan uca optimize edildi.\n• Siyah daire butonuna araç konsoluna gömülü 3D titanyum/karbon yuva (recessed bezel) ve piyano siyahı çekirdek kazandırıldı.\n• Gece saati simgesi parlak sarı emoji yerine kristal netliğinde gümüşi neon hilal (☾) vektörel tipografisine yükseltildi.",
   "playStoreUrl": "https://play.google.com/store/apps/details?id=com.ridoplay.music",
   "downloadUrl": "https://github.com/rkorkut70/RidoPlay/releases/latest"
 }

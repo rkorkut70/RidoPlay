@@ -228,11 +228,12 @@ fun NowPlayingPanel(
                 )
 
                 // ── SİYAH DAİRE BUTONU (Ekranı Kapat / Gece Saati Modu) ──
-                // Logo ile EQ menü simgesi arasında yer alan siyah daire
-                val blackCircleSize = if (isCompact) 44.dp else 52.dp
+                // Otomotiv tarzı gömülü yuvalı (Recessed Bezel) 3D siyah buton
+                val outerBezelSize = if (isCompact) 48.dp else 56.dp
+                val innerButtonSize = if (isCompact) 36.dp else 42.dp
                 Box(
                     modifier = Modifier
-                        .size(blackCircleSize)
+                        .size(outerBezelSize)
                         .shadow(
                             elevation = 8.dp,
                             shape = CircleShape,
@@ -240,22 +241,23 @@ fun NowPlayingPanel(
                             spotColor = Color.Black
                         )
                         .clip(CircleShape)
+                        // Dış Gömülü Yuva: Derin mat titanyum & karbon eğim (Konsola gömülü hissi)
                         .background(
                             Brush.radialGradient(
-                                colors = listOf(
-                                    Color(0xFF1F2530),
-                                    Color(0xFF0C0E13),
-                                    Color.Black
+                                listOf(
+                                    Color(0xFF28303F),
+                                    Color(0xFF141822),
+                                    Color(0xFF090B0F)
                                 )
                             )
                         )
                         .border(
-                            width = 2.dp,
+                            width = 1.5.dp,
                             brush = Brush.verticalGradient(
                                 listOf(
                                     Color(0xFF4C586B),
-                                    Color(0xFF222834),
-                                    Color(0xFF0F1218)
+                                    Color(0xFF1E2430),
+                                    Color(0xFF0D1017)
                                 )
                             ),
                             shape = CircleShape
@@ -263,17 +265,39 @@ fun NowPlayingPanel(
                         .clickable { onOpenBlackScreen() },
                     contentAlignment = Alignment.Center
                 ) {
+                    // İç Buton: Parlak piyano siyahı çekirdek + ince krom LED konturu
                     Box(
                         modifier = Modifier
-                            .size(if (isCompact) 28.dp else 34.dp)
+                            .size(innerButtonSize)
+                            .shadow(4.dp, CircleShape)
                             .clip(CircleShape)
-                            .background(Color(0xFF05070A))
-                            .border(1.dp, Color.White.copy(alpha = 0.12f), CircleShape),
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(
+                                        Color(0xFF1E2430),
+                                        Color(0xFF0A0C10),
+                                        Color.Black
+                                    )
+                                )
+                            )
+                            .border(
+                                width = 1.2.dp,
+                                brush = Brush.verticalGradient(
+                                    listOf(
+                                        Color(0xFF64B5F6).copy(alpha = 0.55f),
+                                        Color(0xFF1E2838)
+                                    )
+                                ),
+                                shape = CircleShape
+                            ),
                         contentAlignment = Alignment.Center
                     ) {
+                        // Vektörel / Tipografik Minimalist Gece Ayı İkonu (Kristal netlik)
                         Text(
-                            text = "🌙",
-                            fontSize = if (isCompact) 14.sp else 17.sp
+                            text = "☾",
+                            fontSize = if (isCompact) 18.sp else 22.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFE2E8F0)
                         )
                     }
                 }

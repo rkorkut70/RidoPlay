@@ -153,7 +153,12 @@ fun NightClockScreen(
                         .padding(horizontal = 14.dp, vertical = 6.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = "🌙", fontSize = 14.sp)
+                        Text(
+                            text = "☾",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFE2E8F0)
+                        )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = "Gece Modu",

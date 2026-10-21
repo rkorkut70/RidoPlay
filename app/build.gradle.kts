@@ -14,8 +14,8 @@ android {
         applicationId = "com.ridoplay.music"
         minSdk = 24
         targetSdk = 36
-        versionCode = 35
-        versionName = "5.1"
+        versionCode = 36
+        versionName = "5.2"
     }
 
     val keystorePropertiesFile = rootProject.file("keystore.properties")
