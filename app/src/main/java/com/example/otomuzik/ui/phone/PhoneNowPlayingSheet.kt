@@ -109,6 +109,7 @@ fun PhoneNowPlayingSheet(
     onToggleShuffle: () -> Unit,
     onToggleRepeat: () -> Unit,
     onToggleFavorite: () -> Unit,
+    onPlayMoreFromArtist: (() -> Unit)? = null,
     onOpenLyrics: () -> Unit,
     onOpenEqualizer: () -> Unit,
     onOpenId3Info: () -> Unit,
@@ -1014,26 +1015,46 @@ fun PhoneNowPlayingSheet(
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "${com.example.otomuzik.util.TurkishStringFixer.fix(song.artist)} • ${com.example.otomuzik.util.TurkishStringFixer.fix(song.album)}",
+                            text = "🎙️ ${com.example.otomuzik.util.TurkishStringFixer.fix(song.artist)} • ${com.example.otomuzik.util.TurkishStringFixer.fix(song.album)}",
                             fontSize = 14.sp,
-                            color = Color(0xFFA5B0C2),
+                            fontWeight = FontWeight.Medium,
+                            color = if (onPlayMoreFromArtist != null) accentColor.copy(alpha = 0.95f) else Color(0xFFA5B0C2),
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = if (onPlayMoreFromArtist != null) {
+                                Modifier.clickable { onPlayMoreFromArtist() }
+                            } else Modifier
                         )
                     }
 
-                    IconButton(
-                        onClick = onToggleFavorite,
-                        modifier = Modifier
-                            .size(48.dp)
-                            .background(CarSurfaceDark, CircleShape)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_favorite),
-                            contentDescription = "Favori",
-                            tint = if (isFavorite) CarAmber else Color(0xFF94A3B8),
-                            modifier = Modifier.size(24.dp)
-                        )
+                        if (onPlayMoreFromArtist != null && song.artist.isNotBlank() && song.artist != "Bilinmeyen Sanatçı") {
+                            IconButton(
+                                onClick = onPlayMoreFromArtist,
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .background(CarSurfaceDark, CircleShape)
+                            ) {
+                                Text(text = "🎙️", fontSize = 20.sp)
+                            }
+                        }
+
+                        IconButton(
+                            onClick = onToggleFavorite,
+                            modifier = Modifier
+                                .size(48.dp)
+                                .background(CarSurfaceDark, CircleShape)
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_favorite),
+                                contentDescription = "Favori",
+                                tint = if (isFavorite) CarAmber else Color(0xFF94A3B8),
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
                     }
                 }
 

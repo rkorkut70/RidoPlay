@@ -215,6 +215,7 @@ fun SongactionDialog(
     onaddToPlaylist: () -> Unit,
     onaddToQueue: () -> Unit,
     onToggleFavorite: () -> Unit,
+    onPlayMoreFromArtist: (() -> Unit)? = null,
     onSetAsRingtone: (() -> Unit)? = null,
     onRemoveFromLibrary: () -> Unit = {},
     onDeletePhysicalFile: () -> Unit = {},
@@ -536,6 +537,21 @@ fun SongactionDialog(
                             onaddToQueue()
                         }
                     )
+
+                    if (onPlayMoreFromArtist != null && song.artist.isNotBlank() && song.artist != "Bilinmeyen Sanatçı") {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        CaractionMenuButton(
+                            iconText = "🎙️",
+                            title = "Bu Sanatçıdan Daha Fazla Dinle",
+                            subtitle = "${song.artist} şarkılarını sıraya al ve aralıksız dinle",
+                            accentColor = CarCyan,
+                            isPrimary = true,
+                            onClick = {
+                                onDismiss()
+                                onPlayMoreFromArtist()
+                            }
+                        )
+                    }
 
                     Spacer(modifier = Modifier.height(8.dp))
 
@@ -1024,7 +1040,8 @@ fun CreatePlaylistDialog(
  */
 @Composable
 private fun CaractionMenuButton(
-    iconRes: Int,
+    iconRes: Int? = null,
+    iconText: String? = null,
     title: String,
     subtitle: String,
     accentColor: Color,
@@ -1053,12 +1070,19 @@ private fun CaractionMenuButton(
                 .background(if (isPrimary) CarCyan else Color(0x22FFFFFF)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                painter = painterResource(id = iconRes),
-                contentDescription = null,
-                tint = if (isPrimary) Color(0xFF0C0E12) else accentColor,
-                modifier = Modifier.size(22.dp)
-            )
+            if (iconRes != null) {
+                Icon(
+                    painter = painterResource(id = iconRes),
+                    contentDescription = null,
+                    tint = if (isPrimary) Color(0xFF0C0E12) else accentColor,
+                    modifier = Modifier.size(22.dp)
+                )
+            } else if (iconText != null) {
+                Text(
+                    text = iconText,
+                    fontSize = 20.sp
+                )
+            }
         }
 
         Spacer(modifier = Modifier.width(16.dp))

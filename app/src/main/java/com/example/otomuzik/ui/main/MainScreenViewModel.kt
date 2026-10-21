@@ -1235,6 +1235,53 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
         _favoritePaths.value = updated
     }
 
+    /**
+     * "Bu Sanatçıdan Daha Çok Dinle" / Sanatçı Modu (Artist Mix/Radio)
+     * Kütüphanedeki bu sanatçıya ait tüm şarkıları bulur.
+     * Çalan şarkı zaten bu sanatçınınsa müzik kesilmeden sıradaki parçalar bu sanatçının diğer şarkılarıyla güncellenir.
+     * Başka bir şarkıdan tetiklendiyse o parça hemen başlatılır ve ardından sanatçının diğer parçaları sıraya dizilir.
+     */
+    fun playMoreFromArtist(artistName: String, triggerSong: Song? = null) {
+        val cleanArtist = artistName.trim()
+        val app = getApplication<Application>()
+        if (cleanArtist.isBlank() || cleanArtist.equals("Bilinmeyen Sanatçı", ignoreCase = true) || cleanArtist.equals("Unknown Artist", ignoreCase = true)) {
+            android.widget.Toast.makeText(app, "Geçerli bir sanatçı bilgisi bulunamadı", android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val all = _allSongs.value
+        val artistSongs = all.filter { song ->
+            val a = song.artist.trim()
+            a.equals(cleanArtist, ignoreCase = true) ||
+            a.contains(cleanArtist, ignoreCase = true) ||
+            cleanArtist.contains(a, ignoreCase = true)
+        }.distinctBy { it.path }
+
+        if (artistSongs.isEmpty()) {
+            android.widget.Toast.makeText(app, "Kütüphanede $cleanArtist sanatçısına ait şarkı bulunamadı", android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val playingSong = playerState.value.currentSong
+        val targetFirstSong = triggerSong ?: playingSong ?: artistSongs.first()
+
+        val otherSongs = artistSongs.filter { it.path != targetFirstSong.path }.shuffled()
+        val finalQueue = listOf(targetFirstSong) + otherSongs
+
+        if (playingSong != null && playingSong.path == targetFirstSong.path && playerState.value.isPlaying) {
+            MusicController.replaceQueueKeepCurrent(finalQueue, targetFirstSong)
+        } else {
+            MusicController.setQueue(finalQueue, startIndex = 0, autoPlay = true)
+        }
+        _isQueueVisible.value = false
+
+        android.widget.Toast.makeText(
+            app,
+            "🎙️ $cleanArtist Modu Aktif (${artistSongs.size} şarkı)",
+            android.widget.Toast.LENGTH_SHORT
+        ).show()
+    }
+
     // --- Klasr ve Şarkı Context Menü İşlemileri ---
     fun openFolderContext(folderItem: FolderItem) {
         _folderContextItem.value = folderItem

@@ -548,6 +548,7 @@ fun PhoneMainScreen(
                     onNext = { viewModel.playNext() },
                     onPrevious = { viewModel.playPrevious() },
                     onToggleFavorite = { viewModel.toggleFavorite(currentSong) },
+                    onPlayMoreFromArtist = { viewModel.playMoreFromArtist(currentSong.artist, currentSong) },
                     onClick = { showFullscreenPlayer = true },
                     swipeSensitivity = swipeSensitivity
                 )
@@ -577,6 +578,7 @@ fun PhoneMainScreen(
                 onToggleShuffle = { viewModel.toggleShuffle() },
                 onToggleRepeat = { viewModel.toggleRepeatMode() },
                 onToggleFavorite = { viewModel.toggleFavorite(currentSong) },
+                onPlayMoreFromArtist = { viewModel.playMoreFromArtist(currentSong.artist, currentSong) },
                 onOpenLyrics = { viewModel.openLyricsDialog() },
                 onOpenEqualizer = { viewModel.openEqualizerDialog() },
                 onOpenId3Info = { viewModel.openId3Dialog() },
@@ -612,6 +614,7 @@ fun PhoneMainScreen(
                 onaddToPlaylist = { viewModel.openaddToPlaylistDialogForSong(song) },
                 onaddToQueue = { viewModel.AddSongToQueue(song) },
                 onToggleFavorite = { viewModel.toggleFavorite(song) },
+                onPlayMoreFromArtist = { viewModel.playMoreFromArtist(song.artist, song) },
                 onSetAsRingtone = { RingtoneHelper.setAsRingtone(context, song) },
                 onRemoveFromLibrary = { viewModel.hideSongFromLibrary(song) },
                 onDeletePhysicalFile = { viewModel.deleteSong(song) },

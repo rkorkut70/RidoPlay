@@ -125,6 +125,7 @@ fun SwipeableCoverandInfo(
     lyricsFontSize: String = "LARGE",
     isFavorite: Boolean = false,
     onToggleFavorite: () -> Unit = {},
+    onPlayMoreFromArtist: (() -> Unit)? = null,
     onToggleCoverLyrics: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -472,6 +473,17 @@ fun SwipeableCoverandInfo(
                             modifier = Modifier.weight(1f, fill = false)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
+                        if (onPlayMoreFromArtist != null && songartist.isNotBlank() && songartist != "Bilinmeyen Sanatçı") {
+                            IconButton(
+                                onClick = onPlayMoreFromArtist,
+                                modifier = Modifier.size(if (isCompact) 34.dp else 40.dp)
+                            ) {
+                                Text(
+                                    text = "🎙️",
+                                    fontSize = if (isCompact) 18.sp else 22.sp
+                                )
+                            }
+                        }
                         IconButton(
                             onClick = onToggleFavorite,
                             modifier = Modifier.size(if (isCompact) 34.dp else 40.dp)
@@ -487,16 +499,31 @@ fun SwipeableCoverandInfo(
 
                     Spacer(modifier = Modifier.height(if (isCompact) 2.dp else 4.dp))
 
-                    Text(
-                        text = songartist,
-                        fontSize = if (isCompact) 13.sp else 16.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color.White.copy(alpha = 0.85f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .then(
+                                if (onPlayMoreFromArtist != null && songartist.isNotBlank() && songartist != "Bilinmeyen Sanatçı") {
+                                    Modifier
+                                        .background(Color(0x2200E5FF))
+                                        .border(1.dp, Color(0x4400E5FF), RoundedCornerShape(8.dp))
+                                        .clickable { onPlayMoreFromArtist() }
+                                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                                } else Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                            )
+                    ) {
+                        Text(
+                            text = if (onPlayMoreFromArtist != null && songartist.isNotBlank() && songartist != "Bilinmeyen Sanatçı") "🎙️ $songartist" else songartist,
+                            fontSize = if (isCompact) 13.sp else 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.White.copy(alpha = 0.95f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            textAlign = TextAlign.Center
+                        )
+                    }
 
                     if (badgeText.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(if (isCompact) 4.dp else 10.dp))
@@ -855,6 +882,17 @@ fun SwipeableCoverandInfo(
                         modifier = Modifier.weight(1f, fill = false)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
+                    if (onPlayMoreFromArtist != null && songartist.isNotBlank() && songartist != "Bilinmeyen Sanatçı") {
+                        IconButton(
+                            onClick = onPlayMoreFromArtist,
+                            modifier = Modifier.size(if (isCompact) 34.dp else 40.dp)
+                        ) {
+                            Text(
+                                text = "🎙️",
+                                fontSize = if (isCompact) 18.sp else 22.sp
+                            )
+                        }
+                    }
                     IconButton(
                         onClick = onToggleFavorite,
                         modifier = Modifier.size(if (isCompact) 34.dp else 40.dp)
@@ -870,16 +908,31 @@ fun SwipeableCoverandInfo(
 
                 Spacer(modifier = Modifier.height(if (isCompact) 1.dp else 3.dp))
 
-                Text(
-                    text = songartist,
-                    fontSize = if (isCompact) 13.sp else 16.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = CarTextSecondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .then(
+                            if (onPlayMoreFromArtist != null && songartist.isNotBlank() && songartist != "Bilinmeyen Sanatçı") {
+                                Modifier
+                                    .background(CarSurfaceVariant)
+                                    .border(1.dp, CarBorder, RoundedCornerShape(8.dp))
+                                    .clickable { onPlayMoreFromArtist() }
+                                    .padding(horizontal = 8.dp, vertical = 2.dp)
+                            } else Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                        )
+                ) {
+                    Text(
+                        text = if (onPlayMoreFromArtist != null && songartist.isNotBlank() && songartist != "Bilinmeyen Sanatçı") "🎙️ $songartist" else songartist,
+                        fontSize = if (isCompact) 13.sp else 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = CarTextSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center
+                    )
+                }
 
                 // ID3 Teknik Rozet
                 if (badgeText.isNotEmpty()) {

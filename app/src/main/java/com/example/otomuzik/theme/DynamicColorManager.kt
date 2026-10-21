@@ -1,4 +1,4 @@
-﻿package com.example.otomuzik.theme
+package com.example.otomuzik.theme
 
 import android.graphics.Bitmap
 import androidx.compose.runtime.Composable

@@ -117,6 +117,10 @@ object MusicController {
         musicService?.addToQueue(songs)
     }
 
+    fun replaceQueueKeepCurrent(newQueue: List<Song>, keepCurrentSong: Song) {
+        musicService?.replaceQueueKeepCurrent(newQueue, keepCurrentSong)
+    }
+
     fun insertAsNextSong(song: Song, playImmediately: Boolean = false) {
         musicService?.insertAsNextSong(song, playImmediately)
     }

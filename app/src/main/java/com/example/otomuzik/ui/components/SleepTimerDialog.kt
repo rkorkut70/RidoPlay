@@ -1,4 +1,4 @@
-﻿package com.example.otomuzik.ui.components
+package com.example.otomuzik.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border

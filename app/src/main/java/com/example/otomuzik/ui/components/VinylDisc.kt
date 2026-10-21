@@ -1,4 +1,4 @@
-﻿package com.example.otomuzik.ui.components
+package com.example.otomuzik.ui.components
 import com.example.otomuzik.theme.*
 
 import android.graphics.Bitmap

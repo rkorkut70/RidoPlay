@@ -447,6 +447,25 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
     }
 
     /**
+     * Çalan parçayı kesintiye uğratmadan veya duraklatmadan, aktif çalma sırasını yeni bir listeyle
+     * (örn. Sanatçı Modu karışımıyla) değiştirir.
+     */
+    fun replaceQueueKeepCurrent(newQueue: List<Song>, keepCurrentSong: Song) {
+        if (newQueue.isEmpty()) return
+        val currentIdx = newQueue.indexOfFirst { it.path == keepCurrentSong.path }.coerceAtLeast(0)
+        fullQueue = newQueue
+        activeQueue = newQueue
+        currentIndex = currentIdx
+        _playerState.update {
+            it.copy(
+                currentQueue = activeQueue,
+                currentIndex = currentIndex,
+                currentSong = activeQueue.getOrNull(currentIndex)
+            )
+        }
+    }
+
+    /**
      * Şarkıyı mevcut çalma sırasını bozmadan, çalan şarkının hemen ardına (sıradaki şarkı olarak) ekler.
      * [playImmediately] true ise eklenen şarkı anında çalmaya başlar, sıradaki diğer şarkılar kalmaya devam eder.
      * [playImmediately] false ise şu anki parça kesilmez, sıradaki parça olarak sıraya girer.

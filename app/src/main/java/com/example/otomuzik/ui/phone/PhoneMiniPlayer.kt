@@ -78,6 +78,7 @@ fun PhoneMiniPlayer(
     onNext: () -> Unit,
     onPrevious: () -> Unit = {},
     onToggleFavorite: () -> Unit,
+    onPlayMoreFromArtist: (() -> Unit)? = null,
     onClick: () -> Unit,
     swipeSensitivity: String = "HIGH",
     modifier: Modifier = Modifier
@@ -276,12 +277,29 @@ fun PhoneMiniPlayer(
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = com.example.otomuzik.util.TurkishStringFixer.fix(currentSong.artist),
-                        color = Color(0xFFA5B0C2),
+                        text = "🎙️ " + com.example.otomuzik.util.TurkishStringFixer.fix(currentSong.artist),
+                        color = if (onPlayMoreFromArtist != null) accentColor.copy(alpha = 0.9f) else Color(0xFFA5B0C2),
                         fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = if (onPlayMoreFromArtist != null) {
+                            Modifier.clickable { onPlayMoreFromArtist() }
+                        } else Modifier
                     )
+                }
+
+                // 2.5. Sanatçı Modu Butonu
+                if (onPlayMoreFromArtist != null && currentSong.artist.isNotBlank() && currentSong.artist != "Bilinmeyen Sanatçı") {
+                    IconButton(
+                        onClick = onPlayMoreFromArtist,
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Text(
+                            text = "🎙️",
+                            fontSize = 17.sp
+                        )
+                    }
                 }
 
                 // 3. Hızlı Favori Butonu
