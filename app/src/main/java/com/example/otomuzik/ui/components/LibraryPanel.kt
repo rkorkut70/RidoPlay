@@ -107,6 +107,7 @@ fun LibraryPanel(
     accentColor: Color = CarCyan,
     onPlayQueueIndex: (Int) -> Unit = {},
     onPlayNext: () -> Unit = {},
+    onPlayNext2: (() -> Unit)? = null,
     onPlayPrevious: () -> Unit = {},
     onToggleShuffle: () -> Unit = {},
     onReshuffleUpcoming: () -> Unit = {},
@@ -118,6 +119,7 @@ fun LibraryPanel(
     currentSong: Song? = null,
     previousSong: Song? = null,
     nextSong: Song? = null,
+    nextSong2: Song? = null,
     isPlaying: Boolean = false,
     onPlayPause: () -> Unit = {},
     onPlayFavorites: () -> Unit = {},
@@ -313,10 +315,12 @@ fun LibraryPanel(
                                         currentSong = currentSong,
                                         previousSong = previousSong,
                                         nextSong = nextSong,
+                                        nextSong2 = nextSong2,
                                         isPlaying = isPlaying,
                                         accentColor = accentColor,
                                         onPlayPrevious = onPlayPrevious,
                                         onPlayNext = onPlayNext,
+                                        onPlayNext2 = onPlayNext2,
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .weight(1f)
@@ -764,15 +768,17 @@ fun CarTrackFlowCard(
     currentSong: Song?,
     previousSong: Song?,
     nextSong: Song?,
+    nextSong2: Song? = null,
     isPlaying: Boolean,
     accentColor: Color,
     onPlayPrevious: () -> Unit,
     onPlayNext: () -> Unit,
+    onPlayNext2: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val isCompact = configuration.screenHeightDp < 580 || configuration.screenWidthDp < 980
-    val cardShape = RoundedCornerShape(if (isCompact) 20.dp else 26.dp)
+    val cardShape = RoundedCornerShape(if (isCompact) 16.dp else 22.dp)
     val neonCyan = Color(0xFF00E5FF)
 
     Box(
@@ -801,43 +807,57 @@ fun CarTrackFlowCard(
                 ),
                 shape = cardShape
             )
-            .padding(if (isCompact) 8.dp else 12.dp)
+            .padding(if (isCompact) 6.dp else 10.dp)
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(if (isCompact) 6.dp else 8.dp)
+            verticalArrangement = Arrangement.spacedBy(if (isCompact) 4.dp else 6.dp)
         ) {
-        // 1. ÖNCEKİ PARÇA
-        TrackFlowRow(
-            leadSymbol = "⏮",
-            trailSymbol = "⏭",
-            song = previousSong,
-            emptyText = "Listenin başındasınız",
-            isCurrent = false,
-            onClick = if (previousSong != null) onPlayPrevious else null
-        )
+            // 1. ÖNCEKİ PARÇA
+            TrackFlowRow(
+                leadSymbol = "⏮",
+                trailSymbol = "⏮",
+                song = previousSong,
+                emptyText = "Listenin başındasınız",
+                isCurrent = false,
+                onClick = if (previousSong != null) onPlayPrevious else null,
+                modifier = Modifier.weight(1f)
+            )
 
-        // 2. ŞU AN ÇALAN PARÇA (Vurgulu & Amber)
-        TrackFlowRow(
-            leadSymbol = "❮",
-            trailSymbol = if (isPlaying) "🔊" else "⏸",
-            song = currentSong,
-            emptyText = "Henüz parça seçilmedi",
-            isCurrent = true,
-            onClick = null
-        )
+            // 2. ŞU AN ÇALAN PARÇA (Vurgulu & Amber)
+            TrackFlowRow(
+                leadSymbol = "❮",
+                trailSymbol = if (isPlaying) "🔊" else "⏸",
+                song = currentSong,
+                emptyText = "Henüz parça seçilmedi",
+                isCurrent = true,
+                onClick = null,
+                modifier = Modifier.weight(1f)
+            )
 
-        // 3. SIRADAKİ PARÇA
-        TrackFlowRow(
-            leadSymbol = "❯",
-            trailSymbol = "⏭",
-            song = nextSong,
-            emptyText = "Sıranın sonundasınız",
-            isCurrent = false,
-            onClick = if (nextSong != null) onPlayNext else null
-        )
+            // 3. SIRADAKİ PARÇA (1)
+            TrackFlowRow(
+                leadSymbol = "❯",
+                trailSymbol = "⏭",
+                song = nextSong,
+                emptyText = "Sıranın sonundasınız",
+                isCurrent = false,
+                onClick = if (nextSong != null) onPlayNext else null,
+                modifier = Modifier.weight(1f)
+            )
+
+            // 4. SIRADAKİ PARÇA (2)
+            TrackFlowRow(
+                leadSymbol = "❯❯",
+                trailSymbol = "⏭",
+                song = nextSong2,
+                emptyText = if (nextSong != null) "Sırada başka parça yok" else "",
+                isCurrent = false,
+                onClick = if (nextSong2 != null) onPlayNext2 else null,
+                modifier = Modifier.weight(1f)
+            )
+        }
     }
-}
 }
 
 @Composable
@@ -847,11 +867,12 @@ private fun TrackFlowRow(
     song: Song?,
     emptyText: String,
     isCurrent: Boolean,
-    onClick: (() -> Unit)?
+    onClick: (() -> Unit)?,
+    modifier: Modifier = Modifier
 ) {
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val isCompact = configuration.screenHeightDp < 580 || configuration.screenWidthDp < 980
-    val rowShape = RoundedCornerShape(if (isCompact) 12.dp else 16.dp)
+    val rowShape = RoundedCornerShape(if (isCompact) 10.dp else 14.dp)
 
     val rowBg = if (isCurrent) {
         Color(0xFFFFB300).copy(alpha = 0.12f)
@@ -866,49 +887,48 @@ private fun TrackFlowRow(
     }
 
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .height(if (isCompact) 48.dp else 58.dp)
             .clip(rowShape)
             .background(rowBg)
             .border(if (isCurrent) 1.dp else 0.dp, rowBorder, rowShape)
             .then(
                 if (onClick != null) Modifier.clickable { onClick() } else Modifier
             )
-            .padding(horizontal = if (isCompact) 10.dp else 14.dp),
+            .padding(horizontal = if (isCompact) 8.dp else 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Sol sembol (❮ / ❯ / ⏮)
+        // Sol sembol (❮ / ❯ / ❯❯ / ⏮)
         Text(
             text = leadSymbol,
-            fontSize = if (isCompact) 14.sp else 17.sp,
+            fontSize = if (isCompact) 13.sp else 16.sp,
             fontWeight = FontWeight.Bold,
             color = if (isCurrent) Color(0xFFFFD54F) else CarTextMuted
         )
 
-        Spacer(modifier = Modifier.width(if (isCompact) 10.dp else 14.dp))
+        Spacer(modifier = Modifier.width(if (isCompact) 8.dp else 12.dp))
 
         // Albüm Kapağı Minyatürü
         Box(
             modifier = Modifier
-                .size(if (isCompact) 32.dp else 38.dp)
+                .size(if (isCompact) 28.dp else 34.dp)
                 .clip(RoundedCornerShape(8.dp))
                 .background(Color(0xFF1E293B)),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = "🎵",
-                fontSize = if (isCompact) 16.sp else 20.sp
+                fontSize = if (isCompact) 14.sp else 18.sp
             )
         }
 
-        Spacer(modifier = Modifier.width(if (isCompact) 10.dp else 14.dp))
+        Spacer(modifier = Modifier.width(if (isCompact) 8.dp else 12.dp))
 
         // Parça Başlığı ve Sanatçı
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = if (song != null) "${com.example.otomuzik.util.TurkishStringFixer.fix(song.title)} - ${com.example.otomuzik.util.TurkishStringFixer.fix(song.artist)}" else emptyText,
-                fontSize = if (isCompact) 14.sp else 16.sp,
+                fontSize = if (isCompact) 13.sp else 15.sp,
                 fontWeight = if (isCurrent) FontWeight.ExtraBold else FontWeight.Medium,
                 color = if (isCurrent) Color(0xFFFFD54F) else (if (song != null) CarTextPrimary else CarTextMuted),
                 maxLines = 1,
@@ -921,7 +941,7 @@ private fun TrackFlowRow(
         // Sağ sembol (🔊 / ⏭)
         Text(
             text = trailSymbol,
-            fontSize = if (isCompact) 14.sp else 17.sp,
+            fontSize = if (isCompact) 13.sp else 16.sp,
             fontWeight = FontWeight.Bold,
             color = if (isCurrent) Color(0xFFFFD54F) else CarTextMuted
         )

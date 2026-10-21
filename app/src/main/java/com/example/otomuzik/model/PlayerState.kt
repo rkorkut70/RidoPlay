@@ -56,5 +56,30 @@ data class PlayerState(
             }
             return null
         }
+
+    val nextSong2: Song?
+        get() {
+            if (currentQueue.isEmpty()) return null
+            if (currentIndex >= 0 && currentIndex + 2 < currentQueue.size) {
+                return currentQueue[currentIndex + 2]
+            }
+            if (repeatMode == RepeatMode.ALL && currentQueue.size > 2) {
+                val targetIndex = (currentIndex + 2) % currentQueue.size
+                return currentQueue[targetIndex]
+            }
+            return null
+        }
+
+    val nextSong2Index: Int?
+        get() {
+            if (currentQueue.isEmpty()) return null
+            if (currentIndex >= 0 && currentIndex + 2 < currentQueue.size) {
+                return currentIndex + 2
+            }
+            if (repeatMode == RepeatMode.ALL && currentQueue.size > 2) {
+                return (currentIndex + 2) % currentQueue.size
+            }
+            return null
+        }
 }
 

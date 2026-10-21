@@ -290,6 +290,10 @@ fun MainScreen(
                         currentSong = playerState.currentSong,
                         previousSong = playerState.previousSong,
                         nextSong = playerState.nextSong,
+                        nextSong2 = playerState.nextSong2,
+                        onPlayNext2 = {
+                            playerState.nextSong2Index?.let { viewModel.playAtQueueIndex(it) }
+                        },
                         isPlaying = playerState.isPlaying,
                         onPlayPause = { viewModel.togglePlayPause() },
                         onPlayFavorites = { viewModel.playFavorites() },
@@ -360,6 +364,10 @@ fun MainScreen(
                             currentSong = playerState.currentSong,
                             previousSong = playerState.previousSong,
                             nextSong = playerState.nextSong,
+                            nextSong2 = playerState.nextSong2,
+                            onPlayNext2 = {
+                                playerState.nextSong2Index?.let { viewModel.playAtQueueIndex(it) }
+                            },
                             isPlaying = playerState.isPlaying,
                             onPlayPause = { viewModel.togglePlayPause() },
                             onPlayFavorites = { viewModel.playFavorites() },
@@ -477,6 +485,10 @@ fun MainScreen(
                             currentSong = playerState.currentSong,
                             previousSong = playerState.previousSong,
                             nextSong = playerState.nextSong,
+                            nextSong2 = playerState.nextSong2,
+                            onPlayNext2 = {
+                                playerState.nextSong2Index?.let { viewModel.playAtQueueIndex(it) }
+                            },
                             isPlaying = playerState.isPlaying,
                             onPlayPause = { viewModel.togglePlayPause() },
                             onPlayFavorites = { viewModel.playFavorites() },

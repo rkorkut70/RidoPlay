@@ -1,9 +1,9 @@
 {
-  "versionCode": 27,
-  "versionName": "4.3",
+  "versionCode": 28,
+  "versionName": "4.4",
   "minSupportedVersion": 1,
-  "releaseDate": "2026-10-17",
-  "changelog": "• Kütüphaneyi yeniden tara butonuna anlık taranan dizin ve ilerleme çubuğu göstergesi eklendi.\n• Mükerrer şarkı algoritması güncellendi: farklı sanatçı/isim ve dosya boyutuna sahip parçalar 'Düşük İhtimal' kategorisine ayrıldı.\n• Mükerrer şarkı arama diyaloğuna kategori filtreleme sekmeleri (Tümü, Kesin, Yüksek, Muhtemel, Düşük) eklendi.",
+  "releaseDate": "2026-10-20",
+  "changelog": "• Tablet/Araç ana ekranındaki parça akış kartında gösterilen şarkı sayısı 4'e çıkarıldı (Önceki, Çalan, Sıradaki 1 ve Sıradaki 2).\n• Sıradaki şarkılara tek dokunuşla geçiş desteği ve optimize edilmiş 3D kokpit arayüzü.",
   "playStoreUrl": "https://play.google.com/store/apps/details?id=com.ridoplay.music",
   "downloadUrl": "https://github.com/rkorkut70/RidoPlay/releases/latest"
 }
