@@ -68,6 +68,7 @@ fun NowPlayingPanel(
     onPlayMoreFromArtist: (() -> Unit)? = null,
     isArtistModeActive: Boolean = false,
     onOpenEqualizer: () -> Unit,
+    onOpenBlackScreen: () -> Unit = {},
     onOpenId3Info: () -> Unit = {},
     onOpenLyrics: () -> Unit = {},
     onOpenAbout: () -> Unit = {},
@@ -226,6 +227,57 @@ fun NowPlayingPanel(
                         .clickable { onOpenAbout() }
                 )
 
+                // ── SİYAH DAİRE BUTONU (Ekranı Kapat / Gece Saati Modu) ──
+                // Logo ile EQ menü simgesi arasında yer alan siyah daire
+                val blackCircleSize = if (isCompact) 44.dp else 52.dp
+                Box(
+                    modifier = Modifier
+                        .size(blackCircleSize)
+                        .shadow(
+                            elevation = 8.dp,
+                            shape = CircleShape,
+                            ambientColor = Color.Black,
+                            spotColor = Color.Black
+                        )
+                        .clip(CircleShape)
+                        .background(
+                            Brush.radialGradient(
+                                colors = listOf(
+                                    Color(0xFF1F2530),
+                                    Color(0xFF0C0E13),
+                                    Color.Black
+                                )
+                            )
+                        )
+                        .border(
+                            width = 2.dp,
+                            brush = Brush.verticalGradient(
+                                listOf(
+                                    Color(0xFF4C586B),
+                                    Color(0xFF222834),
+                                    Color(0xFF0F1218)
+                                )
+                            ),
+                            shape = CircleShape
+                        )
+                        .clickable { onOpenBlackScreen() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(if (isCompact) 28.dp else 34.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF05070A))
+                            .border(1.dp, Color.White.copy(alpha = 0.12f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "🌙",
+                            fontSize = if (isCompact) 14.sp else 17.sp
+                        )
+                    }
+                }
+
                 // Sağ tarafta EQ ve menü butonları (Şık Altın/Amber Kapsül Container)
                 Row(
                     modifier = Modifier
@@ -236,10 +288,8 @@ fun NowPlayingPanel(
                     horizontalArrangement = Arrangement.spacedBy(if (isCompact) 6.dp else 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Tüm butonlar için kesin ve eşit çap (Tam simetrik 6 buton)
                     val pillBtnSize = if (isCompact) 46.dp else 56.dp
                     val pillBorderCyan = Color(0xFF00E5FF)
-                    val iconInnerSize = if (isCompact) 22.dp else 27.dp
 
                     // 1. EQ Butonu
                     Box(
@@ -275,25 +325,7 @@ fun NowPlayingPanel(
                         )
                     }
 
-                    // 3. Sıra Butonu
-                    Box(
-                        modifier = Modifier
-                            .size(pillBtnSize)
-                            .clip(CircleShape)
-                            .background(Color(0xFF0F172A))
-                            .border(1.8.dp, pillBorderCyan, CircleShape)
-                            .clickable { onOpenQueue() },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_queue),
-                            contentDescription = "Sıra",
-                            tint = pillBorderCyan,
-                            modifier = Modifier.size(iconInnerSize)
-                        )
-                    }
-
-                    // 4. Bilgi (Info) Butonu
+                    // 3. Bilgi (Info) Butonu
                     Box(
                         modifier = Modifier
                             .size(pillBtnSize)
@@ -311,7 +343,7 @@ fun NowPlayingPanel(
                         )
                     }
 
-                    // 5. Şarkı Sözleri / Düzenle Butonu
+                    // 4. Şarkı Sözleri / Düzenle Butonu
                     Box(
                         modifier = Modifier
                             .size(pillBtnSize)

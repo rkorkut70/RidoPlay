@@ -41,6 +41,12 @@ import androidx.compose.ui.platform.LocalContext
 import com.example.otomuzik.ui.components.BatchId3TagDialog
 import com.example.otomuzik.ui.components.LibraryPanel
 import com.example.otomuzik.ui.components.M3uImportDialog
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.runtime.saveable.rememberSaveable
+import com.example.otomuzik.ui.components.NightClockScreen
 import com.example.otomuzik.ui.components.NowPlayingPanel
 import com.example.otomuzik.ui.components.SongactionDialog
 
@@ -114,10 +120,12 @@ fun MainScreen(
     }
 
     var isCarSearchOpen by remember { mutableStateOf(false) }
+    var isBlackScreenActive by rememberSaveable { mutableStateOf(false) }
 
-    // Geri tuşu kontrolü (Arama, Sıra, Çalma Listesi, Klasör veya Alt Sekmeler açıksa kademeli geri döner)
-    BackHandler(enabled = isCarSearchOpen || searchQuery.isNotEmpty() || isQueueVisible || selectedPlaylist != null || currentFolderPath != null || activeTab != TabType.HOME) {
+    // Geri tuşu kontrolü (Gece Saati, Arama, Sıra, Çalma Listesi, Klasör veya Alt Sekmeler açıksa kademeli geri döner)
+    BackHandler(enabled = isBlackScreenActive || isCarSearchOpen || searchQuery.isNotEmpty() || isQueueVisible || selectedPlaylist != null || currentFolderPath != null || activeTab != TabType.HOME) {
         when {
+            isBlackScreenActive -> isBlackScreenActive = false
             isCarSearchOpen || searchQuery.isNotEmpty() -> {
                 isCarSearchOpen = false
                 viewModel.setSearchQuery("")
@@ -220,6 +228,7 @@ fun MainScreen(
                             onPlayMoreFromArtist = { playerState.currentSong?.let { viewModel.playMoreFromArtist(it.artist, it) } },
                             isArtistModeActive = activeArtistMode != null && (currentSongId3?.artist ?: playerState.currentSong?.artist)?.trim()?.equals(activeArtistMode, ignoreCase = true) == true,
                             onOpenEqualizer = { viewModel.openEqualizerDialog() },
+                            onOpenBlackScreen = { isBlackScreenActive = true },
                             onOpenId3Info = { viewModel.openId3Dialog() },
                             onOpenLyrics = { viewModel.openLyricsDialog() },
                             onOpenAbout = { viewModel.openAboutDialog() },
@@ -419,6 +428,7 @@ fun MainScreen(
                             onPlayMoreFromArtist = { playerState.currentSong?.let { viewModel.playMoreFromArtist(it.artist, it) } },
                             isArtistModeActive = activeArtistMode != null && (currentSongId3?.artist ?: playerState.currentSong?.artist)?.trim()?.equals(activeArtistMode, ignoreCase = true) == true,
                             onOpenEqualizer = { viewModel.openEqualizerDialog() },
+                            onOpenBlackScreen = { isBlackScreenActive = true },
                             onOpenId3Info = { viewModel.openId3Dialog() },
                             onOpenLyrics = { viewModel.openLyricsDialog() },
                             onOpenAbout = { viewModel.openAboutDialog() },
@@ -730,6 +740,24 @@ fun MainScreen(
                 onPreviewSong = { song ->
                     viewModel.playSongFromList(song, allSongs)
                 }
+            )
+        }
+
+        // ── SİYAH EKRAN (GECE SAATİ / SCREEN OFF MODU) ──
+        AnimatedVisibility(
+            visible = isBlackScreenActive,
+            enter = fadeIn(animationSpec = tween(350)),
+            exit = fadeOut(animationSpec = tween(350))
+        ) {
+            NightClockScreen(
+                playerState = playerState,
+                artworkBitmap = currentSongartwork,
+                currentSongId3 = currentSongId3,
+                accentColor = accentColor,
+                onPlayPause = { viewModel.togglePlayPause() },
+                onNext = { viewModel.playNext() },
+                onPrevious = { viewModel.playPrevious() },
+                onDismiss = { isBlackScreenActive = false }
             )
         }
     }
