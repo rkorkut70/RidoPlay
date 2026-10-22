@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Depolama ve Müzik Okuma İzinleri -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
@@ -16,7 +17,10 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <uses-permission android:name="android.permission.WRITE_SETTINGS" tools:ignore="ProtectedPermissions" xmlns:tools="http://schemas.android.com/tools" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <uses-permission android:name="android.permission.WRITE_SETTINGS" tools:ignore="ProtectedPermissions" />
 
     <application
         android:name=".OtoMuzikApplication"
@@ -79,16 +83,48 @@
             </intent-filter>
         </receiver>
 
-        <!-- Tablet / Araç Açıldığında Otomatik Başlatma Alıcısı (Boot Completed) -->
+        <!-- Tablet / Araç Açıldığında & Kontak (ACC) Açıldığında Otomatik Başlatma Alıcısı -->
         <receiver
             android:name=".receiver.BootReceiver"
+            android:directBootAware="true"
             android:enabled="true"
             android:exported="true">
-            <intent-filter>
+            <intent-filter android:priority="1000">
+                <!-- Standart Android Açılış ve Kilit Açılış Sinyalleri -->
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
                 <action android:name="android.intent.action.QUICKBOOT_POWERON" />
                 <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.USER_PRESENT" />
+                <action android:name="android.intent.action.ACTION_POWER_CONNECTED" />
+
+                <!-- K2501 / NWD / Allwinner Araç Multimedya Sinyalleri (Reis, Navigold, For-X vb.) -->
+                <action android:name="com.nwd.action.ACTION_ACC_ON" />
+                <action android:name="com.nwd.action.BOOT_COMPLETED" />
+                <action android:name="com.chg.action.ACC_ON" />
+
+                <!-- FYT / UIS7862 / Joying / Teyes / Mekede Sinyalleri -->
+                <action android:name="com.fyt.system.action.ACC_ON" />
+                <action android:name="com.fyt.boot.completed" />
+                <action android:name="com.syu.system.action.ACC_ON" />
+                <action android:name="com.syu.ms.action.ACC_ON" />
+
+                <!-- Microntek / PX3 / PX5 / PX6 / Dasaita / Eonon Sinyalleri -->
+                <action android:name="com.microntek.acc_on" />
+                <action android:name="com.microntek.bootcheck" />
+
+                <!-- Autochips / XYAuto / MTK8227L / Junsun Sinyalleri -->
+                <action android:name="autochips.intent.action.ACC_ON" />
+                <action android:name="xy.android.acc.on" />
+                <action android:name="com.autochips.action.ACC_ON" />
+
+                <!-- Topway / TS7 / TS10 / TS18 Sinyalleri -->
+                <action android:name="com.ts.action.ACC_ON" />
+                <action android:name="com.ts.car.acc.on" />
+
+                <!-- USB / Medya Bağlantı Sinyalleri (Kontak açıldığında USB portuna güç gelir) -->
+                <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
             </intent-filter>
         </receiver>
 

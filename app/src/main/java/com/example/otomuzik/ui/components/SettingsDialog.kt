@@ -852,21 +852,81 @@ fun SettingsDialog(
                             }
                         }
 
-                        // Kütüphane İstatistikleri
+                        // Kütüphane İstatistikleri - 3D Kokpit Telemetri Paneli
                         SettingsSection(title = "Kütüphane İstatistikleri", icon = "📊", accentColor = accentColor) {
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(horizontal = 14.dp, vertical = 12.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                StatRow("🎵 Toplam Şarkı", "${libraryStats.totalSongs} Şarkı", accentColor)
-                                StatRow("📁 Toplam Klasör", "${libraryStats.totalFolders} Klasör", accentColor)
-                                StatRow("🎤 Farklı Sanatçı", "${libraryStats.uniqueArtists} Sanatçı", accentColor)
-                                StatRow("💿 Farklı Albüm", "${libraryStats.uniqueAlbums} Albüm", accentColor)
-                                StatRow("📑 Çalma Listesi", "${libraryStats.totalPlaylists} Liste", accentColor)
-                                StatRow("⏱️ Toplam Çalma Süresi", libraryStats.totalDurationFormatted, accentColor)
-                                StatRow("💾 Medya Boyutu", libraryStats.totalSizeFormatted, accentColor)
+                                // 1. Üçlü Hero Telemetri Kartları (Şarkı, Süre, Boyut)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    StatHeroCard(
+                                        icon = "🎵",
+                                        label = "Toplam Şarkı",
+                                        value = "${libraryStats.totalSongs}",
+                                        accentColor = accentColor,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    StatHeroCard(
+                                        icon = "⏱️",
+                                        label = "Toplam Süre",
+                                        value = libraryStats.totalDurationFormatted,
+                                        accentColor = Color(0xFF64B5F6),
+                                        modifier = Modifier.weight(1.1f)
+                                    )
+                                    StatHeroCard(
+                                        icon = "💾",
+                                        label = "Medya Boyutu",
+                                        value = libraryStats.totalSizeFormatted,
+                                        accentColor = Color(0xFF81C784),
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+
+                                // 2. 2x2 Izgara Detay Karoları (Sanatçı, Albüm, Klasör, Çalma Listesi)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    StatTile(
+                                        icon = "🎤",
+                                        label = "Farklı Sanatçı",
+                                        value = "${libraryStats.uniqueArtists}",
+                                        accentColor = accentColor,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    StatTile(
+                                        icon = "💿",
+                                        label = "Farklı Albüm",
+                                        value = "${libraryStats.uniqueAlbums}",
+                                        accentColor = accentColor,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    StatTile(
+                                        icon = "📁",
+                                        label = "Müzik Klasörü",
+                                        value = "${libraryStats.totalFolders}",
+                                        accentColor = accentColor,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    StatTile(
+                                        icon = "📑",
+                                        label = "Çalma Listesi",
+                                        value = "${libraryStats.totalPlaylists}",
+                                        accentColor = accentColor,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
                             }
                             if (hiddenSongsCount > 0) {
                                 SettingsDivider()
@@ -906,12 +966,38 @@ fun SettingsDialog(
                             )
                             SettingsDivider()
                             SettingSwitchRow(
-                                title = "Cihaz Açılışında RidoPlay'i Başlat",
-                                description = "Tablet veya araç multimedya ekranı açıldığında RidoPlay otomatik olarak açılsın.",
+                                title = "Cihaz / Kontak Açılışında Başlat",
+                                description = "Tablet veya araç multimedya ekranı / kontak (ACC) açıldığında RidoPlay otomatik başlasın.",
                                 checked = startOnBoot,
                                 accentColor = accentColor,
                                 onCheckedChange = { viewModel.setStartOnBoot(it) }
                             )
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(context)) {
+                                SettingsDivider()
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                                ) {
+                                    Settings3DActionButton(
+                                        title = "🔓 Arka Planda Başlatma İzni Ver (Üzerinde Görüntüleme)",
+                                        accentColor = CarAmber,
+                                        onClick = {
+                                            try {
+                                                val intent = Intent(
+                                                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                                    android.net.Uri.parse("package:${context.packageName}")
+                                                )
+                                                context.startActivity(intent)
+                                            } catch (e: Exception) {
+                                                try {
+                                                    context.startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION))
+                                                } catch (e2: Exception) {}
+                                            }
+                                        }
+                                    )
+                                }
+                            }
                             SettingsDivider()
                             SettingSwitchRow(
                                 title = "Kapatılınca Müziği Durdur",
@@ -1417,24 +1503,112 @@ fun Settings3DActionButton(
     }
 }
 
-// ── 3D İSTATİSTİK ROZETİ SATIRI (StatRow) ────────────────────────────────────
+// ── 3D HERO İSTATİSTİK KARTI (StatHeroCard) ──────────────────────────────────
 @Composable
-private fun StatRow(label: String, value: String, accentColor: Color) {
+private fun StatHeroCard(
+    icon: String,
+    label: String,
+    value: String,
+    accentColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .shadow(6.dp, RoundedCornerShape(14.dp), spotColor = Color(0x66000000))
+            .clip(RoundedCornerShape(14.dp))
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        Color(0xFF222B3D),
+                        Color(0xFF141926)
+                    )
+                )
+            )
+            .border(
+                1.2.dp,
+                Brush.verticalGradient(
+                    listOf(
+                        Color.White.copy(alpha = 0.28f),
+                        accentColor.copy(alpha = 0.35f),
+                        Color.Black.copy(alpha = 0.80f)
+                    )
+                ),
+                RoundedCornerShape(14.dp)
+            )
+            .padding(vertical = 12.dp, horizontal = 10.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Text(text = icon, fontSize = 16.sp)
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = label,
+                    fontSize = 11.5.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = CarTextMuted,
+                    maxLines = 1
+                )
+            }
+            Spacer(modifier = Modifier.height(5.dp))
+            Text(
+                text = value,
+                fontSize = 16.5.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = Color.White,
+                maxLines = 1
+            )
+        }
+    }
+}
+
+// ── 3D İSTATİSTİK ROZET KAROSU (StatTile) ────────────────────────────────────
+@Composable
+private fun StatTile(
+    icon: String,
+    label: String,
+    value: String,
+    accentColor: Color,
+    modifier: Modifier = Modifier
+) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
+        modifier = modifier
             .clip(RoundedCornerShape(10.dp))
-            .background(Color(0xFF141A26).copy(alpha = 0.65f))
-            .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(10.dp))
-            .padding(horizontal = 14.dp, vertical = 9.dp),
+            .background(Color(0xFF131824).copy(alpha = 0.75f))
+            .border(
+                1.dp,
+                Brush.verticalGradient(
+                    listOf(
+                        Color.White.copy(alpha = 0.12f),
+                        Color.Black.copy(alpha = 0.60f)
+                    )
+                ),
+                RoundedCornerShape(10.dp)
+            )
+            .padding(horizontal = 12.dp, vertical = 9.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(label, fontSize = 13.5.sp, color = Color(0xFFCBD5E1), fontWeight = FontWeight.Medium)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(text = icon, fontSize = 14.sp)
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = label,
+                fontSize = 12.5.sp,
+                color = Color(0xFFCBD5E1),
+                fontWeight = FontWeight.Medium
+            )
+        }
         Text(
             text = value,
             fontSize = 13.5.sp,
-            fontWeight = FontWeight.Bold,
+            fontWeight = FontWeight.ExtraBold,
             color = accentColor
         )
     }
