@@ -1,9 +1,9 @@
 {
-  "versionCode": 37,
-  "versionName": "5.3",
-  "minSupportedVersion": 1,
-  "releaseDate": "2026-10-22",
-  "changelog": "• Şarkı başlığı yanındaki Favori ve Sanatçı Modu butonlarının şarkı ismi uzunluğuna göre kayması engellendi; başlık ortalandı.\n• Favorilere Ekle (❤️) ve Sanatçı Modu (🎙️) butonları ilerleme çubuğunun hemen üstünde, sol başlangıç ve sağ bitiş hizasında büyük 3D kokpit tuşları olarak sabitlendi.\n• Sanatçı Modu (🎙️) parçaları bittiğinde (örn. 2 şarkıdan sonra) müziğin durması sorunu çözüldü; normal çalma listesi/sırası kesintisiz çalmaya devam eder.",
-  "playStoreUrl": "https://play.google.com/store/apps/details?id=com.ridoplay.music",
-  "downloadUrl": "https://github.com/rkorkut70/RidoPlay/releases/latest"
+    "versionCode":  41,
+    "versionName":  "5.7",
+    "minSupportedVersion":  1,
+    "releaseDate":  "2026-10-22",
+    "changelog":  "• Şarkılar ve favoriler listelerinde bir şarkıya tıklandığında ana sayfaya / sıradakilere geçilmesi engellendi; kullanıcı artık listede kalarak dinlemeye devam eder ve dilediğinde geri tuşuyla dönebilir.\n• Araç multimedya cihazlarında USB belleklerin ve dahili müzik klasörlerinin kütüphane taramasında bulunamaması (tek şarkı bulunması) sorunu kökten çözüldü; tüm USB ve depolama alanları varsayılan olarak taranacak şekilde optimize edildi.\n• Şarkı sanatçısı metnindeki sanatçı modu ikonu temizlendi; sanatçı adı saf tipografi olarak sunuldu.\n• İlerleme çubuğu üstündeki Sanatçı Modu butonu aktif olduğunda dinamik tema rengiyle (Cyan/Accent) parlayacak şekilde güncellendi.",
+    "playStoreUrl":  "https://play.google.com/store/apps/details?id=com.ridoplay.music",
+    "downloadUrl":  "https://github.com/rkorkut70/RidoPlay/releases/latest"
 }

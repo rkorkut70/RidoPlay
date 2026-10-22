@@ -260,8 +260,12 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
     fun openFolderSelectionDialog() { _showFolderSelectionDialog.value = true }
     fun closeFolderSelectionDialog() { _showFolderSelectionDialog.value = false }
 
-    fun toggleFolderIncluded(path: String, isIncluded: Boolean) {
-        val current = _includedFolders.value.toMutableSet()
+    fun toggleFolderIncluded(path: String, isIncluded: Boolean, allDiscovered: List<String> = emptyList()) {
+        val current = if (_includedFolders.value.isEmpty() && allDiscovered.isNotEmpty()) {
+            allDiscovered.toMutableSet()
+        } else {
+            _includedFolders.value.toMutableSet()
+        }
         if (isIncluded) {
             current.add(path)
         } else {
@@ -269,6 +273,12 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
         }
         repository.setIncludedFolders(current)
         _includedFolders.value = current
+        rescanLibrary()
+    }
+
+    fun resetIncludedFolders() {
+        repository.setIncludedFolders(emptySet())
+        _includedFolders.value = emptySet()
         rescanLibrary()
     }
 
@@ -1157,7 +1167,6 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
             _activeArtistMode.value = null
             savedQueueBeforeArtistMode = null
             MusicController.setQueue(songs, 0, autoPlay = true)
-            _activeTab.value = TabType.HOME
             _isQueueVisible.value = false
         }
     }

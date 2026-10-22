@@ -35,6 +35,7 @@ fun FolderSelectionDialog(
     storageRoots: List<FolderItem>,
     includedFolders: Set<String>,
     onToggleFolder: (String, Boolean) -> Unit,
+    onResetAll: (() -> Unit)? = null,
     onRescan: () -> Unit,
     onDismissRequest: () -> Unit
 ) {
@@ -156,11 +157,15 @@ fun FolderSelectionDialog(
                     items(discoveredFolders) { folderPath ->
                         val folderFile = File(folderPath)
                         val folderName = folderFile.name.ifEmpty { folderPath }
-                        val isSelected = includedFolders.any { folderPath.startsWith(it, ignoreCase = true) || it.startsWith(folderPath, ignoreCase = true) }
-
                         val isDownloadOrVoice = folderPath.lowercase().contains("download") ||
                                 folderPath.lowercase().contains("snaptube") ||
                                 folderPath.lowercase().contains("recording")
+
+                        val isSelected = if (includedFolders.isEmpty()) {
+                            !isDownloadOrVoice
+                        } else {
+                            includedFolders.any { folderPath.startsWith(it, ignoreCase = true) || it.startsWith(folderPath, ignoreCase = true) }
+                        }
 
                         Row(
                             modifier = Modifier
@@ -246,6 +251,23 @@ fun FolderSelectionDialog(
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
+
+                if (onResetAll != null && includedFolders.isNotEmpty()) {
+                    TextButton(
+                        onClick = {
+                            onResetAll()
+                            onDismissRequest()
+                        },
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
+                    ) {
+                        Text(
+                            text = "🔄 Filtreleri Sıfırla (Tüm Cihaz & USB'leri Tara)",
+                            color = CarCyan,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
 
                 // Alt Eylem Butonları
                 Row(

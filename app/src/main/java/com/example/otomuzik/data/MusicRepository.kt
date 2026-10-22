@@ -24,7 +24,7 @@ class MusicRepository(private val context: Context) {
     private val dbHelper = MusicDatabaseHelper(context)
 
     companion object {
-        private val AUDIO_EXTENSIONS = setOf("mp3", "m4a", "wav", "flac", "ogg", "aac", "wma")
+        private val AUDIO_EXTENSIONS = setOf("mp3", "m4a", "wav", "flac", "ogg", "aac", "wma", "opus", "mp4")
         private const val KEY_FAVORITES = "fav_songs_paths"
         private const val KEY_LAST_PATH = "last_played_path"
         private const val KEY_LAST_POS = "last_played_pos"
@@ -83,7 +83,9 @@ class MusicRepository(private val context: Context) {
         }
         val projection = baseProjection.toTypedArray()
 
-        val selection = "${MediaStore.Audio.Media.IS_MUSIC} != 0 AND ${MediaStore.Audio.Media.DURATION} >= 10000"
+        // Araç multimedya sistemlerinde kopyalanan şarkılarda IS_MUSIC 0 kalabilir veya DURATION henüz hesaplanmamış olabilir.
+        // Bu yüzden uzantı tabanlı geniş filtreleme uygulanır.
+        val selection = "(${MediaStore.Audio.Media.IS_MUSIC} != 0 OR ${MediaStore.Audio.Media.DATA} LIKE '%.mp3' OR ${MediaStore.Audio.Media.DATA} LIKE '%.flac' OR ${MediaStore.Audio.Media.DATA} LIKE '%.m4a' OR ${MediaStore.Audio.Media.DATA} LIKE '%.wav' OR ${MediaStore.Audio.Media.DATA} LIKE '%.aac' OR ${MediaStore.Audio.Media.DATA} LIKE '%.ogg') AND (${MediaStore.Audio.Media.DURATION} >= 5000 OR ${MediaStore.Audio.Media.DURATION} IS NULL OR ${MediaStore.Audio.Media.DURATION} = 0)"
         val sortOrder = "${MediaStore.Audio.Media.TITLE} COLLATE NOCASE ASC"
 
         try {
@@ -104,7 +106,6 @@ class MusicRepository(private val context: Context) {
                 val dataCol     = it.getColumnIndex(MediaStore.Audio.Media.DATA)
                 val albumIdCol  = it.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID)
                 val yearCol     = it.getColumnIndex(MediaStore.Audio.Media.YEAR)
-                // GENRE sütunu yalnızca API 30+ projection'a eklendiğinden getColumnIndex kullanıyoruz (-1 ise boş bırak).
                 val genreCol = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                     it.getColumnIndex(MediaStore.Audio.Media.GENRE)
                 } else -1
@@ -127,68 +128,67 @@ class MusicRepository(private val context: Context) {
                     val artist = com.example.otomuzik.util.TurkishStringFixer.fix(id3Info.artist.takeIf { it.isNotBlank() } ?: rawArtist)
                     val album  = com.example.otomuzik.util.TurkishStringFixer.fix(id3Info.album.takeIf { it.isNotBlank() } ?: rawAlbum)
                     
-                    val duration = it.getLong(durationCol)
+                    val duration = if (id3Info.durationMs > 0) id3Info.durationMs else it.getLong(durationCol)
                     val albumId  = it.getLong(albumIdCol)
-                    // YEAR: MediaStore tamsayı döner; boşsa "" bırak
                     val year = if (yearCol >= 0) {
                         val y = it.getInt(yearCol)
                         if (y > 0) y.toString() else ""
                     } else ""
-                    // GENRE: API 30+ metin olarak gelir; eski API'de boş bırak
                     val genre = if (genreCol >= 0) it.getString(genreCol) ?: "" else ""
 
                     seenPaths.add(path)
-                        val contentUri = ContentUris.withAppendedId(
-                            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                            id
-                        ).toString()
+                    val contentUri = ContentUris.withAppendedId(
+                        MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                        id
+                    ).toString()
 
-                        val file = File(path)
-                        val parentFolder = file.parent ?: ""
-                        val ext = file.extension.lowercase(Locale.ROOT)
-                        val sizeMb = if (file.exists()) {
-                            "%.1f MB".format(file.length() / (1024.0 * 1024.0))
-                        } else ""
+                    val file = File(path)
+                    val parentFolder = file.parent ?: ""
+                    val ext = file.extension.lowercase(Locale.ROOT)
+                    val sizeMb = if (file.exists()) {
+                        "%.1f MB".format(file.length() / (1024.0 * 1024.0))
+                    } else ""
 
-                        foundSongs.add(
-                            Song(
-                                id = id,
-                                title = title,
-                                artist = if (artist == "<unknown>") "Bilinmeyen Sanatçı" else artist,
-                                album  = if (album  == "<unknown>") "Bilinmeyen Albüm"   else album,
-                                durationMs       = duration,
-                                path             = path,
-                                uriString        = contentUri,
-                                albumId          = albumId,
-                                folderPath       = parentFolder,
-                                format           = ext,
-                                fileSizeFormatted = sizeMb,
-                                year             = year,
-                                genre            = genre
-                            )
+                    foundSongs.add(
+                        Song(
+                            id = id,
+                            title = title,
+                            artist = if (artist == "<unknown>") "Bilinmeyen Sanatçı" else artist,
+                            album  = if (album  == "<unknown>") "Bilinmeyen Albüm"   else album,
+                            durationMs       = duration,
+                            path             = path,
+                            uriString        = contentUri,
+                            albumId          = albumId,
+                            folderPath       = parentFolder,
+                            format           = ext,
+                            fileSizeFormatted = sizeMb,
+                            year             = year,
+                            genre            = genre
                         )
-                    }
+                    )
                 }
-            } catch (e: Exception) {
+            }
+        } catch (e: Exception) {
             e.printStackTrace()
         }
 
         // 2. Araç USB / SD Kartlarını ve Kullanıcının Seçtiği Klasörleri doğrudan dosya sistemi olarak tara
+        val activeIncludedFolders = getIncludedFolders()
         try {
             val roots = getStorageRoots()
             for (root in roots) {
                 val rootFile = File(root.path)
                 if (rootFile.exists() && rootFile.isDirectory) {
                     onProgress?.invoke(rootFile.name, foundSongs.size)
-                    scanDirectoryForSongs(rootFile, seenPaths, foundSongs, 0, onProgress)
+                    scanDirectoryForSongs(rootFile, seenPaths, foundSongs, 0, onProgress, activeIncludedFolders)
                 }
             }
-            // Dahil edilen özel klasörleri de doğrudan dosya sistemi olarak tara
-            for (folderPath in getIncludedFolders()) {
+            // Dahil edilen özel klasörler varsa onları da doğrudan tara
+            for (folderPath in activeIncludedFolders) {
                 val folderFile = File(folderPath)
-                if (folderFile.exists() && folderFile.isDirectory) {
+                if (folderFile.exists() && folderFile.isDirectory && !seenPaths.contains(folderPath)) {
                     onProgress?.invoke(folderFile.name, foundSongs.size)
-                    scanDirectoryForSongs(folderFile, seenPaths, foundSongs, 0, onProgress)
+                    scanDirectoryForSongs(folderFile, seenPaths, foundSongs, 0, onProgress, activeIncludedFolders)
                 }
             }
         } catch (e: Exception) {
@@ -208,22 +208,34 @@ class MusicRepository(private val context: Context) {
         seenPaths: MutableSet<String>,
         outList: MutableList<Song>,
         depth: Int = 0,
-        onProgress: ((currentDir: String, foundCount: Int) -> Unit)? = null
+        onProgress: ((currentDir: String, foundCount: Int) -> Unit)? = null,
+        includedFolders: Set<String> = emptySet()
     ) {
-        if (depth > 6) return // Derin döngüleri engelle
-        onProgress?.invoke(currentDir.name, outList.size)
+        if (depth > 8) return // Derin döngüleri engelle
+        val dirName = currentDir.name
+        if (dirName.startsWith(".") || dirName.equals("Android", ignoreCase = true) || dirName.equals("lost+found", ignoreCase = true)) {
+            return
+        }
+
+        onProgress?.invoke(dirName, outList.size)
         val files = currentDir.listFiles() ?: return
         for (f in files) {
-            if (f.isDirectory && !f.isHidden && f.canRead()) {
-                scanDirectoryForSongs(f, seenPaths, outList, depth + 1, onProgress)
-            } else if (f.isFile && isAudioFile(f.name) && !seenPaths.contains(f.absolutePath) && isPathAllowed(f.absolutePath, getIncludedFolders()) && !isSongHidden(f.absolutePath)) {
+            if (f.isDirectory) {
+                if (!f.isHidden && !f.name.startsWith(".") && !f.name.equals("Android", ignoreCase = true)) {
+                    scanDirectoryForSongs(f, seenPaths, outList, depth + 1, onProgress, includedFolders)
+                }
+            } else if (f.isFile && isAudioFile(f.name) && !seenPaths.contains(f.absolutePath) && isPathAllowed(f.absolutePath, includedFolders) && !isSongHidden(f.absolutePath)) {
                 seenPaths.add(f.absolutePath)
                 val name = f.nameWithoutExtension
                 val ext = f.extension.uppercase(Locale.ROOT)
                 val sizeMb = "%.1f MB".format(f.length() / (1024.0 * 1024.0))
-                var songTitle = name
-                var songArtist = currentDir.name
-                if (name.contains(" - ")) {
+
+                val id3Info = com.example.otomuzik.util.Id3Helper.parseFile(f.absolutePath)
+                var songTitle = id3Info.title.takeIf { it.isNotBlank() } ?: name
+                var songArtist = id3Info.artist.takeIf { it.isNotBlank() } ?: currentDir.name
+                val songAlbum = id3Info.album.takeIf { it.isNotBlank() } ?: currentDir.name
+
+                if (songTitle == name && name.contains(" - ")) {
                     songArtist = name.substringBefore(" - ").trim()
                     songTitle = name.substringAfter(" - ").trim()
                 }
@@ -233,8 +245,8 @@ class MusicRepository(private val context: Context) {
                         id = f.absolutePath.hashCode().toLong(),
                         title = com.example.otomuzik.util.TurkishStringFixer.fix(songTitle),
                         artist = com.example.otomuzik.util.TurkishStringFixer.fix(songArtist),
-                        album = com.example.otomuzik.util.TurkishStringFixer.fix(currentDir.name),
-                        durationMs = 0L,
+                        album = com.example.otomuzik.util.TurkishStringFixer.fix(songAlbum),
+                        durationMs = if (id3Info.durationMs > 0) id3Info.durationMs else 0L,
                         path = f.absolutePath,
                         uriString = Uri.fromFile(f).toString(),
                         folderPath = currentDir.absolutePath,
@@ -257,21 +269,46 @@ class MusicRepository(private val context: Context) {
         val internalStorage = Environment.getExternalStorageDirectory()
         if (internalStorage != null && internalStorage.exists()) {
             val musicDir = File(internalStorage, "Music")
-            val targetDir = if (musicDir.exists()) musicDir else internalStorage
-            roots.add(
-                FolderItem(
-                    name = "Dahili Hafıza (${targetDir.name})",
-                    path = targetDir.absolutePath,
-                    isDirectory = true,
-                    isStorageRoot = true,
-                    songCount = countAudioFiles(targetDir)
+            if (musicDir.exists()) {
+                roots.add(
+                    FolderItem(
+                        name = "Dahili Hafıza (Music)",
+                        path = musicDir.absolutePath,
+                        isDirectory = true,
+                        isStorageRoot = true,
+                        songCount = countAudioFiles(musicDir)
+                    )
                 )
-            )
-            seenPaths.add(targetDir.absolutePath)
-            seenPaths.add(internalStorage.absolutePath)
+                seenPaths.add(musicDir.absolutePath)
+            }
+            val downloadDir = File(internalStorage, "Download")
+            if (downloadDir.exists() && !seenPaths.contains(downloadDir.absolutePath)) {
+                roots.add(
+                    FolderItem(
+                        name = "Dahili Hafıza (Download)",
+                        path = downloadDir.absolutePath,
+                        isDirectory = true,
+                        isStorageRoot = true,
+                        songCount = countAudioFiles(downloadDir)
+                    )
+                )
+                seenPaths.add(downloadDir.absolutePath)
+            }
+            if (!seenPaths.contains(internalStorage.absolutePath)) {
+                roots.add(
+                    FolderItem(
+                        name = "Dahili Hafıza (Tümü)",
+                        path = internalStorage.absolutePath,
+                        isDirectory = true,
+                        isStorageRoot = true,
+                        songCount = countAudioFiles(internalStorage)
+                    )
+                )
+                seenPaths.add(internalStorage.absolutePath)
+            }
         }
 
-        // 2. Harici Depolama / USB Bellekler / SD Kartlar
+        // 2. Harici Depolama / USB Bellekler / SD Kartlar (ContextCompat getExternalFilesDirs)
         try {
             val extDirs = ContextCompat.getExternalFilesDirs(context, null)
             for (dir in extDirs) {
@@ -283,10 +320,10 @@ class MusicRepository(private val context: Context) {
                         val slashIdx = sub.indexOf('/')
                         val volumeName = if (slashIdx != -1) sub.substring(0, slashIdx) else sub
 
-                        if (volumeName != "emulated" && volumeName != "self") {
+                        if (volumeName != "emulated" && volumeName != "self" && volumeName != "knox") {
                             val rootPath = "/storage/$volumeName"
                             val rootFile = File(rootPath)
-                            if (rootFile.exists() && rootFile.canRead() && !seenPaths.contains(rootPath)) {
+                            if (rootFile.exists() && !seenPaths.contains(rootPath)) {
                                 roots.add(
                                     FolderItem(
                                         name = "USB Bellek ($volumeName)",
@@ -314,7 +351,7 @@ class MusicRepository(private val context: Context) {
                 if (list != null) {
                     for (f in list) {
                         val name = f.name
-                        if (f.isDirectory && name != "emulated" && name != "self" && !seenPaths.contains(f.absolutePath)) {
+                        if (f.isDirectory && name != "emulated" && name != "self" && name != "knox" && !seenPaths.contains(f.absolutePath)) {
                             val songCount = countAudioFiles(f)
                             roots.add(
                                 FolderItem(
@@ -332,6 +369,53 @@ class MusicRepository(private val context: Context) {
             }
         } catch (e: Exception) {
             e.printStackTrace()
+        }
+
+        // 4. Araç multimedya USB montaj dizinlerini tara (/mnt/media_rw, /mnt/usb_storage vb.)
+        val candidateMounts = listOf(
+            "/mnt/media_rw",
+            "/mnt/usb_storage",
+            "/mnt/udisk",
+            "/mnt/udisk1",
+            "/mnt/udisk2",
+            "/mnt/extsd",
+            "/mnt/sdcard2"
+        )
+        for (mPath in candidateMounts) {
+            try {
+                val mFile = File(mPath)
+                if (mFile.exists() && mFile.isDirectory) {
+                    if (mPath == "/mnt/media_rw") {
+                        mFile.listFiles()?.forEach { sub ->
+                            if (sub.isDirectory && !seenPaths.contains(sub.absolutePath)) {
+                                roots.add(
+                                    FolderItem(
+                                        name = "USB (${sub.name})",
+                                        path = sub.absolutePath,
+                                        isDirectory = true,
+                                        isStorageRoot = true,
+                                        songCount = countAudioFiles(sub)
+                                    )
+                                )
+                                seenPaths.add(sub.absolutePath)
+                            }
+                        }
+                    } else if (!seenPaths.contains(mFile.absolutePath)) {
+                        roots.add(
+                            FolderItem(
+                                name = "USB (${mFile.name})",
+                                path = mFile.absolutePath,
+                                isDirectory = true,
+                                isStorageRoot = true,
+                                songCount = countAudioFiles(mFile)
+                            )
+                        )
+                        seenPaths.add(mFile.absolutePath)
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
 
         roots
@@ -882,19 +966,14 @@ class MusicRepository(private val context: Context) {
     fun getIncludedFolders(): Set<String> {
         val saved = prefs.getStringSet(KEY_INCLUDED_FOLDERS, null)
         if (saved != null && saved.isNotEmpty()) {
+            // Eski hatalı sürümden kalan tekil /Music kısıtlamasını otomatik temizle
+            if (saved.size == 1 && saved.first().trimEnd('/').endsWith("/Music", ignoreCase = true)) {
+                prefs.edit().remove(KEY_INCLUDED_FOLDERS).apply()
+                return emptySet()
+            }
             return saved
         }
-        val defaultSet = mutableSetOf<String>()
-        val internalStorage = Environment.getExternalStorageDirectory()
-        if (internalStorage != null) {
-            val musicDir = File(internalStorage, "Music")
-            if (musicDir.exists()) {
-                defaultSet.add(musicDir.absolutePath)
-            } else {
-                defaultSet.add(internalStorage.absolutePath)
-            }
-        }
-        return defaultSet
+        return emptySet()
     }
 
     fun setIncludedFolders(folders: Set<String>) {

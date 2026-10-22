@@ -730,6 +730,7 @@ fun PhoneMainScreen(
                 storageRoots = storageRoots,
                 includedFolders = includedFolders,
                 onToggleFolder = { path, isInc -> viewModel.toggleFolderIncluded(path, isInc) },
+                onResetAll = { viewModel.resetIncludedFolders() },
                 onRescan = { viewModel.rescanLibrary() },
                 onDismissRequest = { viewModel.closeFolderSelectionDialog() }
             )

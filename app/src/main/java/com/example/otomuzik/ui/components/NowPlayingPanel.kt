@@ -429,23 +429,24 @@ fun NowPlayingPanel(
             )
 
             // ── 2.5 HIZLI EYLEM BUTONLARI (Sanatçı Modu & Favori Butonu) ────
-            // İlerleme çubuğunun sol başlangıç ve sağ bitiş noktası üstünde sabit hizalı
+            // İlerleme çubuğunun sol başlangıç ve sağ bitiş noktası üstünde sabit hizalı (Büyük Boyut)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = if (isCompact) 4.dp else 6.dp, end = if (isCompact) 4.dp else 6.dp, bottom = if (isCompact) 2.dp else 4.dp),
+                    .padding(start = if (isCompact) 4.dp else 6.dp, end = if (isCompact) 4.dp else 6.dp, bottom = if (isCompact) 4.dp else 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                val actionBtnSize = if (isCompact) 44.dp else 52.dp
-                val actionIconSize = if (isCompact) 22.dp else 26.dp
+                // 2 katına çıkarılmış belirgin kokpit buton ve simge boyutları
+                val actionBtnSize = if (isCompact) 64.dp else 76.dp
+                val actionIconSize = if (isCompact) 40.dp else 48.dp
 
-                // SOL: Sanatçının Diğer Şarkılarını Çal Butonu (🎙️)
+                // SOL: Sanatçının Diğer Şarkılarını Çal Butonu (🎙️ / ic_mic)
                 Box(
                     modifier = Modifier
                         .size(actionBtnSize)
                         .shadow(
-                            elevation = if (isArtistModeActive) 8.dp else 4.dp,
+                            elevation = if (isArtistModeActive) 12.dp else 6.dp,
                             shape = CircleShape,
                             ambientColor = if (isArtistModeActive) animatedaccent else Color.Black,
                             spotColor = if (isArtistModeActive) animatedaccent else Color.Black
@@ -456,7 +457,8 @@ fun NowPlayingPanel(
                                 Brush.radialGradient(
                                     listOf(
                                         animatedaccent.copy(alpha = 0.45f),
-                                        Color(0xFF0F1A28)
+                                        Color(0xFF0F1A28),
+                                        Color(0xFF070B12)
                                     )
                                 )
                             else
@@ -465,9 +467,9 @@ fun NowPlayingPanel(
                                 )
                         )
                         .border(
-                            width = if (isArtistModeActive) 2.dp else 1.4.dp,
+                            width = if (isArtistModeActive) 2.4.dp else 1.8.dp,
                             brush = if (isArtistModeActive)
-                                Brush.verticalGradient(listOf(animatedaccent, animatedaccent.copy(alpha = 0.6f)))
+                                Brush.verticalGradient(listOf(animatedaccent, animatedaccent.copy(alpha = 0.7f)))
                             else
                                 Brush.verticalGradient(listOf(Color(0xFF4A5568), Color(0xFF1E2432))),
                             shape = CircleShape
@@ -475,9 +477,11 @@ fun NowPlayingPanel(
                         .clickable { onPlayMoreFromArtist?.invoke() },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "🎙️",
-                        fontSize = if (isCompact) 19.sp else 23.sp
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_mic),
+                        contentDescription = if (isArtistModeActive) "Sanatçı Modunu Kapat" else "Sanatçının Diğer Şarkılarını Çal",
+                        tint = if (isArtistModeActive) animatedaccent else Color.White.copy(alpha = 0.85f),
+                        modifier = Modifier.size(actionIconSize)
                     )
                 }
 
@@ -488,7 +492,7 @@ fun NowPlayingPanel(
                     modifier = Modifier
                         .size(actionBtnSize)
                         .shadow(
-                            elevation = if (isFavorite) 8.dp else 4.dp,
+                            elevation = if (isFavorite) 10.dp else 6.dp,
                             shape = CircleShape,
                             ambientColor = if (isFavorite) Color(0xFFE53935) else Color.Black,
                             spotColor = if (isFavorite) Color(0xFFE53935) else Color.Black
@@ -498,7 +502,7 @@ fun NowPlayingPanel(
                             if (isFavorite)
                                 Brush.radialGradient(
                                     listOf(
-                                        Color(0xFFE53935).copy(alpha = 0.35f),
+                                        Color(0xFFE53935).copy(alpha = 0.40f),
                                         Color(0xFF2A1015),
                                         Color(0xFF120A0D)
                                     )
@@ -509,7 +513,7 @@ fun NowPlayingPanel(
                                 )
                         )
                         .border(
-                            width = if (isFavorite) 2.dp else 1.4.dp,
+                            width = if (isFavorite) 2.4.dp else 1.8.dp,
                             brush = if (isFavorite)
                                 Brush.verticalGradient(listOf(Color(0xFFFF5252), Color(0xFFD32F2F)))
                             else
