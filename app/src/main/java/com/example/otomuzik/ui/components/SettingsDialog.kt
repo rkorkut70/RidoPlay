@@ -643,99 +643,212 @@ fun SettingsDialog(
                                     .padding(16.dp),
                                 verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                Settings3DActionButton(
-                                    title = "🔍 Aynı / Mükerrer Şarkıları Bul",
-                                    accentColor = accentColor,
-                                    onClick = { viewModel.openDuplicateFinderDialog() }
-                                )
-                                Settings3DActionButton(
-                                    title = "📁 Müzik Klasörlerini Yönet",
-                                    accentColor = Color(0xFF64B5F6),
-                                    onClick = { viewModel.openFolderSelectionDialog() }
-                                )
-                                Settings3DActionButton(
-                                    title = if (isLibraryScanning) "🔄 Taranıyor... ($libraryScanCount Şarkı)" else "🔄 Kütüphaneyi Yeniden Tara",
-                                    accentColor = if (isLibraryScanning) accentColor else Color(0xFF81C784),
-                                    enabled = !isLibraryScanning,
-                                    onClick = { viewModel.rescanLibrary() }
-                                )
-
-                                AnimatedVisibility(visible = isLibraryScanning || libraryScanCompletedMessage != null) {
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(top = 4.dp, bottom = 4.dp)
-                                            .clip(RoundedCornerShape(12.dp))
-                                            .background(Color(0xFF141923))
-                                            .border(
-                                                1.dp,
-                                                if (isLibraryScanning) accentColor.copy(alpha = 0.5f) else Color(0xFF4CAF50).copy(alpha = 0.5f),
-                                                RoundedCornerShape(12.dp)
-                                            )
-                                            .padding(horizontal = 14.dp, vertical = 10.dp)
+                                if (!isPhone) {
+                                    // Tablet / Araç Modu: Butonlar Yan Yana
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                                     ) {
-                                        if (isLibraryScanning) {
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.SpaceBetween
-                                            ) {
+                                        Settings3DActionButton(
+                                            title = "📁 Müzik Klasörlerini Yönet",
+                                            accentColor = Color(0xFF64B5F6),
+                                            modifier = Modifier.weight(1f),
+                                            onClick = { viewModel.openFolderSelectionDialog() }
+                                        )
+                                        Settings3DActionButton(
+                                            title = if (isLibraryScanning) "🔄 Taranıyor... ($libraryScanCount Şarkı)" else "🔄 Kütüphaneyi Yeniden Tara",
+                                            accentColor = if (isLibraryScanning) accentColor else Color(0xFF81C784),
+                                            modifier = Modifier.weight(1f),
+                                            enabled = !isLibraryScanning,
+                                            onClick = { viewModel.rescanLibrary() }
+                                        )
+                                    }
+
+                                    AnimatedVisibility(visible = isLibraryScanning || libraryScanCompletedMessage != null) {
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(top = 2.dp, bottom = 2.dp)
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .background(Color(0xFF141923))
+                                                .border(
+                                                    1.dp,
+                                                    if (isLibraryScanning) accentColor.copy(alpha = 0.5f) else Color(0xFF4CAF50).copy(alpha = 0.5f),
+                                                    RoundedCornerShape(12.dp)
+                                                )
+                                                .padding(horizontal = 14.dp, vertical = 10.dp)
+                                        ) {
+                                            if (isLibraryScanning) {
                                                 Row(
+                                                    modifier = Modifier.fillMaxWidth(),
                                                     verticalAlignment = Alignment.CenterVertically,
-                                                    modifier = Modifier.weight(1f)
+                                                    horizontalArrangement = Arrangement.SpaceBetween
                                                 ) {
-                                                    CircularProgressIndicator(
-                                                        modifier = Modifier.size(15.dp),
-                                                        strokeWidth = 2.dp,
-                                                        color = accentColor
-                                                    )
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        modifier = Modifier.weight(1f)
+                                                    ) {
+                                                        CircularProgressIndicator(
+                                                            modifier = Modifier.size(15.dp),
+                                                            strokeWidth = 2.dp,
+                                                            color = accentColor
+                                                        )
+                                                        Spacer(modifier = Modifier.width(8.dp))
+                                                        Text(
+                                                            text = "📁 Taranan: $libraryScanStatus",
+                                                            fontSize = 12.sp,
+                                                            color = Color(0xFFE2E8F0),
+                                                            fontWeight = FontWeight.Medium,
+                                                            maxLines = 1,
+                                                            overflow = TextOverflow.Ellipsis
+                                                        )
+                                                    }
                                                     Spacer(modifier = Modifier.width(8.dp))
                                                     Text(
-                                                        text = "📁 Taranan: $libraryScanStatus",
+                                                        text = "$libraryScanCount şarkı",
                                                         fontSize = 12.sp,
-                                                        color = Color(0xFFE2E8F0),
-                                                        fontWeight = FontWeight.Medium,
-                                                        maxLines = 1,
-                                                        overflow = TextOverflow.Ellipsis
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = accentColor
                                                     )
                                                 }
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                Text(
-                                                    text = "$libraryScanCount şarkı",
-                                                    fontSize = 12.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = accentColor
+                                                Spacer(modifier = Modifier.height(8.dp))
+                                                LinearProgressIndicator(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .height(4.dp)
+                                                        .clip(RoundedCornerShape(2.dp)),
+                                                    color = accentColor,
+                                                    trackColor = accentColor.copy(alpha = 0.2f)
                                                 )
-                                            }
-                                            Spacer(modifier = Modifier.height(8.dp))
-                                            LinearProgressIndicator(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .height(4.dp)
-                                                    .clip(RoundedCornerShape(2.dp)),
-                                                color = accentColor,
-                                                trackColor = accentColor.copy(alpha = 0.2f)
-                                            )
-                                        } else if (libraryScanCompletedMessage != null) {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                modifier = Modifier.fillMaxWidth()
-                                            ) {
-                                                Text(
-                                                    text = libraryScanCompletedMessage ?: "",
-                                                    fontSize = 12.sp,
-                                                    fontWeight = FontWeight.SemiBold,
-                                                    color = if (libraryScanCompletedMessage?.startsWith("❌") == true) MaterialTheme.colorScheme.error else Color(0xFF81C784)
-                                                )
+                                            } else if (libraryScanCompletedMessage != null) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier.fillMaxWidth()
+                                                ) {
+                                                    Text(
+                                                        text = libraryScanCompletedMessage ?: "",
+                                                        fontSize = 12.sp,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        color = if (libraryScanCompletedMessage?.startsWith("❌") == true) MaterialTheme.colorScheme.error else Color(0xFF81C784)
+                                                    )
+                                                }
                                             }
                                         }
                                     }
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        Settings3DActionButton(
+                                            title = "🔍 Aynı / Mükerrer Şarkıları Bul",
+                                            accentColor = accentColor,
+                                            modifier = Modifier.weight(1f),
+                                            onClick = { viewModel.openDuplicateFinderDialog() }
+                                        )
+                                        Settings3DActionButton(
+                                            title = "🗑️ Çalma Geçmişini Temizle",
+                                            accentColor = Color(0xFFE57373),
+                                            modifier = Modifier.weight(1f),
+                                            onClick = { viewModel.clearPlayHistory() }
+                                        )
+                                    }
+                                } else {
+                                    // Telefon Modu
+                                    Settings3DActionButton(
+                                        title = "📁 Müzik Klasörlerini Yönet",
+                                        accentColor = Color(0xFF64B5F6),
+                                        onClick = { viewModel.openFolderSelectionDialog() }
+                                    )
+                                    Settings3DActionButton(
+                                        title = if (isLibraryScanning) "🔄 Taranıyor... ($libraryScanCount Şarkı)" else "🔄 Kütüphaneyi Yeniden Tara",
+                                        accentColor = if (isLibraryScanning) accentColor else Color(0xFF81C784),
+                                        enabled = !isLibraryScanning,
+                                        onClick = { viewModel.rescanLibrary() }
+                                    )
+
+                                    AnimatedVisibility(visible = isLibraryScanning || libraryScanCompletedMessage != null) {
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(top = 4.dp, bottom = 4.dp)
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .background(Color(0xFF141923))
+                                                .border(
+                                                    1.dp,
+                                                    if (isLibraryScanning) accentColor.copy(alpha = 0.5f) else Color(0xFF4CAF50).copy(alpha = 0.5f),
+                                                    RoundedCornerShape(12.dp)
+                                                )
+                                                .padding(horizontal = 14.dp, vertical = 10.dp)
+                                        ) {
+                                            if (isLibraryScanning) {
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.SpaceBetween
+                                                ) {
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        modifier = Modifier.weight(1f)
+                                                    ) {
+                                                        CircularProgressIndicator(
+                                                            modifier = Modifier.size(15.dp),
+                                                            strokeWidth = 2.dp,
+                                                            color = accentColor
+                                                        )
+                                                        Spacer(modifier = Modifier.width(8.dp))
+                                                        Text(
+                                                            text = "📁 Taranan: $libraryScanStatus",
+                                                            fontSize = 12.sp,
+                                                            color = Color(0xFFE2E8F0),
+                                                            fontWeight = FontWeight.Medium,
+                                                            maxLines = 1,
+                                                            overflow = TextOverflow.Ellipsis
+                                                        )
+                                                    }
+                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                    Text(
+                                                        text = "$libraryScanCount şarkı",
+                                                        fontSize = 12.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = accentColor
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.height(8.dp))
+                                                LinearProgressIndicator(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .height(4.dp)
+                                                        .clip(RoundedCornerShape(2.dp)),
+                                                    color = accentColor,
+                                                    trackColor = accentColor.copy(alpha = 0.2f)
+                                                )
+                                            } else if (libraryScanCompletedMessage != null) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier.fillMaxWidth()
+                                                ) {
+                                                    Text(
+                                                        text = libraryScanCompletedMessage ?: "",
+                                                        fontSize = 12.sp,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        color = if (libraryScanCompletedMessage?.startsWith("❌") == true) MaterialTheme.colorScheme.error else Color(0xFF81C784)
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                    Settings3DActionButton(
+                                        title = "🔍 Aynı / Mükerrer Şarkıları Bul",
+                                        accentColor = accentColor,
+                                        onClick = { viewModel.openDuplicateFinderDialog() }
+                                    )
+                                    Settings3DActionButton(
+                                        title = "🗑️ Çalma Geçmişini Temizle",
+                                        accentColor = Color(0xFFE57373),
+                                        onClick = { viewModel.clearPlayHistory() }
+                                    )
                                 }
-                                Settings3DActionButton(
-                                    title = "🗑️ Çalma Geçmişini Temizle",
-                                    accentColor = Color(0xFFE57373),
-                                    onClick = { viewModel.clearPlayHistory() }
-                                )
                             }
                         }
 
@@ -1253,12 +1366,12 @@ fun TabButton(
 fun Settings3DActionButton(
     title: String,
     accentColor: Color,
+    modifier: Modifier = Modifier.fillMaxWidth(),
     enabled: Boolean = true,
     onClick: () -> Unit
 ) {
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
+        modifier = modifier
             .shadow(if (enabled) 6.dp else 2.dp, RoundedCornerShape(12.dp), spotColor = accentColor.copy(0.35f))
             .clip(RoundedCornerShape(12.dp))
             .background(
@@ -1290,14 +1403,16 @@ fun Settings3DActionButton(
                 RoundedCornerShape(12.dp)
             )
             .clickable(enabled = enabled) { onClick() }
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 14.dp, vertical = 12.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = title,
             fontWeight = FontWeight.Bold,
-            fontSize = 14.5.sp,
-            color = if (enabled) Color(0xFFFFFFFF) else Color(0xFF7E8C9D)
+            fontSize = 14.sp,
+            color = if (enabled) Color(0xFFFFFFFF) else Color(0xFF7E8C9D),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }
