@@ -128,6 +128,7 @@ fun SwipeableCoverandInfo(
     onPlayMoreFromArtist: (() -> Unit)? = null,
     isArtistModeActive: Boolean = false,
     onToggleCoverLyrics: () -> Unit = {},
+    showInfoBelow: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val haptic = LocalHapticFeedback.current
@@ -535,7 +536,7 @@ fun SwipeableCoverandInfo(
                     .weight(1f),
                 contentAlignment = Alignment.Center
             ) {
-                val maxAllowed = if (isCompact) 185.dp else 260.dp
+                val maxAllowed = if (isCompact) (if (!showInfoBelow) 235.dp else 185.dp) else (if (!showInfoBelow) 310.dp else 260.dp)
                 val minAllowed = if (isCompact) 80.dp else 120.dp
                 val dynamicSize = minOf(maxWidth * 0.95f, maxHeight).coerceIn(minAllowed, maxAllowed)
 
@@ -796,74 +797,76 @@ fun SwipeableCoverandInfo(
                 }
             }
 
-            Spacer(modifier = Modifier.height(if (isCompact) 4.dp else 10.dp))
+            if (showInfoBelow) {
+                Spacer(modifier = Modifier.height(if (isCompact) 4.dp else 10.dp))
 
-            // ── ŞARKI BİLGİSİ (başlık + Sanatçı + rozet) — swipe ile birlikte kayar ──
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .offset { IntOffset(animatedOffset.roundToInt(), 0) }
-                    .padding(horizontal = 4.dp)
-                    .then(
-                        if (isCoverLyricsActive) {
-                            Modifier.pointerInput(Unit) {
-                                detectVerticalDragGestures(
-                                    onVerticalDrag = { change, dragamount ->
-                                        change.consume()
-                                        handleVolumeDrag(dragamount)
-                                    },
-                                    onDragEnd = { handleVolumeDrag(0f) },
-                                    onDragCancel = { handleVolumeDrag(0f) }
-                                )
-                            }
-                        } else Modifier
-                    ),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = songTitle,
-                    fontSize = if (isCompact) 18.sp else 22.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color(0xFFFFFFFF),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
+                // ── ŞARKI BİLGİSİ (başlık + Sanatçı + rozet) — swipe ile birlikte kayar ──
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 8.dp)
-                )
-
-                Spacer(modifier = Modifier.height(if (isCompact) 1.dp else 3.dp))
-
-                Text(
-                    text = songartist,
-                    fontSize = if (isCompact) 13.sp else 16.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = CarTextSecondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center
-                )
-
-                // ID3 Teknik Rozet
-                if (badgeText.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(if (isCompact) 3.dp else 6.dp))
-                    Box(
+                        .offset { IntOffset(animatedOffset.roundToInt(), 0) }
+                        .padding(horizontal = 4.dp)
+                        .then(
+                            if (isCoverLyricsActive) {
+                                Modifier.pointerInput(Unit) {
+                                    detectVerticalDragGestures(
+                                        onVerticalDrag = { change, dragamount ->
+                                            change.consume()
+                                            handleVolumeDrag(dragamount)
+                                        },
+                                        onDragEnd = { handleVolumeDrag(0f) },
+                                        onDragCancel = { handleVolumeDrag(0f) }
+                                    )
+                                }
+                            } else Modifier
+                        ),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = songTitle,
+                        fontSize = if (isCompact) 18.sp else 22.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color(0xFFFFFFFF),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center,
                         modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(CarSurfaceVariant)
-                            .border(1.dp, CarBorder, RoundedCornerShape(8.dp))
-                            .clickable { onInfoBadgeClick() }
-                            .padding(horizontal = 8.dp, vertical = if (isCompact) 2.dp else 4.dp)
-                    ) {
-                        Text(
-                            text = badgeText,
-                            fontSize = if (isCompact) 11.sp else 12.sp,
-                            color = CarCyan,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(if (isCompact) 1.dp else 3.dp))
+
+                    Text(
+                        text = songartist,
+                        fontSize = if (isCompact) 13.sp else 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = CarTextSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center
+                    )
+
+                    // ID3 Teknik Rozet
+                    if (badgeText.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(if (isCompact) 3.dp else 6.dp))
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(CarSurfaceVariant)
+                                .border(1.dp, CarBorder, RoundedCornerShape(8.dp))
+                                .clickable { onInfoBadgeClick() }
+                                .padding(horizontal = 8.dp, vertical = if (isCompact) 2.dp else 4.dp)
+                        ) {
+                            Text(
+                                text = badgeText,
+                                fontSize = if (isCompact) 11.sp else 12.sp,
+                                color = CarCyan,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
                     }
                 }
             }

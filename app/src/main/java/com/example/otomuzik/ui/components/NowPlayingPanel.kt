@@ -40,6 +40,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.otomuzik.R
@@ -423,13 +425,14 @@ fun NowPlayingPanel(
                 onInfoBadgeClick = onOpenId3Info,
                 isalbumartCropped = isalbumartCropped,
                 lyricsFontSize = lyricsFontSize,
+                showInfoBelow = false,
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
             )
 
-            // ── 2.5 HIZLI EYLEM BUTONLARI (Sanatçı Modu & Favori Butonu) ────
-            // İlerleme çubuğunun sol başlangıç ve sağ bitiş noktası üstünde sabit hizalı (Büyük Boyut)
+            // ── 2.5 ŞARKI BİLGİLERİ VE HIZLI EYLEM BUTONLARI (Mikrofon - Şarkı Bilgisi - Favori) ────
+            // İlerleme çubuğunun hemen üstünde: Solda Retro Mikrofon, Ortada Şarkı/Sanatçı/Rozet, Sağda Kalp Favori
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -441,7 +444,7 @@ fun NowPlayingPanel(
                 val actionBtnSize = if (isCompact) 64.dp else 76.dp
                 val actionIconSize = if (isCompact) 40.dp else 48.dp
 
-                // SOL: Sanatçının Diğer Şarkılarını Çal Butonu (🎙️ / ic_mic)
+                // SOL: Sanatçının Diğer Şarkılarını Çal Butonu (🎙️ / ic_mic_retro)
                 Box(
                     modifier = Modifier
                         .size(actionBtnSize)
@@ -485,7 +488,59 @@ fun NowPlayingPanel(
                     )
                 }
 
-                Spacer(modifier = Modifier.weight(1f))
+                // ORTA: Şarkı Başlığı, Sanatçı Adı ve Teknik Rozet (Mikrofon ve Kalp ile aynı hizada)
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = displayTitle,
+                        fontSize = if (isCompact) 17.sp else 21.sp,
+                        fontWeight = FontWeight.Black,
+                        color = Color.White,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(if (isCompact) 1.dp else 3.dp))
+
+                    Text(
+                        text = displayartist,
+                        fontSize = if (isCompact) 13.sp else 15.5.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White.copy(alpha = 0.82f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    if (badgeText.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(if (isCompact) 3.dp else 5.dp))
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(CarSurfaceVariant)
+                                .border(1.dp, CarBorder, RoundedCornerShape(8.dp))
+                                .clickable { onOpenId3Info() }
+                                .padding(horizontal = 8.dp, vertical = if (isCompact) 2.dp else 3.dp)
+                        ) {
+                            Text(
+                                text = badgeText,
+                                fontSize = if (isCompact) 10.5.sp else 11.5.sp,
+                                color = animatedaccent,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
 
                 // SAĞ: Favorilere Ekle Butonu (❤️)
                 Box(
