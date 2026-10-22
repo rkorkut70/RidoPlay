@@ -478,7 +478,7 @@ fun NowPlayingPanel(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        painter = painterResource(id = R.drawable.ic_mic),
+                        painter = painterResource(id = R.drawable.ic_mic_retro),
                         contentDescription = if (isArtistModeActive) "Sanatçı Modunu Kapat" else "Sanatçının Diğer Şarkılarını Çal",
                         tint = if (isArtistModeActive) animatedaccent else Color.White.copy(alpha = 0.85f),
                         modifier = Modifier.size(actionIconSize)

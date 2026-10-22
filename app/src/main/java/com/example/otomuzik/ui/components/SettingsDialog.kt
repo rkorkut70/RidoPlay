@@ -265,36 +265,36 @@ fun SettingsDialog(
 
                 // ── 2. 3D AYARLAR SEKME SEÇİCİ (Tab Selector) ────────────────
                 var selectedSettingsTab by androidx.compose.runtime.remember { androidx.compose.runtime.mutableIntStateOf(0) }
+                data class SettingsTabItem(val title: String, val icon: String)
                 val settingsTabs = listOf(
-                    "Oynatma & Ses",
-                    "Görünüm",
-                    "Kütüphane",
-                    "Araç Modu",
-                    "Sistem"
+                    SettingsTabItem("Ses & Oynatma", "🎵"),
+                    SettingsTabItem("Kokpit & Görünüm", "🎨"),
+                    SettingsTabItem("Kütüphane & Medya", "📂"),
+                    SettingsTabItem("Araç & Sistem", "🚗")
                 )
 
                 if (!isPhone) {
-                    // Araba / Geniş Ekran Modu: 3D Segmented Switcher Paneli
+                    // Araba / Geniş Ekran Modu: 3D Segmented Switcher Paneli (Billet Deck)
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 24.dp, vertical = 10.dp)
-                            .shadow(8.dp, RoundedCornerShape(18.dp), spotColor = Color(0x66000000))
-                            .clip(RoundedCornerShape(18.dp))
+                            .shadow(10.dp, RoundedCornerShape(20.dp), spotColor = Color(0x99000000))
+                            .clip(RoundedCornerShape(20.dp))
                             .background(
                                 Brush.verticalGradient(
-                                    listOf(Color(0xFF0C0F17), Color(0xFF121622))
+                                    listOf(Color(0xFF090C13), Color(0xFF131722))
                                 )
                             )
                             .border(
-                                1.2.dp,
+                                1.4.dp,
                                 Brush.verticalGradient(
                                     listOf(
-                                        Color.White.copy(alpha = 0.20f),
-                                        Color.Black.copy(alpha = 0.85f)
+                                        Color.White.copy(alpha = 0.22f),
+                                        Color.Black.copy(alpha = 0.90f)
                                     )
                                 ),
-                                RoundedCornerShape(18.dp)
+                                RoundedCornerShape(20.dp)
                             )
                             .padding(6.dp)
                     ) {
@@ -302,67 +302,99 @@ fun SettingsDialog(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            settingsTabs.forEachIndexed { index, tabTitle ->
+                            settingsTabs.forEachIndexed { index, tab ->
                                 val isSelected = selectedSettingsTab == index
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)
-                                        .height(48.dp)
+                                        .height(52.dp)
                                         .then(
                                             if (isSelected) {
                                                 Modifier
                                                     .shadow(
-                                                        6.dp,
-                                                        RoundedCornerShape(12.dp),
-                                                        spotColor = accentColor.copy(0.6f)
+                                                        8.dp,
+                                                        RoundedCornerShape(14.dp),
+                                                        spotColor = accentColor.copy(0.7f)
                                                     )
-                                                    .clip(RoundedCornerShape(12.dp))
+                                                    .clip(RoundedCornerShape(14.dp))
                                                     .background(
                                                         Brush.verticalGradient(
                                                             listOf(
-                                                                accentColor.copy(alpha = 0.38f),
-                                                                accentColor.copy(alpha = 0.16f),
-                                                                Color(0xFF161F2E)
+                                                                accentColor.copy(alpha = 0.42f),
+                                                                accentColor.copy(alpha = 0.18f),
+                                                                Color(0xFF151D2A)
                                                             )
                                                         )
                                                     )
                                                     .border(
-                                                        1.5.dp,
+                                                        1.6.dp,
                                                         Brush.verticalGradient(
                                                             listOf(
-                                                                Color.White.copy(alpha = 0.65f),
+                                                                Color.White.copy(alpha = 0.75f),
                                                                 accentColor,
-                                                                Color.Black.copy(alpha = 0.80f)
+                                                                Color.Black.copy(alpha = 0.85f)
                                                             )
                                                         ),
-                                                        RoundedCornerShape(12.dp)
+                                                        RoundedCornerShape(14.dp)
                                                     )
                                             } else {
                                                 Modifier
-                                                    .clip(RoundedCornerShape(12.dp))
-                                                    .background(Color(0xFF141924))
+                                                    .clip(RoundedCornerShape(14.dp))
+                                                    .background(
+                                                        Brush.verticalGradient(
+                                                            listOf(Color(0xFF1A2130), Color(0xFF121722))
+                                                        )
+                                                    )
                                                     .border(
                                                         1.dp,
                                                         Brush.verticalGradient(
                                                             listOf(
-                                                                Color.White.copy(alpha = 0.12f),
-                                                                Color.Black.copy(alpha = 0.6f)
+                                                                Color.White.copy(alpha = 0.10f),
+                                                                Color.Black.copy(alpha = 0.70f)
                                                             )
                                                         ),
-                                                        RoundedCornerShape(12.dp)
+                                                        RoundedCornerShape(14.dp)
                                                     )
                                             }
                                         )
                                         .clickable { selectedSettingsTab = index },
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text(
-                                        text = tabTitle,
-                                        fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium,
-                                        fontSize = 14.5.sp,
-                                        color = if (isSelected) accentColor else CarTextMuted,
-                                        maxLines = 1
-                                    )
+                                    if (isSelected) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(1.dp)
+                                                .align(Alignment.TopCenter)
+                                                .background(
+                                                    Brush.horizontalGradient(
+                                                        listOf(
+                                                            Color.Transparent,
+                                                            Color.White.copy(alpha = 0.45f),
+                                                            Color.Transparent
+                                                        )
+                                                    )
+                                                )
+                                        )
+                                    }
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center,
+                                        modifier = Modifier.padding(horizontal = 4.dp)
+                                    ) {
+                                        Text(
+                                            text = tab.icon,
+                                            fontSize = 17.sp,
+                                            modifier = Modifier.padding(end = 6.dp)
+                                        )
+                                        Text(
+                                            text = tab.title,
+                                            fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.SemiBold,
+                                            fontSize = 14.sp,
+                                            color = if (isSelected) Color.White else CarTextMuted,
+                                            maxLines = 1
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -376,18 +408,22 @@ fun SettingsDialog(
                         contentColor = accentColor,
                         divider = {}
                     ) {
-                        settingsTabs.forEachIndexed { index, tabTitle ->
+                        settingsTabs.forEachIndexed { index, tab ->
                             val isSelected = selectedSettingsTab == index
                             Tab(
                                 selected = isSelected,
                                 onClick = { selectedSettingsTab = index },
                                 text = {
-                                    Text(
-                                        text = tabTitle,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                        fontSize = 13.sp,
-                                        color = if (isSelected) accentColor else CarTextMuted
-                                    )
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(text = tab.icon, fontSize = 14.sp)
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = tab.title,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                            fontSize = 13.sp,
+                                            color = if (isSelected) accentColor else CarTextMuted
+                                        )
+                                    }
                                 }
                             )
                         }
@@ -404,33 +440,9 @@ fun SettingsDialog(
                             vertical = if (isPhone) 6.dp else 14.dp
                         )
                 ) {
-                    // 1. Sekme / Bölüm: Oynatma ve Ses (Tab 0)
+                    // 1. Sekme / Bölüm: Ses & Oynatma (Tab 0)
                     if (selectedSettingsTab == 0) {
-                        SettingsSection(title = "Oynatma & Ses", accentColor = accentColor) {
-                            SettingSwitchRow(
-                                title = "Açılışta Otomatik Başla",
-                                description = "Uygulama açılır açılmaz en son çalınan müziğe devam eder.",
-                                checked = autoPlayOnStart,
-                                accentColor = accentColor,
-                                onCheckedChange = { viewModel.setAutoPlayOnStart(it) }
-                            )
-                            SettingsDivider()
-                            SettingSwitchRow(
-                                title = "Açılışta Sıraya Otomatik Geç",
-                                description = "Açılışta müzik seçiliyse ve işlem yapılmıyorsa 4 saniye sonra çalma sırasını otomatik açar.",
-                                checked = autoOpenQueueOnStart,
-                                accentColor = accentColor,
-                                onCheckedChange = { viewModel.setAutoOpenQueueOnStart(it) }
-                            )
-                            SettingsDivider()
-                            SettingSwitchRow(
-                                title = "Boşluksuz Çalma (Gapless)",
-                                description = "Şarkı geçişlerindeki sessizliği kaldırır.",
-                                checked = gaplessPlayback,
-                                accentColor = accentColor,
-                                onCheckedChange = { viewModel.setGaplessPlayback(it) }
-                            )
-                            SettingsDivider()
+                        SettingsSection(title = "Ses Efektleri & Geçişler", icon = "🎛️", accentColor = accentColor) {
                             SettingActionRow(
                                 title = "Crossfade Süresi",
                                 description = "Şarkılar arası yumuşak geçiş süresi."
@@ -444,24 +456,20 @@ fun SettingsDialog(
                             }
                             SettingsDivider()
                             SettingSwitchRow(
+                                title = "Boşluksuz Çalma (Gapless)",
+                                description = "Şarkı geçişlerindeki sessizliği kaldırır.",
+                                checked = gaplessPlayback,
+                                accentColor = accentColor,
+                                onCheckedChange = { viewModel.setGaplessPlayback(it) }
+                            )
+                            SettingsDivider()
+                            SettingSwitchRow(
                                 title = "Ses Seviyesi Eşitleme (Loudness)",
                                 description = "Şarkıların ses seviyelerini dengeler.",
                                 checked = equalizerState.isLoudnessEnhancerEnabled,
                                 accentColor = accentColor,
                                 onCheckedChange = { viewModel.setLoudnessEnhancerEnabled(it) }
                             )
-                            SettingsDivider()
-                            SettingActionRow(
-                                title = "Şarkı Geçiş Hassasiyeti (Kaydırma / Swipe)",
-                                description = "Kapak ve mini player üzerinde sağa/sola kaydırarak parça değiştirme eşiği."
-                            ) {
-                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    TabButton("Çok Hassas", "VERY_HIGH", swipeSensitivity, accentColor) { viewModel.setSwipeSensitivity(it) }
-                                    TabButton("Hassas", "HIGH", swipeSensitivity, accentColor) { viewModel.setSwipeSensitivity(it) }
-                                    TabButton("Normal", "NORMAL", swipeSensitivity, accentColor) { viewModel.setSwipeSensitivity(it) }
-                                    TabButton("Düşük", "LOW", swipeSensitivity, accentColor) { viewModel.setSwipeSensitivity(it) }
-                                }
-                            }
                             SettingsDivider()
                             SettingActionRow(
                                 title = "Oynatma Hızı",
@@ -481,11 +489,41 @@ fun SettingsDialog(
                                 }
                             }
                         }
+
+                        SettingsSection(title = "Oynatma & Etkileşim", icon = "⚡", accentColor = accentColor) {
+                            SettingSwitchRow(
+                                title = "Açılışta Otomatik Başla",
+                                description = "Uygulama açılır açılmaz en son çalınan müziğe devam eder.",
+                                checked = autoPlayOnStart,
+                                accentColor = accentColor,
+                                onCheckedChange = { viewModel.setAutoPlayOnStart(it) }
+                            )
+                            SettingsDivider()
+                            SettingSwitchRow(
+                                title = "Açılışta Sıraya Otomatik Geç",
+                                description = "Açılışta müzik seçiliyse ve işlem yapılmıyorsa 4 saniye sonra çalma sırasını otomatik açar.",
+                                checked = autoOpenQueueOnStart,
+                                accentColor = accentColor,
+                                onCheckedChange = { viewModel.setAutoOpenQueueOnStart(it) }
+                            )
+                            SettingsDivider()
+                            SettingActionRow(
+                                title = "Şarkı Geçiş Hassasiyeti (Kaydırma / Swipe)",
+                                description = "Kapak ve mini player üzerinde sağa/sola kaydırarak parça değiştirme eşiği."
+                            ) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    TabButton("Çok Hassas", "VERY_HIGH", swipeSensitivity, accentColor) { viewModel.setSwipeSensitivity(it) }
+                                    TabButton("Hassas", "HIGH", swipeSensitivity, accentColor) { viewModel.setSwipeSensitivity(it) }
+                                    TabButton("Normal", "NORMAL", swipeSensitivity, accentColor) { viewModel.setSwipeSensitivity(it) }
+                                    TabButton("Düşük", "LOW", swipeSensitivity, accentColor) { viewModel.setSwipeSensitivity(it) }
+                                }
+                            }
+                        }
                     }
 
-                    // 2. Sekme / Bölüm: Görünüm ve Tema (Tab 1)
+                    // 2. Sekme / Bölüm: Kokpit & Görünüm (Tab 1)
                     if (selectedSettingsTab == 1) {
-                        SettingsSection(title = "Görünüm & Tema", accentColor = accentColor) {
+                        SettingsSection(title = "Kokpit Teması & Konsol Rengi", icon = "🌈", accentColor = accentColor) {
                             SettingActionRow(
                                 title = "Tema Modu",
                                 description = "Uygulamanın karanlık veya aydınlık mod tercihi."
@@ -494,17 +532,6 @@ fun SettingsDialog(
                                     TabButton("Oto", "AUTO", themeMode, accentColor) { viewModel.setThemeMode(it) }
                                     TabButton("Açık", "LIGHT", themeMode, accentColor) { viewModel.setThemeMode(it) }
                                     TabButton("Koyu", "DARK", themeMode, accentColor) { viewModel.setThemeMode(it) }
-                                }
-                            }
-                            SettingsDivider()
-                            SettingActionRow(
-                                title = "Cihaz / Arayüz Modu",
-                                description = "Araç/Tablet veya Cep Telefonu ekran düzeni."
-                            ) {
-                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    TabButton("Oto", "AUTO", uiMode, accentColor) { viewModel.setUiMode(it) }
-                                    TabButton("Araç", "CAR", uiMode, accentColor) { viewModel.setUiMode(it) }
-                                    TabButton("Telefon", "PHONE", uiMode, accentColor) { viewModel.setUiMode(it) }
                                 }
                             }
                             SettingsDivider()
@@ -525,6 +552,19 @@ fun SettingsDialog(
                                 }
                             }
                             SettingsDivider()
+                            SettingActionRow(
+                                title = "Cihaz / Arayüz Modu",
+                                description = "Araç/Tablet veya Cep Telefonu ekran düzeni."
+                            ) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    TabButton("Oto", "AUTO", uiMode, accentColor) { viewModel.setUiMode(it) }
+                                    TabButton("Araç", "CAR", uiMode, accentColor) { viewModel.setUiMode(it) }
+                                    TabButton("Telefon", "PHONE", uiMode, accentColor) { viewModel.setUiMode(it) }
+                                }
+                            }
+                        }
+
+                        SettingsSection(title = "Ekran Efektleri & Görselleştirici", icon = "✨", accentColor = accentColor) {
                             SettingSwitchRow(
                                 title = "Bulanık Arka Plan Efekti",
                                 description = "Oynatıcı ekranında albüm kapağını bulanıklaştırarak şık bir arka plan yapar.",
@@ -548,7 +588,9 @@ fun SettingsDialog(
                                 accentColor = accentColor,
                                 onCheckedChange = { viewModel.setIsAlbumArtCropped(it) }
                             )
-                            SettingsDivider()
+                        }
+
+                        SettingsSection(title = "Şarkı Sözü Tercihleri", icon = "📝", accentColor = accentColor) {
                             SettingActionRow(
                                 title = "Şarkı Sözü Font Boyutu",
                                 description = "Kapakta ve söz penceresinde yazıların büyüklüğünü belirler."
@@ -570,9 +612,9 @@ fun SettingsDialog(
                         }
                     }
 
-                    // 3. Sekme / Bölüm: Kütüphane (Tab 2)
+                    // 3. Sekme / Bölüm: Kütüphane & Medya (Tab 2)
                     if (selectedSettingsTab == 2) {
-                        SettingsSection(title = "Kütüphane Yönetimi", accentColor = accentColor) {
+                        SettingsSection(title = "Kütüphane İşlemleri", icon = "📁", accentColor = accentColor) {
                             SettingSwitchRow(
                                 title = "Akıllı Listeleri Göster",
                                 description = "En çok çalınanlar, son eklenenler gibi otomatik listeleri aktif eder.",
@@ -698,7 +740,7 @@ fun SettingsDialog(
                         }
 
                         // Kütüphane İstatistikleri
-                        SettingsSection(title = "Kütüphane İstatistikleri", accentColor = accentColor) {
+                        SettingsSection(title = "Kütüphane İstatistikleri", icon = "📊", accentColor = accentColor) {
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -731,9 +773,9 @@ fun SettingsDialog(
                         }
                     }
 
-                    // 4. Sekme / Bölüm: Otomobil Modu (Tab 3)
+                    // 4. Sekme / Bölüm: Araç & Sistem (Tab 3)
                     if (selectedSettingsTab == 3) {
-                        SettingsSection(title = "Otomobil Modu", accentColor = accentColor) {
+                        SettingsSection(title = "Otomobil & Sürüş Entegrasyonu", icon = "🏎️", accentColor = accentColor) {
                             SettingSwitchRow(
                                 title = "Ekranı Uyanık Tut",
                                 description = "Uygulama açıkken ekranın kapanmasını engeller.",
@@ -749,12 +791,7 @@ fun SettingsDialog(
                                 accentColor = accentColor,
                                 onCheckedChange = { viewModel.setAutoPlayOnBluetooth(it) }
                             )
-                        }
-                    }
-
-                    // 5. Sekme / Bölüm: Sistem (Tab 4)
-                    if (selectedSettingsTab == 4) {
-                        SettingsSection(title = "Sistem", accentColor = accentColor) {
+                            SettingsDivider()
                             SettingSwitchRow(
                                 title = "Cihaz Açılışında RidoPlay'i Başlat",
                                 description = "Tablet veya araç multimedya ekranı açıldığında RidoPlay otomatik olarak açılsın.",
@@ -763,7 +800,6 @@ fun SettingsDialog(
                                 onCheckedChange = { viewModel.setStartOnBoot(it) }
                             )
                             SettingsDivider()
-
                             SettingSwitchRow(
                                 title = "Kapatılınca Müziği Durdur",
                                 description = "Arka plandan uygulamayı sildiğinizde müziği anında durdurur.",
@@ -771,8 +807,9 @@ fun SettingsDialog(
                                 accentColor = accentColor,
                                 onCheckedChange = { viewModel.setStopOnTaskRemoved(it) }
                             )
-                            SettingsDivider()
+                        }
 
+                        SettingsSection(title = "Sistem & Uygulama", icon = "⚙️", accentColor = accentColor) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -810,7 +847,7 @@ fun SettingsDialog(
                         }
 
                         // Uygulama ve Sürüm Bilgisi
-                        SettingsSection(title = "Hakkında & Güncelleme", accentColor = accentColor) {
+                        SettingsSection(title = "Hakkında & Güncelleme", icon = "ℹ️", accentColor = accentColor) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -870,6 +907,7 @@ fun SettingsDialog(
 fun SettingsSection(
     title: String,
     accentColor: Color,
+    icon: String? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
     val configuration = LocalConfiguration.current
@@ -888,11 +926,18 @@ fun SettingsSection(
                     .background(accentColor)
             )
             Spacer(modifier = Modifier.width(8.dp))
+            if (icon != null) {
+                Text(
+                    text = icon,
+                    fontSize = 15.sp,
+                    modifier = Modifier.padding(end = 6.dp)
+                )
+            }
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleSmall.copy(
                     fontWeight = FontWeight.ExtraBold,
-                    fontSize = 14.sp
+                    fontSize = 14.5.sp
                 ),
                 color = Color(0xFFF1F5F9)
             )
