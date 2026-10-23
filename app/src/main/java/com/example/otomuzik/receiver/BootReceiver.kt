@@ -148,10 +148,8 @@ class BootReceiver : BroadcastReceiver() {
                 .setSmallIcon(R.drawable.ic_music_note)
                 .setContentTitle("RidoPlay Başlatılıyor...")
                 .setContentText("Müzik çalar açılıyor")
-                .setPriority(NotificationCompat.PRIORITY_MAX)
-                .setCategory(NotificationCompat.CATEGORY_ALARM)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setContentIntent(pendingIntent)
-                .setFullScreenIntent(pendingIntent, true)
                 .setAutoCancel(true)
                 .build()
 
