@@ -860,72 +860,145 @@ fun SettingsDialog(
                                     .padding(horizontal = 14.dp, vertical = 12.dp),
                                 verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                // 1. Üçlü Hero Telemetri Kartları (Şarkı, Süre, Boyut)
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
+                                if (isPhone) {
+                                    // Telefon / Dar Ekran Modu: Rakamlar altta ayrı bir satırda, dengeli telemetri ızgarası
+                                    // 1. Üst Vurgulu Hero Kartı: Toplam Şarkı
                                     StatHeroCard(
                                         icon = "🎵",
-                                        label = "Toplam Şarkı",
-                                        value = "${libraryStats.totalSongs}",
+                                        label = "Toplam Şarkı Sayısı",
+                                        value = "${libraryStats.totalSongs} Şarkı",
                                         accentColor = accentColor,
-                                        modifier = Modifier.weight(1f)
+                                        modifier = Modifier.fillMaxWidth()
                                     )
-                                    StatHeroCard(
-                                        icon = "⏱️",
-                                        label = "Toplam Süre",
-                                        value = libraryStats.totalDurationFormatted,
-                                        accentColor = Color(0xFF64B5F6),
-                                        modifier = Modifier.weight(1.1f)
-                                    )
-                                    StatHeroCard(
-                                        icon = "💾",
-                                        label = "Medya Boyutu",
-                                        value = libraryStats.totalSizeFormatted,
-                                        accentColor = Color(0xFF81C784),
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                }
 
-                                // 2. 2x2 Izgara Detay Karoları (Sanatçı, Albüm, Klasör, Çalma Listesi)
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    StatTile(
-                                        icon = "🎤",
-                                        label = "Farklı Sanatçı",
-                                        value = "${libraryStats.uniqueArtists}",
-                                        accentColor = accentColor,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    StatTile(
-                                        icon = "💿",
-                                        label = "Farklı Albüm",
-                                        value = "${libraryStats.uniqueAlbums}",
-                                        accentColor = accentColor,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                }
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    StatTile(
-                                        icon = "📁",
-                                        label = "Müzik Klasörü",
-                                        value = "${libraryStats.totalFolders}",
-                                        accentColor = accentColor,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    StatTile(
-                                        icon = "📑",
-                                        label = "Çalma Listesi",
-                                        value = "${libraryStats.totalPlaylists}",
-                                        accentColor = accentColor,
-                                        modifier = Modifier.weight(1f)
-                                    )
+                                    // 2. İkinci Satır: Toplam Süre & Medya Boyutu
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        StatHeroCard(
+                                            icon = "⏱️",
+                                            label = "Toplam Süre",
+                                            value = libraryStats.totalDurationFormatted,
+                                            accentColor = Color(0xFF64B5F6),
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        StatHeroCard(
+                                            icon = "💾",
+                                            label = "Medya Boyutu",
+                                            value = libraryStats.totalSizeFormatted,
+                                            accentColor = Color(0xFF81C784),
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
+
+                                    // 3. 2x2 Izgara Karoları (Rakamlar altta ayrı bir satırda)
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        StatTile(
+                                            icon = "🎤",
+                                            label = "Farklı Sanatçı",
+                                            value = "${libraryStats.uniqueArtists}",
+                                            accentColor = accentColor,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        StatTile(
+                                            icon = "💿",
+                                            label = "Farklı Albüm",
+                                            value = "${libraryStats.uniqueAlbums}",
+                                            accentColor = accentColor,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        StatTile(
+                                            icon = "📁",
+                                            label = "Müzik Klasörü",
+                                            value = "${libraryStats.totalFolders}",
+                                            accentColor = accentColor,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        StatTile(
+                                            icon = "📑",
+                                            label = "Çalma Listesi",
+                                            value = "${libraryStats.totalPlaylists}",
+                                            accentColor = accentColor,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
+                                } else {
+                                    // Tablet / Araç Modu: 3'lü Hero Telemetri Kartları
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        StatHeroCard(
+                                            icon = "🎵",
+                                            label = "Toplam Şarkı",
+                                            value = "${libraryStats.totalSongs}",
+                                            accentColor = accentColor,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        StatHeroCard(
+                                            icon = "⏱️",
+                                            label = "Toplam Süre",
+                                            value = libraryStats.totalDurationFormatted,
+                                            accentColor = Color(0xFF64B5F6),
+                                            modifier = Modifier.weight(1.1f)
+                                        )
+                                        StatHeroCard(
+                                            icon = "💾",
+                                            label = "Medya Boyutu",
+                                            value = libraryStats.totalSizeFormatted,
+                                            accentColor = Color(0xFF81C784),
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
+
+                                    // 2. 2x2 Izgara Detay Karoları
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        StatTile(
+                                            icon = "🎤",
+                                            label = "Farklı Sanatçı",
+                                            value = "${libraryStats.uniqueArtists}",
+                                            accentColor = accentColor,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        StatTile(
+                                            icon = "💿",
+                                            label = "Farklı Albüm",
+                                            value = "${libraryStats.uniqueAlbums}",
+                                            accentColor = accentColor,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        StatTile(
+                                            icon = "📁",
+                                            label = "Müzik Klasörü",
+                                            value = "${libraryStats.totalFolders}",
+                                            accentColor = accentColor,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        StatTile(
+                                            icon = "📑",
+                                            label = "Çalma Listesi",
+                                            value = "${libraryStats.totalPlaylists}",
+                                            accentColor = accentColor,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
                                 }
                             }
                             if (hiddenSongsCount > 0) {
@@ -1577,39 +1650,55 @@ private fun StatTile(
     accentColor: Color,
     modifier: Modifier = Modifier
 ) {
-    Row(
+    Column(
         modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(Color(0xFF131824).copy(alpha = 0.75f))
+            .shadow(4.dp, RoundedCornerShape(12.dp), spotColor = Color(0x40000000))
+            .clip(RoundedCornerShape(12.dp))
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        Color(0xFF1B2232),
+                        Color(0xFF111622)
+                    )
+                )
+            )
             .border(
                 1.dp,
                 Brush.verticalGradient(
                     listOf(
-                        Color.White.copy(alpha = 0.12f),
-                        Color.Black.copy(alpha = 0.60f)
+                        Color.White.copy(alpha = 0.16f),
+                        accentColor.copy(alpha = 0.22f),
+                        Color.Black.copy(alpha = 0.65f)
                     )
                 ),
-                RoundedCornerShape(10.dp)
+                RoundedCornerShape(12.dp)
             )
             .padding(horizontal = 12.dp, vertical = 9.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        verticalArrangement = Arrangement.Center
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(text = icon, fontSize = 14.sp)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(text = icon, fontSize = 13.sp)
             Spacer(modifier = Modifier.width(6.dp))
             Text(
                 text = label,
-                fontSize = 12.5.sp,
-                color = Color(0xFFCBD5E1),
-                fontWeight = FontWeight.Medium
+                fontSize = 11.5.sp,
+                color = Color(0xFF94A3B8),
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
+        Spacer(modifier = Modifier.height(3.dp))
         Text(
             text = value,
-            fontSize = 13.5.sp,
+            fontSize = 15.5.sp,
             fontWeight = FontWeight.ExtraBold,
-            color = accentColor
+            color = accentColor,
+            maxLines = 1,
+            softWrap = false
         )
     }
 }

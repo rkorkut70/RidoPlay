@@ -163,6 +163,18 @@ fun FolderSelectionDialog(
         selectedFolders = nextSet
     }
 
+    val selectedSongsCount = remember(selectedFolders, allSongs) {
+        if (selectedFolders.isEmpty()) {
+            0
+        } else {
+            val normalizedSelected = selectedFolders.map { normPath(it) }
+            allSongs.count { song ->
+                val cleanSong = normPath(song.path)
+                normalizedSelected.any { cleanSong.startsWith(it, ignoreCase = true) }
+            }
+        }
+    }
+
     Dialog(
         onDismissRequest = onDismissRequest,
         properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -213,65 +225,143 @@ fun FolderSelectionDialog(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                // Bilgilendirme ve Hızlı Eylem Çubuğu
+                // Kütüphane İstatistikleri & Hızlı Seçim Paneli (3D Kokpit Telemetri Kartları)
                 Surface(
-                    color = CarSurfaceVariant.copy(alpha = 0.5f),
-                    shape = RoundedCornerShape(12.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, CarBorder.copy(alpha = 0.5f)),
+                    color = CarSurfaceVariant.copy(alpha = 0.55f),
+                    shape = RoundedCornerShape(14.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, CarBorder.copy(alpha = 0.6f)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(modifier = Modifier.padding(10.dp)) {
+                        // Bilgilendirme İpucu
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(text = "💡", fontSize = 15.sp)
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(text = "💡", fontSize = 14.sp)
+                            Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = "İşareti kaldırılan klasörler listeden çıkarılır. Değişiklikler 'Taramayı Uygula'ya basınca geçerli olur.",
-                                fontSize = 11.sp,
+                                fontSize = 10.8.sp,
                                 color = CarTextPrimary.copy(alpha = 0.85f),
-                                lineHeight = 15.sp,
+                                lineHeight = 14.sp,
                                 modifier = Modifier.weight(1f)
                             )
                         }
 
                         Spacer(modifier = Modifier.height(8.dp))
 
-                        // Seçili Sayısı ve Hızlı Seçim Butonları
+                        // İstatistik Kartları (Rakamlar altta ayrı bir satırda)
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            // 1. Seçili Klasör Kartı
+                            Surface(
+                                modifier = Modifier.weight(1f),
+                                color = Color(0xFF131826).copy(alpha = 0.85f),
+                                shape = RoundedCornerShape(10.dp),
+                                border = androidx.compose.foundation.BorderStroke(
+                                    1.dp,
+                                    CarCyan.copy(alpha = 0.45f)
+                                )
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(horizontal = 9.dp, vertical = 7.dp)
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(text = "📁", fontSize = 11.sp)
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = "Seçili Klasör",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = CarTextMuted,
+                                            maxLines = 1,
+                                            softWrap = false
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(3.dp))
+                                    Text(
+                                        text = "${selectedFolders.size} / ${discoveredFolders.size}",
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = CarCyan,
+                                        softWrap = false,
+                                        maxLines = 1
+                                    )
+                                }
+                            }
+
+                            // 2. Kütüphaneye Dahil Şarkı Kartı
+                            Surface(
+                                modifier = Modifier.weight(1f),
+                                color = Color(0xFF131826).copy(alpha = 0.85f),
+                                shape = RoundedCornerShape(10.dp),
+                                border = androidx.compose.foundation.BorderStroke(
+                                    1.dp,
+                                    CarBorder
+                                )
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(horizontal = 9.dp, vertical = 7.dp)
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(text = "🎵", fontSize = 11.sp)
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = "Dahil Şarkı",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = CarTextMuted,
+                                            maxLines = 1,
+                                            softWrap = false
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(3.dp))
+                                    Text(
+                                        text = "$selectedSongsCount şarkı",
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = Color(0xFFF3F4F6),
+                                        softWrap = false,
+                                        maxLines = 1
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Hızlı Seçim Butonları
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Surface(
-                                color = CarCyan.copy(alpha = 0.15f),
-                                shape = RoundedCornerShape(8.dp),
-                                border = androidx.compose.foundation.BorderStroke(0.8.dp, CarCyan.copy(alpha = 0.4f))
+                            TextButton(
+                                onClick = { selectedFolders = discoveredFolders.toSet() },
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                                modifier = Modifier.height(28.dp)
                             ) {
                                 Text(
-                                    text = "Seçili: ${selectedFolders.size} / ${discoveredFolders.size}",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
+                                    text = "✓ Tümünü Seç",
+                                    fontSize = 11.5.sp,
                                     color = CarCyan,
-                                    softWrap = false,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                    fontWeight = FontWeight.Bold
                                 )
                             }
 
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                TextButton(
-                                    onClick = { selectedFolders = discoveredFolders.toSet() },
-                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                                    modifier = Modifier.height(28.dp)
-                                ) {
-                                    Text(text = "Tümünü Seç", fontSize = 11.sp, color = CarCyan, fontWeight = FontWeight.SemiBold)
-                                }
+                            Spacer(modifier = Modifier.width(6.dp))
 
-                                TextButton(
-                                    onClick = { selectedFolders = emptySet() },
-                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                                    modifier = Modifier.height(28.dp)
-                                ) {
-                                    Text(text = "Temizle", fontSize = 11.sp, color = CarTextMuted, fontWeight = FontWeight.Medium)
-                                }
+                            TextButton(
+                                onClick = { selectedFolders = emptySet() },
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                                modifier = Modifier.height(28.dp)
+                            ) {
+                                Text(
+                                    text = "✕ Temizle",
+                                    fontSize = 11.5.sp,
+                                    color = CarTextMuted,
+                                    fontWeight = FontWeight.SemiBold
+                                )
                             }
                         }
                     }

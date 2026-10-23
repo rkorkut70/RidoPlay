@@ -966,6 +966,17 @@ class MusicRepository(private val context: Context) {
     fun getIncludedFolders(): Set<String> {
         val saved = prefs.getStringSet(KEY_INCLUDED_FOLDERS, null)
         if (saved != null && saved.isNotEmpty()) {
+            // Güvenlik 1: Eski sürümlerden kalan tekil /Music kısıtlamasını otomatik temizle
+            if (saved.size == 1 && saved.first().trimEnd('/').endsWith("/Music", ignoreCase = true)) {
+                prefs.edit().remove(KEY_INCLUDED_FOLDERS).apply()
+                return emptySet()
+            }
+            // Güvenlik 2: Eğer kaydedilen dizinlerin hiçbiri bu cihazda fiziksel olarak mevcut değilse sıfırla
+            val anyExists = saved.any { File(it).exists() }
+            if (!anyExists) {
+                prefs.edit().remove(KEY_INCLUDED_FOLDERS).apply()
+                return emptySet()
+            }
             return saved
         }
         return emptySet()
@@ -985,6 +996,17 @@ class MusicRepository(private val context: Context) {
         val current = getIncludedFolders().toMutableSet()
         current.remove(path)
         setIncludedFolders(current)
+    }
+
+    fun isUsbOrExternalPath(path: String): Boolean {
+        if (path.isBlank()) return false
+        val lower = path.lowercase(Locale.ROOT).replace('\\', '/')
+        return (lower.startsWith("/storage/") && !lower.startsWith("/storage/emulated") && !lower.startsWith("/storage/self") && !lower.startsWith("/storage/knox")) ||
+               lower.startsWith("/mnt/media_rw") ||
+               lower.startsWith("/mnt/usb") ||
+               lower.startsWith("/mnt/udisk") ||
+               lower.startsWith("/mnt/extsd") ||
+               lower.startsWith("/mnt/sdcard2")
     }
 
     fun isPathAllowed(filePath: String, includedFolders: Set<String>): Boolean {
@@ -1031,6 +1053,14 @@ class MusicRepository(private val context: Context) {
                 }
             }
         }
+
+        // Eğer kullanıcı yalnızca dahili hafıza klasörlerini seçmişse (veya eski varsayılan kalmışsa),
+        // harici USB bellek veya SD kart takıldığında müzikleri ASLA engellenmemelidir!
+        val hasAnyExternalInIncluded = includedFolders.any { isUsbOrExternalPath(it) }
+        if (!hasAnyExternalInIncluded && isUsbOrExternalPath(filePath)) {
+            return true
+        }
+
         return false
     }
 }

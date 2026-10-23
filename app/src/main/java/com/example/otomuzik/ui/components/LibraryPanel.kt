@@ -30,6 +30,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -175,14 +176,7 @@ fun LibraryPanel(
                     )
                 )
         )
-        if (isLoading) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(color = accentColor)
-            }
-        } else if (isQueueVisible || activeTab == TabType.QUEUE) {
+        if (isQueueVisible || activeTab == TabType.QUEUE) {
             // Çalma Sırası Ekranı
             Column(modifier = Modifier.fillMaxSize()) {
                 SubScreenHeader(
@@ -566,6 +560,18 @@ fun LibraryPanel(
                 )
             }
         }
+
+        // Arka plan kütüphane tarama göstergesi: Ekranı asla karartmaz/bloke etmez, üstte zarif neon şerit olarak akar
+        if (isLoading) {
+            LinearProgressIndicator(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(3.dp)
+                    .align(Alignment.TopCenter),
+                color = accentColor,
+                trackColor = Color.Transparent
+            )
+        }
     }
 }
 
@@ -578,10 +584,21 @@ fun CarMenuGrid(
     modifier: Modifier = Modifier
 ) {
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
-    val isCompact = configuration.screenHeightDp < 580 || configuration.screenWidthDp < 980
-    // %50 Büyütülmüş hızlı sürüş ve tablet butonları
-    val btnHeight = if (isCompact) 115.dp else 145.dp
-    val gridSpacing = if (isCompact) 10.dp else 14.dp
+    val screenH = configuration.screenHeightDp
+    val screenW = configuration.screenWidthDp
+    val isCompact = screenH < 580 || screenW < 980
+    val isUltraCompact = screenH < 460
+
+    val btnHeight = when {
+        isUltraCompact -> 84.dp
+        isCompact -> 106.dp
+        else -> 142.dp
+    }
+    val gridSpacing = when {
+        isUltraCompact -> 6.dp
+        isCompact -> 8.dp
+        else -> 12.dp
+    }
 
     val cyanBorder = Color(0xFF00E5FF)
     val amberBorder = Color(0xFFFFD54F)
@@ -669,13 +686,16 @@ private fun CarBigMenuButton(
     modifier: Modifier = Modifier
 ) {
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
-    val isCompact = configuration.screenHeightDp < 580 || configuration.screenWidthDp < 980
-    val shape = RoundedCornerShape(if (isCompact) 22.dp else 28.dp)
+    val screenH = configuration.screenHeightDp
+    val screenW = configuration.screenWidthDp
+    val isCompact = screenH < 580 || screenW < 980
+    val isUltraCompact = screenH < 460
+    val shape = RoundedCornerShape(if (isUltraCompact) 14.dp else if (isCompact) 18.dp else 26.dp)
 
     Box(
         modifier = modifier
             .shadow(
-                elevation = if (isCompact) 6.dp else 10.dp,
+                elevation = if (isUltraCompact) 4.dp else if (isCompact) 6.dp else 10.dp,
                 shape = shape,
                 spotColor = borderColor.copy(alpha = 0.55f),
                 ambientColor = Color.Black
@@ -699,7 +719,7 @@ private fun CarBigMenuButton(
                 shape = shape
             )
             .clickable { onClick() }
-            .padding(horizontal = 8.dp, vertical = 10.dp),
+            .padding(horizontal = 6.dp, vertical = if (isUltraCompact) 4.dp else 8.dp),
         contentAlignment = Alignment.Center
     ) {
         // Üst 3D Cam Parlama (Glossy Sheen)
@@ -722,7 +742,7 @@ private fun CarBigMenuButton(
         ) {
             Box(
                 modifier = Modifier
-                    .size(if (isCompact) 46.dp else 58.dp)
+                    .size(if (isUltraCompact) 36.dp else if (isCompact) 44.dp else 56.dp)
                     .clip(CircleShape)
                     .background(
                         Brush.radialGradient(
@@ -734,13 +754,13 @@ private fun CarBigMenuButton(
             ) {
                 Text(
                     text = icon,
-                    fontSize = if (isCompact) 30.sp else 38.sp
+                    fontSize = if (isUltraCompact) 22.sp else if (isCompact) 28.sp else 36.sp
                 )
             }
-            Spacer(modifier = Modifier.height(if (isCompact) 4.dp else 8.dp))
+            Spacer(modifier = Modifier.height(if (isUltraCompact) 2.dp else if (isCompact) 4.dp else 6.dp))
             Text(
                 text = title,
-                fontSize = if (isCompact) 17.sp else 21.sp,
+                fontSize = if (isUltraCompact) 13.sp else if (isCompact) 15.sp else 19.sp,
                 fontWeight = FontWeight.Bold,
                 color = CarTextPrimary,
                 textAlign = TextAlign.Center,
@@ -765,14 +785,17 @@ fun CarTrackFlowCard(
     modifier: Modifier = Modifier
 ) {
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
-    val isCompact = configuration.screenHeightDp < 580 || configuration.screenWidthDp < 980
-    val cardShape = RoundedCornerShape(if (isCompact) 16.dp else 22.dp)
+    val screenH = configuration.screenHeightDp
+    val screenW = configuration.screenWidthDp
+    val isCompact = screenH < 580 || screenW < 980
+    val isUltraCompact = screenH < 460
+    val cardShape = RoundedCornerShape(if (isUltraCompact) 14.dp else if (isCompact) 16.dp else 22.dp)
     val neonCyan = Color(0xFF00E5FF)
 
     Box(
         modifier = modifier
             .shadow(
-                elevation = if (isCompact) 8.dp else 12.dp,
+                elevation = if (isUltraCompact) 5.dp else if (isCompact) 8.dp else 12.dp,
                 shape = cardShape,
                 spotColor = neonCyan.copy(alpha = 0.40f),
                 ambientColor = Color.Black
@@ -795,11 +818,11 @@ fun CarTrackFlowCard(
                 ),
                 shape = cardShape
             )
-            .padding(if (isCompact) 6.dp else 10.dp)
+            .padding(if (isUltraCompact) 4.dp else if (isCompact) 6.dp else 10.dp)
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(if (isCompact) 4.dp else 6.dp)
+            verticalArrangement = Arrangement.spacedBy(if (isUltraCompact) 2.dp else if (isCompact) 4.dp else 6.dp)
         ) {
             // 1. ÖNCEKİ PARÇA
             TrackFlowRow(
@@ -834,16 +857,18 @@ fun CarTrackFlowCard(
                 modifier = Modifier.weight(1f)
             )
 
-            // 4. SIRADAKİ PARÇA (2)
-            TrackFlowRow(
-                leadSymbol = "❯❯",
-                trailSymbol = "⏭",
-                song = nextSong2,
-                emptyText = if (nextSong != null) "Sırada başka parça yok" else "",
-                isCurrent = false,
-                onClick = if (nextSong2 != null) onPlayNext2 else null,
-                modifier = Modifier.weight(1f)
-            )
+            // 4. SIRADAKİ PARÇA (2) - Dikey alan darsa gizle
+            if (!isUltraCompact) {
+                TrackFlowRow(
+                    leadSymbol = "❯❯",
+                    trailSymbol = "⏭",
+                    song = nextSong2,
+                    emptyText = if (nextSong != null) "Sırada başka parça yok" else "",
+                    isCurrent = false,
+                    onClick = if (nextSong2 != null) onPlayNext2 else null,
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
     }
 }
