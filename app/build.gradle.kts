@@ -14,7 +14,7 @@ android {
         applicationId = "com.ridoplay.music"
         minSdk = 24
         targetSdk = 36
-        versionCode = 50
+        versionCode = 55
         versionName = "6.6"
     }
 
