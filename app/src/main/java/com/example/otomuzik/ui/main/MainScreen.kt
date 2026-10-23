@@ -682,9 +682,9 @@ fun MainScreen(
             com.example.otomuzik.ui.components.FolderSelectionDialog(
                 storageRoots = storageRoots,
                 includedFolders = includedFolders,
-                onToggleFolder = { path, isInc -> viewModel.toggleFolderIncluded(path, isInc) },
+                allSongs = allSongs,
+                onApplyFolders = { selected -> viewModel.applyIncludedFoldersAndRescan(selected) },
                 onResetAll = { viewModel.resetIncludedFolders() },
-                onRescan = { viewModel.rescanLibrary() },
                 onDismissRequest = { viewModel.closeFolderSelectionDialog() }
             )
         }

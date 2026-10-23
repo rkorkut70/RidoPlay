@@ -260,6 +260,12 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
     fun openFolderSelectionDialog() { _showFolderSelectionDialog.value = true }
     fun closeFolderSelectionDialog() { _showFolderSelectionDialog.value = false }
 
+    fun applyIncludedFoldersAndRescan(folders: Set<String>) {
+        repository.setIncludedFolders(folders)
+        _includedFolders.value = folders
+        rescanLibrary()
+    }
+
     fun toggleFolderIncluded(path: String, isIncluded: Boolean, allDiscovered: List<String> = emptyList()) {
         val current = if (_includedFolders.value.isEmpty() && allDiscovered.isNotEmpty()) {
             allDiscovered.toMutableSet()
@@ -273,7 +279,6 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
         }
         repository.setIncludedFolders(current)
         _includedFolders.value = current
-        rescanLibrary()
     }
 
     fun resetIncludedFolders() {

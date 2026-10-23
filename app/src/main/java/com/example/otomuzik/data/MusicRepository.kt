@@ -966,11 +966,6 @@ class MusicRepository(private val context: Context) {
     fun getIncludedFolders(): Set<String> {
         val saved = prefs.getStringSet(KEY_INCLUDED_FOLDERS, null)
         if (saved != null && saved.isNotEmpty()) {
-            // Eski hatalı sürümden kalan tekil /Music kısıtlamasını otomatik temizle
-            if (saved.size == 1 && saved.first().trimEnd('/').endsWith("/Music", ignoreCase = true)) {
-                prefs.edit().remove(KEY_INCLUDED_FOLDERS).apply()
-                return emptySet()
-            }
             return saved
         }
         return emptySet()
@@ -1022,16 +1017,16 @@ class MusicRepository(private val context: Context) {
         // Eğer dosya izin verilen kök/dizinlerden herhangi birinin altındaysa kabul et
         for (folder in includedFolders) {
             val normFolder = norm(folder)
+            if (normFolder.isBlank()) continue
             if (normFile.startsWith(normFolder, ignoreCase = true)) {
                 if (normFile.length == normFolder.length || normFile.getOrNull(normFolder.length) == '/') {
                     return true
                 }
             }
-            // Klasör adı bazlı eşleşme (örn. "Music" klasörü)
-            val folderName = normFolder.substringAfterLast('/')
-            if (folderName.isNotBlank()) {
-                if (normFile.contains("/$folderName/", ignoreCase = true) ||
-                    normFile.endsWith("/$folderName", ignoreCase = true)) {
+            // Sadece göreceli klasör adıysa (içinde '/' yoksa) ve sistem kökü değilse
+            if (!normFolder.contains('/')) {
+                if (normFile.contains("/$normFolder/", ignoreCase = true) ||
+                    normFile.endsWith("/$normFolder", ignoreCase = true)) {
                     return true
                 }
             }
