@@ -1,6 +1,6 @@
 {
-    "versionCode":  46,
-    "versionName":  "6.2",
+    "versionCode":  47,
+    "versionName":  "6.3",
     "minSupportedVersion":  1,
     "releaseDate":  "2026-10-23",
     "changelog":  "• Ayarlar paneli Pusula \u0026 Piksel incelemesi doğrultusunda baştan sona yeniden tasarlandı: 4 dengeli ana sütun (Ses \u0026 Oynatma, Kokpit \u0026 Görünüm, Kütüphane \u0026 Medya, Araç \u0026 Sistem).\n• Lüks otomobil konsollarından ilham alan 3D kabartmalı, gömme şasili ve neon aydınlatmalı yeni sekme geçiş paneli entegre edildi.\n• Sanatçı Modu için kayıt mikrofonu yerine klasik nostaljik Shure 55 (🎙️) retro stüdyo mikrofonu vektörü çizildi.",
