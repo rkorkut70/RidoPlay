@@ -8,7 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 enum class ThemePalette {
-    NEON_CYAN, GREY_BROWN, SPORT_RED, DEEP_BLUE
+    NEON_CYAN, GREY_BROWN, SPORT_RED, DEEP_BLUE, WARM_AMBER, MINT_GREEN
 }
 
 // Neon Cyan (Default)
@@ -145,6 +145,72 @@ private val DeepBlueLightColorScheme = lightColorScheme(
     outline = DeepNavy
 )
 
+// Warm Amber (Night Kehribar - Rido Launcher AccentAmber)
+private val WarmAmberDarkColorScheme = darkColorScheme(
+    primary = WarmAmber,
+    onPrimary = Color(0xFF141004),
+    primaryContainer = WarmAmberDark,
+    onPrimaryContainer = Color.White,
+    secondary = Color(0xFFFFD54F),
+    onSecondary = Color(0xFF141004),
+    background = AmberBgDark,
+    onBackground = Color(0xFFFFF8E1),
+    surface = AmberSurfaceDark,
+    onSurface = Color(0xFFFFF8E1),
+    surfaceVariant = Color(0xFF2B2516),
+    onSurfaceVariant = Color(0xFFFFE082),
+    outline = AmberBorder
+)
+
+private val WarmAmberLightColorScheme = lightColorScheme(
+    primary = Color(0xFFE65100),
+    onPrimary = Color.White,
+    primaryContainer = Color(0xFFFFE082),
+    onPrimaryContainer = Color(0xFF3E2723),
+    secondary = WarmAmber,
+    onSecondary = Color.White,
+    background = LightBg,
+    onBackground = LightTextPrimary,
+    surface = LightSurface,
+    onSurface = LightTextPrimary,
+    surfaceVariant = LightSurfaceVariant,
+    onSurfaceVariant = LightTextSecondary,
+    outline = Color(0xFFFFB300)
+)
+
+// Mint Green (EV Electric - Rido Launcher AccentGreen)
+private val MintGreenDarkColorScheme = darkColorScheme(
+    primary = MintGreen,
+    onPrimary = Color(0xFF041208),
+    primaryContainer = MintGreenDark,
+    onPrimaryContainer = Color.White,
+    secondary = Color(0xFF69F0AE),
+    onSecondary = Color(0xFF041208),
+    background = MintBgDark,
+    onBackground = Color(0xFFE8F5E9),
+    surface = MintSurfaceDark,
+    onSurface = Color(0xFFE8F5E9),
+    surfaceVariant = Color(0xFF1B3825),
+    onSurfaceVariant = Color(0xFFA5D6A7),
+    outline = MintBorder
+)
+
+private val MintGreenLightColorScheme = lightColorScheme(
+    primary = Color(0xFF2E7D32),
+    onPrimary = Color.White,
+    primaryContainer = Color(0xFFA5D6A7),
+    onPrimaryContainer = Color(0xFF1B5E20),
+    secondary = MintGreen,
+    onSecondary = Color.White,
+    background = LightBg,
+    onBackground = LightTextPrimary,
+    surface = LightSurface,
+    onSurface = LightTextPrimary,
+    surfaceVariant = LightSurfaceVariant,
+    onSurfaceVariant = LightTextSecondary,
+    outline = Color(0xFF4CAF50)
+)
+
 @Composable
 fun OtoMuzikTheme(
     themeMode: String = "DARK",
@@ -168,6 +234,8 @@ fun OtoMuzikTheme(
         ThemePalette.GREY_BROWN -> if (darkTheme) GreyBrownDarkColorScheme else GreyBrownLightColorScheme
         ThemePalette.SPORT_RED -> if (darkTheme) SportRedDarkColorScheme else SportRedLightColorScheme
         ThemePalette.DEEP_BLUE -> if (darkTheme) DeepBlueDarkColorScheme else DeepBlueLightColorScheme
+        ThemePalette.WARM_AMBER -> if (darkTheme) WarmAmberDarkColorScheme else WarmAmberLightColorScheme
+        ThemePalette.MINT_GREEN -> if (darkTheme) MintGreenDarkColorScheme else MintGreenLightColorScheme
     }
 
     MaterialTheme(

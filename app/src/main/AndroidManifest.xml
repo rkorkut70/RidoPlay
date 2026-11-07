@@ -4,6 +4,7 @@
 
     <!-- Depolama ve Müzik Okuma İzinleri -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
 
@@ -79,6 +80,7 @@
                 <action android:name="android.media.AUDIO_BECOMING_NOISY" />
                 <action android:name="com.microntek.irkeyDown" />
                 <action android:name="com.fyt.system.action.KEY" />
+                <action android:name="com.nwd.ACTION_MUTE_STATE_CHANGE" />
             </intent-filter>
         </receiver>
 

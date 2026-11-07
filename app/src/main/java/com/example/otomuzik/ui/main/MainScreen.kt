@@ -97,6 +97,7 @@ fun MainScreen(
     val showBlurredBackground by viewModel.showBlurredBackground.collectAsStateWithLifecycle()
     val showWaveform by viewModel.showWaveform.collectAsStateWithLifecycle()
     val isalbumartCropped by viewModel.isalbumartCropped.collectAsStateWithLifecycle()
+    val showSongInfoBadge by viewModel.showSongInfoBadge.collectAsStateWithLifecycle()
     val showCoverLyrics by viewModel.showCoverLyrics.collectAsStateWithLifecycle()
     val lyricsData by viewModel.lyricsData.collectAsStateWithLifecycle()
     val lyricsFontSize by viewModel.lyricsFontSize.collectAsStateWithLifecycle()
@@ -244,6 +245,7 @@ fun MainScreen(
                             isalbumartCropped = isalbumartCropped,
                             lyricsFontSize = lyricsFontSize,
                             showBlurredBackground = showBlurredBackground,
+                            showSongInfoBadge = showSongInfoBadge,
                             modifier = Modifier
                                 .weight(0.46f)
                                 .fillMaxHeight()
@@ -444,6 +446,7 @@ fun MainScreen(
                             isalbumartCropped = isalbumartCropped,
                             lyricsFontSize = lyricsFontSize,
                             showBlurredBackground = showBlurredBackground,
+                            showSongInfoBadge = showSongInfoBadge,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .weight(0.48f)

@@ -28,13 +28,11 @@ import com.example.otomuzik.theme.*
 import java.io.File
 
 /**
- * Kullanıcının kütüphaneye dahil edilecek müzik klasörlerini seçmesini sağlayan diyalog.
- * Telefon (dikey/dar ekran) ve Tablet/Araç (yatay/geniş ekran) için optimize edilmiş 3 katmanlı hiyerarşi sunar.
+ * Kullanıcının kütüphaneye dahil edilecek müzik klasörlerini ve USB sürücülerini seçmesini sağlayan diyalog.
  * 
- * - Klasör Adı: Üst satırda tam genişlikte net ve kalın görünür.
- * - Klasör Yolu: 2 satıra kadar sarılarak uzun dizin isimlerinin ve alt klasörlerin okunabilmesini sağlar.
- * - Rozetler: Ayrı bir satırda yatay düzenlenir, `softWrap = false` ile asla dikey sütun şeklinde ezilmez.
- * - Yerel Seçim Durumu: Kutucuk tıklamalarında arka plan taraması tetiklenmez; yalnızca "Taramayı Uygula"ya basıldığında kaydedilir.
+ * - USB Sürücüleri (Harici Bellek): Özel, belirgin kartlar ve tek dokunuşla açılıp kapanabilen Switch'ler.
+ * - Dahili Hafıza: Müzik ve indirilenler klasörleri listesi.
+ * - Araç kokpiti için optimize edilmiş büyük dokunma hedefleri ve yüksek kontrastlı tasarım.
  */
 @Composable
 fun FolderSelectionDialog(
@@ -52,20 +50,42 @@ fun FolderSelectionDialog(
         internalStorage?.absolutePath?.let { normPath(it) } ?: "/storage/emulated/0"
     }
 
-    // Dahili hafıza, USB bellekler ve mevcut şarkıların bulunduğu klasörleri keşfet
-    val discoveredFolders = remember(storageRoots, includedFolders, allSongs) {
+    fun isUsbPath(p: String): Boolean {
+        val clean = normPath(p).lowercase()
+        return (clean.startsWith("/storage/") && !clean.contains("emulated") && !clean.contains("self") && !clean.contains("knox")) ||
+                clean.contains("udisk") ||
+                clean.startsWith("/mnt/media_rw") ||
+                clean.startsWith("/mnt/usb") ||
+                clean.startsWith("/mnt/extsd") ||
+                clean.startsWith("/mnt/sdcard2")
+    }
+
+    // 1. USB Sürücüleri
+    val usbDrives = remember(storageRoots) {
+        val list = mutableListOf<FolderItem>()
+        val seen = mutableSetOf<String>()
+        for (root in storageRoots) {
+            val norm = normPath(root.path)
+            if (isUsbPath(norm) && !seen.contains(norm)) {
+                list.add(root)
+                seen.add(norm)
+            }
+        }
+        list
+    }
+
+    // 2. Dahili Hafıza ve Diğer Klasörler
+    val internalFolders = remember(storageRoots, includedFolders, allSongs) {
         val list = linkedSetOf<String>()
         val commonNames = listOf("Music", "Download", "snaptube", "Podcasts", "Audiobooks", "Recordings", "Documents")
 
         if (internalStorage != null && internalStorage.exists()) {
-            // Bilinen yaygın medya klasörleri
             for (name in commonNames) {
                 val f = File(internalStorage, name)
                 if (f.exists() && f.isDirectory) {
                     list.add(f.absolutePath)
                 }
             }
-            // Dahili hafızadaki diğer okunabilir kullanıcı klasörleri (Android ve gizli klasörler hariç)
             try {
                 internalStorage.listFiles()?.filter {
                     it.isDirectory &&
@@ -81,35 +101,24 @@ fun FolderSelectionDialog(
             } catch (_: Exception) {}
         }
 
-        // Halihazırda taranmış şarkıların bulunduğu ana klasörler
+        // Halihazırda taranmış şarkıların bulunduğu dahili klasörler
         for (song in allSongs) {
             val parent = File(song.path).parent
             if (!parent.isNullOrBlank()) {
                 val cleanParent = normPath(parent)
-                // Dahili hafıza kök dizininin kendisi değilse ekle
-                if (!cleanParent.equals(internalStoragePath, ignoreCase = true)) {
+                if (!isUsbPath(cleanParent) && !cleanParent.equals(internalStoragePath, ignoreCase = true)) {
                     list.add(parent)
                 }
             }
         }
 
-        // Harici USB/SD depolama kökleri
-        for (root in storageRoots) {
-            val cleanRoot = normPath(root.path)
-            // Dahili hafıza kökü (/storage/emulated/0) yerine alt klasörlerini listelediğimiz için kökü ekleme
-            if (!cleanRoot.equals(internalStoragePath, ignoreCase = true)) {
-                list.add(root.path)
-            }
-        }
-
-        // Daha önceden kaydedilmiş özel klasörler varsa listeye dahil et
+        // Daha önceden kaydedilmiş dahili klasörler
         for (f in includedFolders) {
-            if (f.isNotBlank()) {
+            if (f.isNotBlank() && !isUsbPath(f) && !normPath(f).equals(internalStoragePath, ignoreCase = true)) {
                 list.add(f)
             }
         }
 
-        // Düzenleme: "Music" ve "Download" en üstte, kalanlar alfabetik
         list.toList().sortedWith(Comparator { a, b ->
             val aName = File(a).name
             val bName = File(b).name
@@ -123,24 +132,36 @@ fun FolderSelectionDialog(
         })
     }
 
-    // Yerel seçim durumu: Kullanıcı seçim yaparken sadece bu state güncellenir.
-    var selectedFolders by remember(includedFolders, discoveredFolders) {
+    // Tüm keşfedilen öğeler (USB + Dahili)
+    val allDiscoveredPaths = remember(usbDrives, internalFolders) {
+        val set = linkedSetOf<String>()
+        usbDrives.forEach { set.add(it.path) }
+        internalFolders.forEach { set.add(it) }
+        set.toList()
+    }
+
+    // Yerel seçim durumu
+    var selectedFolders by remember(includedFolders, allDiscoveredPaths) {
         val initial = mutableSetOf<String>()
         if (includedFolders.isNotEmpty()) {
-            for (f in discoveredFolders) {
-                val cleanF = normPath(f)
-                if (includedFolders.any { normPath(it).equals(cleanF, ignoreCase = true) }) {
-                    initial.add(f)
+            for (p in allDiscoveredPaths) {
+                val cleanP = normPath(p)
+                if (includedFolders.any { normPath(it).equals(cleanP, ignoreCase = true) }) {
+                    initial.add(p)
                 }
             }
+            // Eğer dahil edilen klasörlerde hiç USB yoksa ama cihazda USB takılıysa varsayılan olarak USB'yi seçili yap
+            val hasUsbSelected = initial.any { isUsbPath(it) }
+            if (!hasUsbSelected) {
+                usbDrives.forEach { initial.add(it.path) }
+            }
         } else {
-            // Varsayılan durum: Şarkısı olan veya güvenilir müzik klasörleri seçili gelsin
-            for (f in discoveredFolders) {
-                val cleanF = normPath(f)
-                val lower = cleanF.lowercase()
-                val hasSongs = allSongs.any { normPath(it.path).startsWith(cleanF, ignoreCase = true) }
-                val isExcludedByDefault = (lower.contains("snaptube") || lower.contains("recording")) && !hasSongs
-                if (!isExcludedByDefault) {
+            // Varsayılan durum: Tüm USB sürücüler ve güvenilir müzik klasörleri otomatik seçili gelir
+            usbDrives.forEach { initial.add(it.path) }
+            for (f in internalFolders) {
+                val lower = normPath(f).lowercase()
+                val isExcluded = lower.contains("snaptube") || lower.contains("recording")
+                if (!isExcluded) {
                     initial.add(f)
                 }
             }
@@ -181,18 +202,18 @@ fun FolderSelectionDialog(
     ) {
         Surface(
             modifier = Modifier
-                .fillMaxWidth(0.95f)
-                .widthIn(max = 560.dp)
-                .fillMaxHeight(0.90f),
-            shape = RoundedCornerShape(20.dp),
+                .fillMaxWidth(0.96f)
+                .widthIn(max = 620.dp)
+                .fillMaxHeight(0.92f),
+            shape = RoundedCornerShape(22.dp),
             color = CarSurfaceDark,
-            border = androidx.compose.foundation.BorderStroke(1.2.dp, CarBorder),
-            tonalElevation = 8.dp
+            border = androidx.compose.foundation.BorderStroke(1.5.dp, CarBorder),
+            tonalElevation = 10.dp
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(16.dp)
+                    .padding(18.dp)
             ) {
                 // Başlık & Kapat Butonu
                 Row(
@@ -200,165 +221,123 @@ fun FolderSelectionDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Müzik Klasörlerini Yönet",
-                            fontSize = 17.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = CarTextPrimary
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "Kütüphaneye dahil edilecek klasörleri seçin",
-                            fontSize = 11.5.sp,
-                            color = CarTextMuted
-                        )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(CarCyan.copy(alpha = 0.15f))
+                                .border(1.dp, CarCyan.copy(alpha = 0.5f), RoundedCornerShape(10.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(text = "📁", fontSize = 18.sp)
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                text = "Müzik Kütüphanelerini Yönet",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = CarTextPrimary
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "USB sürücüleri ve taranacak müzik klasörlerini seçin",
+                                fontSize = 12.sp,
+                                color = CarTextMuted
+                            )
+                        }
                     }
 
                     IconButton(
                         onClick = onDismissRequest,
-                        modifier = Modifier.size(34.dp)
+                        modifier = Modifier.size(36.dp)
                     ) {
-                        Text(text = "✕", fontSize = 17.sp, color = CarTextMuted, fontWeight = FontWeight.Bold)
+                        Text(text = "✕", fontSize = 18.sp, color = CarTextMuted, fontWeight = FontWeight.Bold)
                     }
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                // Kütüphane İstatistikleri & Hızlı Seçim Paneli (3D Kokpit Telemetri Kartları)
+                // İstatistik ve Hızlı İşlem Paneli
                 Surface(
-                    color = CarSurfaceVariant.copy(alpha = 0.55f),
+                    color = CarSurfaceVariant.copy(alpha = 0.6f),
                     shape = RoundedCornerShape(14.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, CarBorder.copy(alpha = 0.6f)),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, CarBorder.copy(alpha = 0.7f)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(modifier = Modifier.padding(10.dp)) {
-                        // Bilgilendirme İpucu
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(text = "💡", fontSize = 14.sp)
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "İşareti kaldırılan klasörler listeden çıkarılır. Değişiklikler 'Taramayı Uygula'ya basınca geçerli olur.",
-                                fontSize = 10.8.sp,
-                                color = CarTextPrimary.copy(alpha = 0.85f),
-                                lineHeight = 14.sp,
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        // İstatistik Kartları (Rakamlar altta ayrı bir satırda)
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            // 1. Seçili Klasör Kartı
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            // Seçili Kaynak Rozeti
                             Surface(
-                                modifier = Modifier.weight(1f),
-                                color = Color(0xFF131826).copy(alpha = 0.85f),
-                                shape = RoundedCornerShape(10.dp),
-                                border = androidx.compose.foundation.BorderStroke(
-                                    1.dp,
-                                    CarCyan.copy(alpha = 0.45f)
-                                )
+                                color = Color(0xFF131826),
+                                shape = RoundedCornerShape(8.dp),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, CarCyan.copy(alpha = 0.5f))
                             ) {
-                                Column(
-                                    modifier = Modifier.padding(horizontal = 9.dp, vertical = 7.dp)
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(text = "📁", fontSize = 11.sp)
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            text = "Seçili Klasör",
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = CarTextMuted,
-                                            maxLines = 1,
-                                            softWrap = false
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.height(3.dp))
+                                    Text(text = "Seçili: ", fontSize = 11.5.sp, color = CarTextMuted)
                                     Text(
-                                        text = "${selectedFolders.size} / ${discoveredFolders.size}",
-                                        fontSize = 15.sp,
+                                        text = "${selectedFolders.size} kaynak",
+                                        fontSize = 12.sp,
                                         fontWeight = FontWeight.ExtraBold,
-                                        color = CarCyan,
-                                        softWrap = false,
-                                        maxLines = 1
+                                        color = CarCyan
                                     )
                                 }
                             }
 
-                            // 2. Kütüphaneye Dahil Şarkı Kartı
+                            // Şarkı Sayısı Rozeti
                             Surface(
-                                modifier = Modifier.weight(1f),
-                                color = Color(0xFF131826).copy(alpha = 0.85f),
-                                shape = RoundedCornerShape(10.dp),
-                                border = androidx.compose.foundation.BorderStroke(
-                                    1.dp,
-                                    CarBorder
-                                )
+                                color = Color(0xFF131826),
+                                shape = RoundedCornerShape(8.dp),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, CarBorder)
                             ) {
-                                Column(
-                                    modifier = Modifier.padding(horizontal = 9.dp, vertical = 7.dp)
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(text = "🎵", fontSize = 11.sp)
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            text = "Dahil Şarkı",
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = CarTextMuted,
-                                            maxLines = 1,
-                                            softWrap = false
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.height(3.dp))
+                                    Text(text = "Dahil: ", fontSize = 11.5.sp, color = CarTextMuted)
                                     Text(
                                         text = "$selectedSongsCount şarkı",
-                                        fontSize = 15.sp,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = Color(0xFFF3F4F6),
-                                        softWrap = false,
-                                        maxLines = 1
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFFF3F4F6)
                                     )
                                 }
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(8.dp))
-
                         // Hızlı Seçim Butonları
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.End,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             TextButton(
-                                onClick = { selectedFolders = discoveredFolders.toSet() },
+                                onClick = { selectedFolders = allDiscoveredPaths.toSet() },
                                 contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
-                                modifier = Modifier.height(28.dp)
+                                modifier = Modifier.height(30.dp)
                             ) {
                                 Text(
                                     text = "✓ Tümünü Seç",
-                                    fontSize = 11.5.sp,
+                                    fontSize = 12.sp,
                                     color = CarCyan,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
 
-                            Spacer(modifier = Modifier.width(6.dp))
-
                             TextButton(
                                 onClick = { selectedFolders = emptySet() },
-                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
-                                modifier = Modifier.height(28.dp)
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                modifier = Modifier.height(30.dp)
                             ) {
                                 Text(
                                     text = "✕ Temizle",
-                                    fontSize = 11.5.sp,
+                                    fontSize = 12.sp,
                                     color = CarTextMuted,
                                     fontWeight = FontWeight.SemiBold
                                 )
@@ -367,214 +346,336 @@ fun FolderSelectionDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                // Klasör Listesi
-                if (discoveredFolders.isEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "Taranabilir klasör bulunamadı",
-                            fontSize = 13.sp,
-                            color = CarTextMuted
-                        )
+                // Ana Liste: USB Sürücüler Üstte, Dahili Klasörler Altta
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // -------------------------------------------------------------
+                    // BÖLÜM 1: USB SÜRÜCÜLERİ
+                    // -------------------------------------------------------------
+                    item {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
+                        ) {
+                            Text(text = "🔌", fontSize = 15.sp)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "USB VE HARİCİ SÜRÜCÜLER",
+                                fontSize = 12.5.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = CarCyan,
+                                letterSpacing = 0.5.sp
+                            )
+                        }
                     }
-                } else {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(discoveredFolders, key = { it }) { folderPath ->
+
+                    if (usbDrives.isEmpty()) {
+                        item {
+                            Surface(
+                                color = CarSurfaceVariant.copy(alpha = 0.35f),
+                                shape = RoundedCornerShape(12.dp),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, CarBorder.copy(alpha = 0.5f)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(14.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.ic_usb),
+                                        contentDescription = null,
+                                        tint = CarTextMuted,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Column {
+                                        Text(
+                                            text = "Bağlı USB Sürücü Bulunamadı",
+                                            fontSize = 13.5.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = CarTextMuted
+                                        )
+                                        Text(
+                                            text = "USB bellek taktığınızda burada otomatik olarak görünecektir.",
+                                            fontSize = 11.5.sp,
+                                            color = CarTextMuted.copy(alpha = 0.7f)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        items(usbDrives, key = { it.path }) { drive ->
+                            val isSelected = isFolderSelected(drive.path)
+                            val songCount = remember(drive.path, allSongs) {
+                                allSongs.count { normPath(it.path).startsWith(normPath(drive.path), ignoreCase = true) }
+                            }
+
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .clickable { toggleFolder(drive.path) },
+                                color = if (isSelected) Color(0xFF132233) else CarSurfaceVariant.copy(alpha = 0.5f),
+                                shape = RoundedCornerShape(16.dp),
+                                border = androidx.compose.foundation.BorderStroke(
+                                    1.5.dp,
+                                    if (isSelected) CarCyan else CarBorder
+                                )
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        // USB İkon Kutusu
+                                        Box(
+                                            modifier = Modifier
+                                                .size(46.dp)
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .background(if (isSelected) CarCyan.copy(alpha = 0.2f) else Color(0xFF1C2230))
+                                                .border(
+                                                    1.dp,
+                                                    if (isSelected) CarCyan.copy(alpha = 0.6f) else CarBorder,
+                                                    RoundedCornerShape(12.dp)
+                                                ),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(id = R.drawable.ic_usb),
+                                                contentDescription = "USB",
+                                                tint = if (isSelected) CarCyan else CarTextMuted,
+                                                modifier = Modifier.size(26.dp)
+                                            )
+                                        }
+
+                                        Spacer(modifier = Modifier.width(14.dp))
+
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text(
+                                                    text = drive.name,
+                                                    fontSize = 15.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = if (isSelected) CarTextPrimary else CarTextMuted,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                                if (isSelected) {
+                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                    Surface(
+                                                        color = CarCyan.copy(alpha = 0.2f),
+                                                        shape = RoundedCornerShape(6.dp)
+                                                    ) {
+                                                        Text(
+                                                            text = "TARANIYOR",
+                                                            fontSize = 9.5.sp,
+                                                            fontWeight = FontWeight.ExtraBold,
+                                                            color = CarCyan,
+                                                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                            Spacer(modifier = Modifier.height(2.dp))
+                                            Text(
+                                                text = drive.path,
+                                                fontSize = 12.sp,
+                                                color = CarTextMuted,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            if (songCount > 0) {
+                                                Spacer(modifier = Modifier.height(2.dp))
+                                                Text(
+                                                    text = "🎵 $songCount şarkı kayıtlı",
+                                                    fontSize = 11.sp,
+                                                    color = CarCyan.copy(alpha = 0.85f),
+                                                    fontWeight = FontWeight.Medium
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.width(10.dp))
+
+                                    // Büyük Araç Tipi Switch
+                                    Switch(
+                                        checked = isSelected,
+                                        onCheckedChange = { toggleFolder(drive.path) },
+                                        colors = SwitchDefaults.colors(
+                                            checkedThumbColor = Color(0xFF0C0E12),
+                                            checkedTrackColor = CarCyan,
+                                            uncheckedThumbColor = CarTextMuted,
+                                            uncheckedTrackColor = Color(0xFF232B3B)
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // -------------------------------------------------------------
+                    // BÖLÜM 2: DAHİLİ HAFIZA KLASÖRLERİ
+                    // -------------------------------------------------------------
+                    item {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
+                        ) {
+                            Text(text = "📱", fontSize = 15.sp)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "DAHİLİ HAFIZA KLASÖRLERİ",
+                                fontSize = 12.5.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = CarAmber,
+                                letterSpacing = 0.5.sp
+                            )
+                        }
+                    }
+
+                    if (internalFolders.isEmpty()) {
+                        item {
+                            Text(
+                                text = "Dahili hafızada müzik klasörü bulunamadı",
+                                fontSize = 12.sp,
+                                color = CarTextMuted,
+                                modifier = Modifier.padding(8.dp)
+                            )
+                        }
+                    } else {
+                        items(internalFolders, key = { it }) { folderPath ->
                             val folderFile = File(folderPath)
                             val folderName = folderFile.name.ifEmpty { folderPath }
                             val cleanPath = normPath(folderPath)
                             val isSelected = isFolderSelected(folderPath)
 
                             val isDownload = cleanPath.lowercase().contains("download")
-                            val isSnaptube = cleanPath.lowercase().contains("snaptube")
-                            val isRecording = cleanPath.lowercase().contains("recording")
-                            val isUsb = cleanPath.contains("USB", ignoreCase = true) ||
-                                    (cleanPath.startsWith("/storage/") && !cleanPath.contains("emulated")) ||
-                                    cleanPath.startsWith("/mnt/media_rw/")
-
+                            val isMusic = cleanPath.lowercase().endsWith("/music")
                             val songCount = remember(folderPath, allSongs) {
                                 allSongs.count { normPath(it.path).startsWith(cleanPath, ignoreCase = true) }
                             }
 
-                            val hasBadges = isUsb || isDownload || isSnaptube || isRecording || songCount > 0
-
-                            Row(
+                            Surface(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(14.dp))
-                                    .background(if (isSelected) CarSurfaceVariant else CarSurfaceVariant.copy(alpha = 0.4f))
-                                    .border(
-                                        1.dp,
-                                        if (isSelected) CarCyan.copy(alpha = 0.6f) else CarBorder,
-                                        RoundedCornerShape(14.dp)
-                                    )
-                                    .clickable {
-                                        toggleFolder(folderPath)
-                                    }
-                                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    painter = painterResource(
-                                        id = if (isUsb) R.drawable.ic_usb else R.drawable.ic_folder
-                                    ),
-                                    contentDescription = null,
-                                    tint = if (isSelected) CarCyan else CarTextMuted,
-                                    modifier = Modifier.size(24.dp)
+                                    .clickable { toggleFolder(folderPath) },
+                                color = if (isSelected) CarSurfaceVariant else CarSurfaceVariant.copy(alpha = 0.4f),
+                                shape = RoundedCornerShape(14.dp),
+                                border = androidx.compose.foundation.BorderStroke(
+                                    1.dp,
+                                    if (isSelected) CarCyan.copy(alpha = 0.6f) else CarBorder
                                 )
-
-                                Spacer(modifier = Modifier.width(10.dp))
-
-                                // Orta İçerik: 3 Katmanlı Hiyerarşi (Ad -> Uzun Dizin Yolu -> Rozetler)
-                                Column(
-                                    modifier = Modifier.weight(1f)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    // 1. Klasör Başlığı (Tüm satır genişliğini kullanabilir)
-                                    Text(
-                                        text = folderName,
-                                        fontSize = 14.5.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (isSelected) CarTextPrimary else CarTextMuted,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.ic_folder),
+                                        contentDescription = null,
+                                        tint = if (isSelected) CarCyan else CarTextMuted,
+                                        modifier = Modifier.size(24.dp)
                                     )
 
-                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Spacer(modifier = Modifier.width(12.dp))
 
-                                    // 2. Klasör Yolu (Uzun dizinler için 2 satıra izin verilir, telefonda alt klasörler net okunur)
-                                    Text(
-                                        text = folderPath,
-                                        fontSize = 11.sp,
-                                        color = CarTextMuted.copy(alpha = 0.85f),
-                                        maxLines = 2,
-                                        lineHeight = 14.sp,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-
-                                    // 3. Rozetler Satırı (Ayrı satırda düzenlenir, asla dikey ezilmez)
-                                    if (hasBadges) {
-                                        Spacer(modifier = Modifier.height(6.dp))
-                                        Row(
-                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.fillMaxWidth()
-                                        ) {
-                                            if (songCount > 0) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(
+                                                text = folderName,
+                                                fontSize = 14.5.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (isSelected) CarTextPrimary else CarTextMuted,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            if (isMusic) {
+                                                Spacer(modifier = Modifier.width(6.dp))
                                                 Surface(
-                                                    color = if (isSelected) CarCyan.copy(alpha = 0.15f) else CarSurfaceDark.copy(alpha = 0.6f),
-                                                    shape = RoundedCornerShape(6.dp),
-                                                    border = androidx.compose.foundation.BorderStroke(
-                                                        0.8.dp,
-                                                        if (isSelected) CarCyan.copy(alpha = 0.4f) else CarBorder
-                                                    )
+                                                    color = CarCyan.copy(alpha = 0.2f),
+                                                    shape = RoundedCornerShape(5.dp)
                                                 ) {
                                                     Text(
-                                                        text = "🎵 $songCount şarkı",
-                                                        fontSize = 10.sp,
-                                                        fontWeight = FontWeight.SemiBold,
-                                                        color = if (isSelected) CarCyan else CarTextMuted,
-                                                        softWrap = false,
-                                                        maxLines = 1,
-                                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                                    )
-                                                }
-                                            }
-
-                                            if (isUsb) {
-                                                Surface(
-                                                    color = CarCyan.copy(alpha = 0.15f),
-                                                    shape = RoundedCornerShape(6.dp)
-                                                ) {
-                                                    Text(
-                                                        text = "USB Bellek",
+                                                        text = "Müzik",
                                                         fontSize = 10.sp,
                                                         fontWeight = FontWeight.Bold,
                                                         color = CarCyan,
-                                                        softWrap = false,
-                                                        maxLines = 1,
-                                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                        modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
                                                     )
                                                 }
-                                            }
-
-                                            if (isDownload) {
+                                            } else if (isDownload) {
+                                                Spacer(modifier = Modifier.width(6.dp))
                                                 Surface(
                                                     color = CarAmber.copy(alpha = 0.2f),
-                                                    shape = RoundedCornerShape(6.dp)
+                                                    shape = RoundedCornerShape(5.dp)
                                                 ) {
                                                     Text(
                                                         text = "İndirilenler",
                                                         fontSize = 10.sp,
-                                                        fontWeight = FontWeight.SemiBold,
+                                                        fontWeight = FontWeight.Bold,
                                                         color = CarAmber,
-                                                        softWrap = false,
-                                                        maxLines = 1,
-                                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                                    )
-                                                }
-                                            } else if (isSnaptube) {
-                                                Surface(
-                                                    color = CarAmber.copy(alpha = 0.2f),
-                                                    shape = RoundedCornerShape(6.dp)
-                                                ) {
-                                                    Text(
-                                                        text = "SnapTube",
-                                                        fontSize = 10.sp,
-                                                        fontWeight = FontWeight.SemiBold,
-                                                        color = CarAmber,
-                                                        softWrap = false,
-                                                        maxLines = 1,
-                                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                                    )
-                                                }
-                                            } else if (isRecording) {
-                                                Surface(
-                                                    color = CarAmber.copy(alpha = 0.2f),
-                                                    shape = RoundedCornerShape(6.dp)
-                                                ) {
-                                                    Text(
-                                                        text = "Ses Kayıtları",
-                                                        fontSize = 10.sp,
-                                                        fontWeight = FontWeight.SemiBold,
-                                                        color = CarAmber,
-                                                        softWrap = false,
-                                                        maxLines = 1,
-                                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                        modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
                                                     )
                                                 }
                                             }
                                         }
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(
+                                            text = folderPath,
+                                            fontSize = 11.5.sp,
+                                            color = CarTextMuted,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        if (songCount > 0) {
+                                            Text(
+                                                text = "$songCount şarkı",
+                                                fontSize = 11.sp,
+                                                color = CarTextMuted.copy(alpha = 0.8f)
+                                            )
+                                        }
                                     }
-                                }
 
-                                Spacer(modifier = Modifier.width(8.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
 
-                                Checkbox(
-                                    checked = isSelected,
-                                    onCheckedChange = { toggleFolder(folderPath) },
-                                    colors = CheckboxDefaults.colors(
-                                        checkedColor = CarCyan,
-                                        uncheckedColor = CarTextMuted,
-                                        checkmarkColor = Color(0xFF0C0E12)
+                                    Checkbox(
+                                        checked = isSelected,
+                                        onCheckedChange = { toggleFolder(folderPath) },
+                                        colors = CheckboxDefaults.colors(
+                                            checkedColor = CarCyan,
+                                            uncheckedColor = CarTextMuted,
+                                            checkmarkColor = Color(0xFF0C0E12)
+                                        )
                                     )
-                                )
+                                }
                             }
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 // Sıfırlama Butonu
                 if (onResetAll != null) {
@@ -586,9 +687,9 @@ fun FolderSelectionDialog(
                         modifier = Modifier.fillMaxWidth().height(32.dp)
                     ) {
                         Text(
-                            text = "🔄 Filtreleri Sıfırla (Tüm Depolamayı Tara)",
+                            text = "🔄 Filtreleri Sıfırla (Tüm Cihaz ve USB'yi Tara)",
                             color = CarCyan,
-                            fontSize = 11.5.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold
                         )
                     }
@@ -604,16 +705,16 @@ fun FolderSelectionDialog(
                         onClick = onDismissRequest,
                         modifier = Modifier
                             .weight(1f)
-                            .height(44.dp),
+                            .height(46.dp),
                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                         shape = RoundedCornerShape(12.dp),
                         border = androidx.compose.foundation.BorderStroke(1.dp, CarBorder)
                     ) {
                         Text(
-                            text = "Kapat",
+                            text = "Vazgeç",
                             color = CarTextPrimary,
                             fontWeight = FontWeight.SemiBold,
-                            fontSize = 13.5.sp,
+                            fontSize = 14.sp,
                             maxLines = 1
                         )
                     }
@@ -624,8 +725,8 @@ fun FolderSelectionDialog(
                             onDismissRequest()
                         },
                         modifier = Modifier
-                            .weight(1.3f)
-                            .height(44.dp),
+                            .weight(1.4f)
+                            .height(46.dp),
                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = CarCyan)
@@ -634,14 +735,14 @@ fun FolderSelectionDialog(
                             painter = painterResource(id = R.drawable.ic_search),
                             contentDescription = null,
                             tint = Color(0xFF0C0E12),
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = "Taramayı Uygula",
                             color = Color(0xFF0C0E12),
                             fontWeight = FontWeight.Bold,
-                            fontSize = 13.sp,
+                            fontSize = 14.sp,
                             maxLines = 1
                         )
                     }

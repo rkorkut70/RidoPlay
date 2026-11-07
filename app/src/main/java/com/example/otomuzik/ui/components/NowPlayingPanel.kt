@@ -87,6 +87,7 @@ fun NowPlayingPanel(
     lyricsFontSize: String = "LARGE",
     coverSize: androidx.compose.ui.unit.Dp = 260.dp,
     showBlurredBackground: Boolean = false,
+    showSongInfoBadge: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val currentSong = playerState.currentSong
@@ -394,10 +395,14 @@ fun NowPlayingPanel(
             val displayartist = currentSongId3?.artist
                 ?.takeIf { it.isNotBlank() && it != "Bilinmeyen Sanatçı" }
                 ?: currentSong?.artist ?: "Müzik Listesinden bir şarkı seçin"
-            val badgeText = currentSongId3?.let {
-                listOf(it.format, it.bitrate, it.genre, it.year)
-                    .filter { s -> s.isNotEmpty() }.joinToString(" • ")
-            }?.takeIf { it.isNotEmpty() } ?: currentSong?.id3Badge ?: ""
+            val badgeText = if (showSongInfoBadge) {
+                currentSongId3?.let {
+                    listOf(it.format, it.bitrate, it.genre, it.year)
+                        .filter { s -> s.isNotEmpty() }.joinToString(" • ")
+                }?.takeIf { it.isNotEmpty() } ?: currentSong?.id3Badge ?: ""
+            } else {
+                ""
+            }
 
             SwipeableCoverandInfo(
                 isPlaying = playerState.isPlaying,
@@ -498,7 +503,7 @@ fun NowPlayingPanel(
                 ) {
                     Text(
                         text = displayTitle,
-                        fontSize = if (isCompact) 17.sp else 21.sp,
+                        fontSize = if (badgeText.isEmpty()) (if (isCompact) 18.5.sp else 23.sp) else (if (isCompact) 17.sp else 21.sp),
                         fontWeight = FontWeight.Black,
                         color = Color.White,
                         maxLines = 1,
@@ -507,11 +512,11 @@ fun NowPlayingPanel(
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    Spacer(modifier = Modifier.height(if (isCompact) 1.dp else 3.dp))
+                    Spacer(modifier = Modifier.height(if (badgeText.isEmpty()) (if (isCompact) 2.dp else 4.dp) else (if (isCompact) 1.dp else 3.dp)))
 
                     Text(
                         text = displayartist,
-                        fontSize = if (isCompact) 13.sp else 15.5.sp,
+                        fontSize = if (badgeText.isEmpty()) (if (isCompact) 14.sp else 17.sp) else (if (isCompact) 13.sp else 15.5.sp),
                         fontWeight = FontWeight.SemiBold,
                         color = Color.White.copy(alpha = 0.82f),
                         maxLines = 1,

@@ -174,6 +174,20 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
                 AudioManager.ACTION_AUDIO_BECOMING_NOISY -> {
                     pausePlayback()
                 }
+                "com.nwd.ACTION_MUTE_STATE_CHANGE" -> {
+                    val state = try {
+                        android.provider.Settings.System.getInt(contentResolver, "mcu_mute_state", -1)
+                    } catch (e: Exception) {
+                        intent.getIntExtra("mute_state", -1)
+                    }
+                    if (state == 1) {
+                        if (_playerState.value.isPlaying) pausePlayback()
+                    } else if (state == 0) {
+                        if (!_playerState.value.isPlaying && _playerState.value.currentSong != null) resumePlayback()
+                    } else {
+                        togglePlayPause()
+                    }
+                }
             }
         }
     }
@@ -194,12 +208,15 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
                 addAction("com.microntek.irkeyDown")
                 addAction("com.fyt.system.action.KEY")
                 addAction(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
+                addAction("com.nwd.ACTION_MUTE_STATE_CHANGE")
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 registerReceiver(carBroadcastReceiver, filter, Context.RECEIVER_EXPORTED)
             } else {
                 registerReceiver(carBroadcastReceiver, filter)
             }
+
+            registerMuteObserver()
 
             // Eski / Çin araç ROM'ları için AudioManager medya butonu kaydı
             try {
@@ -297,7 +314,9 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
             }
 
             KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE,
-            KeyEvent.KEYCODE_HEADSETHOOK -> {
+            KeyEvent.KEYCODE_HEADSETHOOK,
+            KeyEvent.KEYCODE_VOLUME_MUTE,
+            KeyEvent.KEYCODE_MUTE -> {
                 togglePlayPause()
                 return true
             }
@@ -318,6 +337,38 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
             }
         }
         return false
+    }
+
+    private var muteObserver: android.database.ContentObserver? = null
+
+    private fun registerMuteObserver() {
+        try {
+            val uri = android.provider.Settings.System.getUriFor("mcu_mute_state")
+            muteObserver = object : android.database.ContentObserver(android.os.Handler(android.os.Looper.getMainLooper())) {
+                override fun onChange(selfChange: Boolean) {
+                    super.onChange(selfChange)
+                    try {
+                        val state = android.provider.Settings.System.getInt(contentResolver, "mcu_mute_state", 0)
+                        android.util.Log.d("MusicService", "mcu_mute_state ContentObserver degisti: $state")
+                        if (state == 1) {
+                            if (_playerState.value.isPlaying) {
+                                pausePlayback()
+                            }
+                        } else if (state == 0) {
+                            if (!_playerState.value.isPlaying && _playerState.value.currentSong != null) {
+                                resumePlayback()
+                            }
+                        }
+                    } catch (t: Throwable) {
+                        android.util.Log.e("MusicService", "mcu_mute_state okuma hatasi", t)
+                    }
+                }
+            }
+            contentResolver.registerContentObserver(uri, false, muteObserver!!)
+            android.util.Log.d("MusicService", "registerMuteObserver basariyla kaydedildi")
+        } catch (t: Throwable) {
+            android.util.Log.e("MusicService", "registerMuteObserver error", t)
+        }
     }
 
     private fun setupMediaSession() {
@@ -1687,6 +1738,9 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
         } catch (t: Throwable) {}
         try {
             unregisterReceiver(carBroadcastReceiver)
+        } catch (e: Exception) {}
+        try {
+            muteObserver?.let { contentResolver.unregisterContentObserver(it) }
         } catch (e: Exception) {}
         try {
             @Suppress("DEPRECATION")

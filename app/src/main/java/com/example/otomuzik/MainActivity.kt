@@ -161,7 +161,9 @@ class MainActivity : ComponentActivity() {
 
                 // Direksiyon "Oynat / Duraklat" Tuşu
                 KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE,
-                KeyEvent.KEYCODE_HEADSETHOOK -> {
+                KeyEvent.KEYCODE_HEADSETHOOK,
+                KeyEvent.KEYCODE_VOLUME_MUTE,
+                KeyEvent.KEYCODE_MUTE -> {
                     MusicController.togglePlayPause()
                     return true
                 }
@@ -200,6 +202,8 @@ class MainActivity : ComponentActivity() {
                 KeyEvent.KEYCODE_BUTTON_L1,
                 KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE,
                 KeyEvent.KEYCODE_HEADSETHOOK,
+                KeyEvent.KEYCODE_VOLUME_MUTE,
+                KeyEvent.KEYCODE_MUTE,
                 KeyEvent.KEYCODE_MEDIA_PLAY,
                 KeyEvent.KEYCODE_MEDIA_PAUSE,
                 KeyEvent.KEYCODE_MEDIA_STOP -> return true
@@ -233,7 +237,9 @@ class MainActivity : ComponentActivity() {
             }
 
             KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE,
-            KeyEvent.KEYCODE_HEADSETHOOK -> {
+            KeyEvent.KEYCODE_HEADSETHOOK,
+            KeyEvent.KEYCODE_VOLUME_MUTE,
+            KeyEvent.KEYCODE_MUTE -> {
                 MusicController.togglePlayPause()
                 return true
             }

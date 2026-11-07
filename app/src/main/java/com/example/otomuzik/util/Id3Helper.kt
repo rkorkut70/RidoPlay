@@ -72,9 +72,27 @@ object Id3Helper {
         var trackNumber = ""
         var durationMs = 0L
 
-        // 1. ONCELIK: Dosya dogrudan erisilebiliyorsa org.jaudiotagger ile oku (JNI NewStringUTF cokmesini onler)
+        // 1. ÖNCELİK (HIZLI): MP3 dosyalarında ham ID3v2 başlığını anında oku (~1ms)
+        var parsedViaFastRaw = false
+        if (file != null && file.exists() && file.canRead() && ext == "mp3") {
+            try {
+                val rawTags = parseRawId3v2(file)
+                if (rawTags != null && rawTags.isNotEmpty()) {
+                    rawTags["TIT2"]?.let { if (it.isNotBlank() && it != "<unknown>") title = TurkishStringFixer.fix(it).trim() }
+                    rawTags["TPE1"]?.let { if (it.isNotBlank() && it != "<unknown>") artist = TurkishStringFixer.fix(it).trim() }
+                    rawTags["TALB"]?.let { if (it.isNotBlank() && it != "<unknown>") album = TurkishStringFixer.fix(it).trim() }
+                    rawTags["TYER"]?.let { if (it.isNotBlank()) year = it.take(4).trim() }
+                    rawTags["TDRC"]?.let { if (it.isNotBlank() && year.isEmpty()) year = it.take(4).trim() }
+                    rawTags["TCON"]?.let { if (it.isNotBlank()) genre = TurkishStringFixer.fix(cleanGenre(it)) }
+                    rawTags["TRCK"]?.let { if (it.isNotBlank()) trackNumber = it.substringBefore('/').trim() }
+                    parsedViaFastRaw = (title != file.nameWithoutExtension) || (artist != "Bilinmeyen Sanatçı")
+                }
+            } catch (_: Exception) {}
+        }
+
+        // 2. ÖNCELİK: Dosya doğrudan erişilebiliyorsa org.jaudiotagger ile oku (Sadece ham ID3 bulunamadıysa veya ek detay için)
         var parsedViaJaudiotagger = false
-        if (file != null && file.exists() && file.canRead()) {
+        if (!parsedViaFastRaw && file != null && file.exists() && file.canRead()) {
             try {
                 val audioFile = org.jaudiotagger.audio.AudioFileIO.read(file)
                 val header = audioFile.audioHeader
@@ -106,8 +124,8 @@ object Id3Helper {
             }
         }
 
-        // 2. ONCELIK: Jaudiotagger basarisiz olduysa MediaMetadataRetriever ile dene
-        if (!parsedViaJaudiotagger) {
+        // 3. ÖNCELİK: Jaudiotagger ve FastRaw başarısız olduysa MediaMetadataRetriever ile dene
+        if (!parsedViaFastRaw && !parsedViaJaudiotagger) {
             var retriever: MediaMetadataRetriever? = null
             var isRetrieverSet = false
             try {
@@ -296,6 +314,11 @@ object Id3Helper {
      *
      * @return Frame ad� � decode edilmi� metin e�lemesi, hata durumunda null
      */
+    fun parseRawTagsFast(file: File): Map<String, String>? {
+        if (!file.exists() || !file.canRead() || file.length() < 128) return null
+        return parseRawId3v2(file)
+    }
+
     private fun parseRawId3v2(file: File): Map<String, String>? {
         return try {
             RandomAccessFile(file, "r").use { raf ->

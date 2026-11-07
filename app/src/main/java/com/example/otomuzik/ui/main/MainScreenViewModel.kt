@@ -257,7 +257,15 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
     private val _showFolderSelectionDialog = MutableStateFlow(false)
     val showFolderSelectionDialog: StateFlow<Boolean> = _showFolderSelectionDialog.asStateFlow()
 
-    fun openFolderSelectionDialog() { _showFolderSelectionDialog.value = true }
+    fun openFolderSelectionDialog() {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val roots = repository.getStorageRoots()
+                _storageRoots.value = roots
+            } catch (_: Exception) {}
+        }
+        _showFolderSelectionDialog.value = true
+    }
     fun closeFolderSelectionDialog() { _showFolderSelectionDialog.value = false }
 
     fun applyIncludedFoldersAndRescan(folders: Set<String>) {
@@ -301,9 +309,11 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
 
     fun getPalettePrimaryColor(palette: String): androidx.compose.ui.graphics.Color {
         return when (palette) {
-            "SPORT_RED" -> androidx.compose.ui.graphics.Color(0xFFD50000)
+            "SPORT_RED" -> androidx.compose.ui.graphics.Color(0xFFFF1744)
+            "DEEP_BLUE" -> androidx.compose.ui.graphics.Color(0xFF2979FF)
+            "WARM_AMBER" -> androidx.compose.ui.graphics.Color(0xFFFFAB00)
+            "MINT_GREEN" -> androidx.compose.ui.graphics.Color(0xFF00E676)
             "GREY_BROWN" -> androidx.compose.ui.graphics.Color(0xFF8D6E63)
-            "DEEP_BLUE" -> androidx.compose.ui.graphics.Color(0xFF3F51B5)
             else -> androidx.compose.ui.graphics.Color(0xFF00E5FF)
         }
     }
@@ -392,6 +402,9 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
 
     private val _isalbumartCropped = MutableStateFlow(repository.getIsAlbumArtCropped())
     val isalbumartCropped: StateFlow<Boolean> = _isalbumartCropped.asStateFlow()
+
+    private val _showSongInfoBadge = MutableStateFlow(repository.getShowSongInfoBadge())
+    val showSongInfoBadge: StateFlow<Boolean> = _showSongInfoBadge.asStateFlow()
 
     private val _stopOnTaskRemoved = MutableStateFlow(repository.getStopOnTaskRemoved())
     val stopOnTaskRemoved: StateFlow<Boolean> = _stopOnTaskRemoved.asStateFlow()
@@ -1035,7 +1048,6 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
      * Uygulamanın ilk açılışında disk/USB belleği taramasını engeller.
      */
     fun loadFolderRootsIfNeeded() {
-        if (_storageRoots.value.isNotEmpty()) return
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             try {
                 val roots = repository.getStorageRoots()
@@ -1702,6 +1714,11 @@ class MainScreenViewModel(Application: Application) : AndroidViewModel(Applicati
     fun setIsAlbumArtCropped(cropped: Boolean) {
         _isalbumartCropped.value = cropped
         repository.setIsAlbumArtCropped(cropped)
+    }
+
+    fun setShowSongInfoBadge(show: Boolean) {
+        _showSongInfoBadge.value = show
+        repository.setShowSongInfoBadge(show)
     }
 
     fun setStartOnBoot(enabled: Boolean) {

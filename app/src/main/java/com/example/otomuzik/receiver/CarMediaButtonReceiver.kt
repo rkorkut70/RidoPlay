@@ -80,6 +80,23 @@ class CarMediaButtonReceiver : BroadcastReceiver() {
             AudioManager.ACTION_AUDIO_BECOMING_NOISY -> {
                 sendServiceAction(context, MusicService.ACTION_PAUSE)
             }
+
+            // 6. NWD / K2501 Direksiyon Mute Tuşu Sinyali
+            "com.nwd.ACTION_MUTE_STATE_CHANGE" -> {
+                val muteState = try {
+                    android.provider.Settings.System.getInt(context.contentResolver, "mcu_mute_state", -1)
+                } catch (e: Exception) {
+                    intent.getIntExtra("mute_state", -1)
+                }
+                Log.d(TAG, "NWD MUTE durumu degisti: $muteState")
+                if (muteState == 1) {
+                    sendServiceAction(context, MusicService.ACTION_PAUSE)
+                } else if (muteState == 0) {
+                    sendServiceAction(context, MusicService.ACTION_PLAY)
+                } else {
+                    sendServiceAction(context, MusicService.ACTION_TOGGLE_PAUSE)
+                }
+            }
         }
     }
 
@@ -109,7 +126,9 @@ class CarMediaButtonReceiver : BroadcastReceiver() {
 
             // Oynat / Duraklat
             KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE,
-            KeyEvent.KEYCODE_HEADSETHOOK -> {
+            KeyEvent.KEYCODE_HEADSETHOOK,
+            KeyEvent.KEYCODE_VOLUME_MUTE,
+            KeyEvent.KEYCODE_MUTE -> {
                 sendServiceAction(context, MusicService.ACTION_TOGGLE_PAUSE)
             }
 

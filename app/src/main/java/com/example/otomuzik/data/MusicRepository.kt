@@ -230,14 +230,22 @@ class MusicRepository(private val context: Context) {
                 val ext = f.extension.uppercase(Locale.ROOT)
                 val sizeMb = "%.1f MB".format(f.length() / (1024.0 * 1024.0))
 
-                val id3Info = com.example.otomuzik.util.Id3Helper.parseFile(f.absolutePath)
-                var songTitle = id3Info.title.takeIf { it.isNotBlank() } ?: name
-                var songArtist = id3Info.artist.takeIf { it.isNotBlank() } ?: currentDir.name
-                val songAlbum = id3Info.album.takeIf { it.isNotBlank() } ?: currentDir.name
-
-                if (songTitle == name && name.contains(" - ")) {
+                // 1. Önce dosya adından hızlı sanatçı / başlık ayrıştırma
+                var songTitle = name
+                var songArtist = currentDir.name
+                val songAlbum = currentDir.name
+                if (name.contains(" - ")) {
                     songArtist = name.substringBefore(" - ").trim()
                     songTitle = name.substringAfter(" - ").trim()
+                }
+
+                // 2. Hafif ID3 etiketi okuma
+                val id3Info = com.example.otomuzik.util.Id3Helper.parseFile(f.absolutePath)
+                if (id3Info.title.isNotBlank() && id3Info.title != name) {
+                    songTitle = id3Info.title
+                }
+                if (id3Info.artist.isNotBlank() && id3Info.artist != "Bilinmeyen Sanatçı") {
+                    songArtist = id3Info.artist
                 }
 
                 outList.add(
@@ -251,9 +259,15 @@ class MusicRepository(private val context: Context) {
                         uriString = Uri.fromFile(f).toString(),
                         folderPath = currentDir.absolutePath,
                         format = ext,
-                        fileSizeFormatted = sizeMb
+                        fileSizeFormatted = sizeMb,
+                        year = id3Info.year,
+                        genre = id3Info.genre
                     )
                 )
+
+                if (outList.size % 20 == 0) {
+                    onProgress?.invoke(dirName, outList.size)
+                }
             }
         }
     }
@@ -308,7 +322,42 @@ class MusicRepository(private val context: Context) {
             }
         }
 
-        // 2. Harici Depolama / USB Bellekler / SD Kartlar (ContextCompat getExternalFilesDirs)
+        // 2. USB Bellek ve Harici Depolama Aday Yolları (Android Araç Multimedya Kapsamlı)
+        val candidateUsbPaths = mutableListOf<String>()
+        for (i in 0..9) {
+            candidateUsbPaths.add("/storage/udisk$i")
+            candidateUsbPaths.add("/mnt/udisk$i")
+            candidateUsbPaths.add("/mnt/media_rw/udisk$i")
+            candidateUsbPaths.add("/storage/usb$i")
+            candidateUsbPaths.add("/mnt/usb$i")
+            candidateUsbPaths.add("/mnt/media_rw/usb$i")
+        }
+        candidateUsbPaths.add("/storage/udisk")
+        candidateUsbPaths.add("/mnt/udisk")
+        candidateUsbPaths.add("/mnt/media_rw/udisk")
+        candidateUsbPaths.add("/storage/usbotg")
+        candidateUsbPaths.add("/storage/usbdisk")
+        candidateUsbPaths.add("/mnt/usb_storage")
+        candidateUsbPaths.add("/mnt/extsd")
+        candidateUsbPaths.add("/mnt/sdcard2")
+
+        // 3. /proc/mounts dosyasını tara (Linux çekirdeğinin canlı mount tablosu)
+        try {
+            val mountsFile = File("/proc/mounts")
+            if (mountsFile.exists() && mountsFile.canRead()) {
+                mountsFile.forEachLine { line ->
+                    val parts = line.split("\\s+".toRegex())
+                    if (parts.size >= 2) {
+                        val mPoint = parts[1]
+                        if (isUsbOrExternalPath(mPoint) && !mPoint.contains("/runtime/")) {
+                            candidateUsbPaths.add(mPoint)
+                        }
+                    }
+                }
+            }
+        } catch (_: Exception) {}
+
+        // 4. ContextCompat.getExternalFilesDirs üzerinden keşif
         try {
             val extDirs = ContextCompat.getExternalFilesDirs(context, null)
             for (dir in extDirs) {
@@ -319,103 +368,59 @@ class MusicRepository(private val context: Context) {
                         val sub = fullPath.substring(storageIdx + "/storage/".length)
                         val slashIdx = sub.indexOf('/')
                         val volumeName = if (slashIdx != -1) sub.substring(0, slashIdx) else sub
-
                         if (volumeName != "emulated" && volumeName != "self" && volumeName != "knox") {
-                            val rootPath = "/storage/$volumeName"
-                            val rootFile = File(rootPath)
-                            if (rootFile.exists() && !seenPaths.contains(rootPath)) {
-                                roots.add(
-                                    FolderItem(
-                                        name = "USB Bellek ($volumeName)",
-                                        path = rootPath,
-                                        isDirectory = true,
-                                        isStorageRoot = true,
-                                        songCount = countAudioFiles(rootFile)
-                                    )
-                                )
-                                seenPaths.add(rootPath)
-                            }
+                            candidateUsbPaths.add("/storage/$volumeName")
                         }
                     }
                 }
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        } catch (_: Exception) {}
 
-        // 3. /storage klasörünü doğrudan tara (Android araç multimedyalarında yaygın)
-        try {
-            val storageFolder = File("/storage")
-            if (storageFolder.exists() && storageFolder.isDirectory) {
-                val list = storageFolder.listFiles()
-                if (list != null) {
-                    for (f in list) {
-                        val name = f.name
-                        if (f.isDirectory && name != "emulated" && name != "self" && name != "knox" && !seenPaths.contains(f.absolutePath)) {
-                            val songCount = countAudioFiles(f)
-                            roots.add(
-                                FolderItem(
-                                    name = "USB / Harici ($name)",
-                                    path = f.absolutePath,
-                                    isDirectory = true,
-                                    isStorageRoot = true,
-                                    songCount = songCount
-                                )
-                            )
-                            seenPaths.add(f.absolutePath)
-                        }
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-
-        // 4. Araç multimedya USB montaj dizinlerini tara (/mnt/media_rw, /mnt/usb_storage vb.)
-        val candidateMounts = listOf(
-            "/mnt/media_rw",
-            "/mnt/usb_storage",
-            "/mnt/udisk",
-            "/mnt/udisk1",
-            "/mnt/udisk2",
-            "/mnt/extsd",
-            "/mnt/sdcard2"
-        )
-        for (mPath in candidateMounts) {
+        // 5. /storage ve /mnt/media_rw alt dizinlerini doğrudan kontrol et
+        listOf("/storage", "/mnt/media_rw").forEach { parentPath ->
             try {
-                val mFile = File(mPath)
-                if (mFile.exists() && mFile.isDirectory) {
-                    if (mPath == "/mnt/media_rw") {
-                        mFile.listFiles()?.forEach { sub ->
-                            if (sub.isDirectory && !seenPaths.contains(sub.absolutePath)) {
-                                roots.add(
-                                    FolderItem(
-                                        name = "USB (${sub.name})",
-                                        path = sub.absolutePath,
-                                        isDirectory = true,
-                                        isStorageRoot = true,
-                                        songCount = countAudioFiles(sub)
-                                    )
-                                )
-                                seenPaths.add(sub.absolutePath)
-                            }
+                val pFile = File(parentPath)
+                if (pFile.exists() && pFile.isDirectory) {
+                    pFile.listFiles()?.forEach { sub ->
+                        val n = sub.name
+                        if (sub.isDirectory && n != "emulated" && n != "self" && n != "knox") {
+                            candidateUsbPaths.add(sub.absolutePath)
                         }
-                    } else if (!seenPaths.contains(mFile.absolutePath)) {
+                    }
+                }
+            } catch (_: Exception) {}
+        }
+
+        // Bulunan aday USB yollarını doğrula ve ekle
+        for (uPath in candidateUsbPaths.distinct()) {
+            try {
+                val uFile = File(uPath)
+                if (uFile.exists() && uFile.isDirectory && uFile.canRead()) {
+                    val normUPath = uFile.absolutePath.replace('\\', '/').trimEnd('/')
+                    if (!seenPaths.contains(normUPath)) {
+                        val driveLabel = when {
+                            normUPath.contains("udisk") -> {
+                                val suffix = normUPath.substringAfter("udisk")
+                                "USB Bellek (udisk$suffix)"
+                            }
+                            normUPath.contains("usb") -> "USB Bellek (${uFile.name})"
+                            normUPath.contains("extsd") || normUPath.contains("sdcard2") -> "SD Kart (${uFile.name})"
+                            else -> "Harici Sürücü (${uFile.name})"
+                        }
+
                         roots.add(
                             FolderItem(
-                                name = "USB (${mFile.name})",
-                                path = mFile.absolutePath,
+                                name = driveLabel,
+                                path = normUPath,
                                 isDirectory = true,
                                 isStorageRoot = true,
-                                songCount = countAudioFiles(mFile)
+                                songCount = countAudioFiles(uFile)
                             )
                         )
-                        seenPaths.add(mFile.absolutePath)
+                        seenPaths.add(normUPath)
                     }
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+            } catch (_: Exception) {}
         }
 
         roots
@@ -570,12 +575,9 @@ class MusicRepository(private val context: Context) {
             for (f in files) {
                 if (f.isFile && isAudioFile(f.name)) {
                     count++
-                } else if (f.isDirectory && !f.isHidden) {
-                    val sub = f.listFiles() ?: continue
-                    count += sub.count { it.isFile && isAudioFile(it.name) }
                 }
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             // Güvenlik ve izin kısıtlamalarını sessizce yakala
         }
         return count
@@ -878,6 +880,9 @@ class MusicRepository(private val context: Context) {
 
     fun setIsAlbumArtCropped(cropped: Boolean) = prefs.edit().putBoolean("isAlbumArtCropped", cropped).apply()
     fun getIsAlbumArtCropped(): Boolean = prefs.getBoolean("isAlbumArtCropped", false)
+
+    fun setShowSongInfoBadge(show: Boolean) = prefs.edit().putBoolean("showSongInfoBadge", show).apply()
+    fun getShowSongInfoBadge(): Boolean = prefs.getBoolean("showSongInfoBadge", false)
 
 
     // --- Başlangıçta Otomatik Başlat (Boot Completed) ---

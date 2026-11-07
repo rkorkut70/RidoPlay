@@ -61,6 +61,7 @@ fun SettingsDialog(
 
     val showBlurredBackground by viewModel.showBlurredBackground.collectAsStateWithLifecycle()
     val showWaveform by viewModel.showWaveform.collectAsStateWithLifecycle()
+    val showSongInfoBadge by viewModel.showSongInfoBadge.collectAsStateWithLifecycle()
     val equalizerState by viewModel.equalizerState.collectAsStateWithLifecycle()
     val isalbumartCropped by viewModel.isalbumartCropped.collectAsStateWithLifecycle()
     val stopOnTaskRemoved by viewModel.stopOnTaskRemoved.collectAsStateWithLifecycle()
@@ -542,12 +543,14 @@ fun SettingsDialog(
                                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                         TabButton("Dinamik", "DYNAMIC", themePalette, accentColor) { viewModel.setThemePalette(it) }
-                                        TabButton("Neon", "NEON_CYAN", themePalette, accentColor) { viewModel.setThemePalette(it) }
-                                        TabButton("Mocha", "GREY_BROWN", themePalette, accentColor) { viewModel.setThemePalette(it) }
+                                        TabButton("Cyan", "NEON_CYAN", themePalette, accentColor) { viewModel.setThemePalette(it) }
+                                        TabButton("Mavi", "DEEP_BLUE", themePalette, accentColor) { viewModel.setThemePalette(it) }
+                                        TabButton("Kırmızı", "SPORT_RED", themePalette, accentColor) { viewModel.setThemePalette(it) }
                                     }
                                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        TabButton("Kırmızı", "SPORT_RED", themePalette, accentColor) { viewModel.setThemePalette(it) }
-                                        TabButton("Mavi", "DEEP_BLUE", themePalette, accentColor) { viewModel.setThemePalette(it) }
+                                        TabButton("Kehribar", "WARM_AMBER", themePalette, accentColor) { viewModel.setThemePalette(it) }
+                                        TabButton("Yeşil", "MINT_GREEN", themePalette, accentColor) { viewModel.setThemePalette(it) }
+                                        TabButton("Mocha", "GREY_BROWN", themePalette, accentColor) { viewModel.setThemePalette(it) }
                                     }
                                 }
                             }
@@ -587,6 +590,14 @@ fun SettingsDialog(
                                 checked = isalbumartCropped,
                                 accentColor = accentColor,
                                 onCheckedChange = { viewModel.setIsAlbumArtCropped(it) }
+                            )
+                            SettingsDivider()
+                            SettingSwitchRow(
+                                title = "Şarkı Bilgilerini Göster (Format / Tür / Yıl)",
+                                description = "Oynatıcıda şarkı başlığının altında MP3, Tür ve Yıl rozetini gösterir.",
+                                checked = showSongInfoBadge,
+                                accentColor = accentColor,
+                                onCheckedChange = { viewModel.setShowSongInfoBadge(it) }
                             )
                         }
 
