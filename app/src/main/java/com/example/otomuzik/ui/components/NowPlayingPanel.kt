@@ -295,12 +295,12 @@ fun NowPlayingPanel(
                             ),
                         contentAlignment = Alignment.Center
                     ) {
-                        // Vektörel / Tipografik Minimalist Gece Ayı İkonu (Kristal netlik)
-                        Text(
-                            text = "☾",
-                            fontSize = if (isCompact) 18.sp else 22.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFFE2E8F0)
+                        // Gece Saati & Ekran Koruyucu İkonu (RidoLauncher ile uyumlu)
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_bedtime),
+                            contentDescription = "Gece Saati & Ekran Koruyucu",
+                            tint = Color(0xFFE2E8F0),
+                            modifier = Modifier.size(if (isCompact) 18.dp else 22.dp)
                         )
                     }
                 }
