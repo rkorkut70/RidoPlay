@@ -108,7 +108,7 @@ fun NightClockScreen(
     val iceBlue = Color(0xFF38BDF8)
     val darkBlue = Color(0xFF0284C7)
 
-    // Fullscreen Pure OLED Black Background
+    // Fullscreen Pure OLED Black Background (Sanki Ekran Kapalı Gibi - Tam Siyah)
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -120,66 +120,49 @@ fun NightClockScreen(
                 onClick = onDismiss
             )
     ) {
-        // Subtle ambient radial glow (Arka planda çok hafif ambiyans parıltısı)
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(iceBlue.copy(alpha = 0.05f), Color.Transparent),
-                        radius = 900f
-                    )
-                )
-        )
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(
-                    horizontal = if (isCompact) 20.dp else 36.dp,
-                    vertical = if (isCompact) 18.dp else 28.dp
+                    horizontal = if (isCompact) 20.dp else 40.dp,
+                    vertical = if (isCompact) 18.dp else 32.dp
                 ),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Top: Night Mode Badge + Close Hint
+            // Top: Minimalist Night Mode Indicator & Close Hint (Kutusuz / Saf Siyah Zemin)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(Color(0xFF0F1522))
-                        .border(1.dp, Color(0xFF263248), RoundedCornerShape(20.dp))
-                        .padding(horizontal = 14.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_bedtime),
                         contentDescription = null,
-                        tint = iceBlue,
-                        modifier = Modifier.size(15.dp)
+                        tint = Color(0xFF475569),
+                        modifier = Modifier.size(16.dp)
                     )
                     Text(
-                        text = "Gece Saati & Ekran Koruyucu",
-                        color = Color(0xFF64748B),
+                        text = "Gece Saati",
+                        color = Color(0xFF475569),
                         fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.Medium
                     )
                 }
 
                 Text(
                     text = "Kapatmak için ekrana dokunun",
-                    color = Color(0xFF475569).copy(alpha = hintAlpha),
+                    color = Color(0xFF334155).copy(alpha = hintAlpha),
                     fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.Normal
                 )
             }
 
-            // Center: Massive Digital Clock & Full Date in Anti-Glare Night Palette
+            // Center: Massive Digital Clock & Full Date (Göz Almayan Yumuşak OLED Tonları)
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -189,154 +172,141 @@ fun NightClockScreen(
                 ) {
                     Text(
                         text = formattedTime,
-                        fontSize = if (isCompact) 76.sp else 104.sp,
-                        fontWeight = FontWeight.Black,
+                        fontSize = if (isCompact) 76.sp else 108.sp,
+                        fontWeight = FontWeight.Light,
                         fontFamily = FontFamily.SansSerif,
-                        color = iceBlue.copy(alpha = 0.82f),
+                        color = Color(0xFFCBD5E1).copy(alpha = 0.88f),
                         letterSpacing = 2.sp
                     )
                     Text(
                         text = formattedSeconds,
                         fontSize = if (isCompact) 32.sp else 42.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = darkBlue.copy(alpha = 0.65f),
-                        modifier = Modifier.padding(bottom = if (isCompact) 10.dp else 16.dp, start = 6.dp)
+                        fontWeight = FontWeight.Normal,
+                        color = Color(0xFF64748B).copy(alpha = 0.70f),
+                        modifier = Modifier.padding(bottom = if (isCompact) 10.dp else 18.dp, start = 8.dp)
                     )
                 }
 
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
                     text = formattedDate,
-                    fontSize = if (isCompact) 18.sp else 24.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color(0xFF64748B),
+                    fontSize = if (isCompact) 18.sp else 22.sp,
+                    fontWeight = FontWeight.Normal,
+                    color = Color(0xFF475569),
                     letterSpacing = 0.5.sp
                 )
             }
 
-            // Bottom: Now Playing Song Card (if playing)
+            // Bottom: Floating Now Playing (Kutusuz / Kart Çerçevesi Yok / Tamamen Siyah Zemin Üzerinde)
             if (currentSong != null && (songTitle.isNotBlank() || songArtist.isNotBlank())) {
-                Box(
+                Row(
                     modifier = Modifier
-                        .fillMaxWidth(if (isCompact) 0.94f else 0.68f)
-                        .clip(RoundedCornerShape(22.dp))
-                        .background(Color(0xFF0C101A).copy(alpha = 0.90f))
-                        .border(1.dp, Color(0xFF1E293B), RoundedCornerShape(22.dp))
-                        .padding(horizontal = 18.dp, vertical = 12.dp)
+                        .fillMaxWidth(if (isCompact) 0.94f else 0.72f)
+                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        modifier = Modifier.weight(1f)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(14.dp),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            if (artworkBitmap != null) {
-                                Image(
-                                    bitmap = artworkBitmap.asImageBitmap(),
-                                    contentDescription = "Album Art",
-                                    modifier = Modifier
-                                        .size(54.dp)
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .border(1.dp, iceBlue.copy(alpha = 0.5f), RoundedCornerShape(12.dp)),
-                                    contentScale = ContentScale.Crop
-                                )
-                            } else {
-                                Box(
-                                    modifier = Modifier
-                                        .size(54.dp)
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(Color(0xFF161E2E)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.ic_music_note),
-                                        contentDescription = null,
-                                        tint = iceBlue,
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                }
-                            }
-
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = songTitle.ifEmpty { "Bilinmeyen Parça" },
-                                    color = Color.White,
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = songArtist.ifEmpty { "RidoPlay" },
-                                    color = iceBlue,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
+                        if (artworkBitmap != null) {
+                            Image(
+                                bitmap = artworkBitmap.asImageBitmap(),
+                                contentDescription = "Album Art",
+                                modifier = Modifier
+                                    .size(52.dp)
+                                    .clip(RoundedCornerShape(10.dp)),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .size(52.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(Color(0xFF111827)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_music_note),
+                                    contentDescription = null,
+                                    tint = Color(0xFF64748B),
+                                    modifier = Modifier.size(24.dp)
                                 )
                             }
                         }
 
-                        // Mini Playback Controls inside Night Screen (Enlarged for Car Ergonomics)
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = songTitle.ifEmpty { "Bilinmeyen Parça" },
+                                color = Color(0xFFE2E8F0),
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = songArtist.ifEmpty { "RidoPlay" },
+                                color = Color(0xFF64748B),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Normal,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+
+                    // Floating Mini Playback Controls
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        IconButton(
+                            onClick = onPrevious,
+                            modifier = Modifier.size(52.dp)
                         ) {
-                            IconButton(
-                                onClick = onPrevious,
-                                modifier = Modifier.size(56.dp)
-                            ) {
-                                Icon(
-                                    painter = painterResource(id = R.drawable.ic_skip_previous),
-                                    contentDescription = "Prev",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(36.dp)
-                                )
-                            }
-                            IconButton(
-                                onClick = onPlayPause,
-                                modifier = Modifier
-                                    .size(68.dp)
-                                    .clip(CircleShape)
-                                    .background(iceBlue)
-                            ) {
-                                Icon(
-                                    painter = painterResource(
-                                        id = if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play
-                                    ),
-                                    contentDescription = "Play/Pause",
-                                    tint = Color.Black,
-                                    modifier = Modifier.size(42.dp)
-                                )
-                            }
-                            IconButton(
-                                onClick = onNext,
-                                modifier = Modifier.size(56.dp)
-                            ) {
-                                Icon(
-                                    painter = painterResource(id = R.drawable.ic_skip_next),
-                                    contentDescription = "Next",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(36.dp)
-                                )
-                            }
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_skip_previous),
+                                contentDescription = "Prev",
+                                tint = Color(0xFF94A3B8),
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+                        IconButton(
+                            onClick = onPlayPause,
+                            modifier = Modifier
+                                .size(60.dp)
+                                .clip(CircleShape)
+                                .background(Color.White.copy(alpha = 0.12f))
+                                .border(1.dp, Color.White.copy(alpha = 0.20f), CircleShape)
+                        ) {
+                            Icon(
+                                painter = painterResource(
+                                    id = if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play
+                                ),
+                                contentDescription = "Play/Pause",
+                                tint = Color.White,
+                                modifier = Modifier.size(36.dp)
+                            )
+                        }
+                        IconButton(
+                            onClick = onNext,
+                            modifier = Modifier.size(52.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_skip_next),
+                                contentDescription = "Next",
+                                tint = Color(0xFF94A3B8),
+                                modifier = Modifier.size(32.dp)
+                            )
                         }
                     }
                 }
             } else {
-                Text(
-                    text = "RidoPlay Automotive",
-                    color = Color(0xFF475569),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    letterSpacing = 1.sp
-                )
+                Spacer(modifier = Modifier.height(30.dp))
             }
         }
     }
