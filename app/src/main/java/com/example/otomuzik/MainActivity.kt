@@ -18,7 +18,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import android.content.Intent
 import com.example.otomuzik.service.MusicController
+import com.example.otomuzik.service.MusicService
 import com.example.otomuzik.theme.CarBgDark
 import com.example.otomuzik.theme.OtoMuzikTheme
 import com.example.otomuzik.ui.components.PermissionScreen
@@ -132,6 +134,32 @@ class MainActivity : ComponentActivity() {
     }
 
     // --- Araç Direksiyon Kumandası & Donanım Medya Tuşları (Ön Plan Yakalama) ---
+    private fun executeMediaAction(action: String) {
+        if (MusicController.isServiceBound) {
+            when (action) {
+                MusicService.ACTION_NEXT -> MusicController.playNext()
+                MusicService.ACTION_PREV -> MusicController.playPrevious()
+                MusicService.ACTION_TOGGLE_PAUSE -> MusicController.togglePlayPause()
+                MusicService.ACTION_PLAY -> MusicController.resumePlayback()
+                MusicService.ACTION_PAUSE -> MusicController.pausePlayback()
+                MusicService.ACTION_STOP -> MusicController.stopPlayback()
+            }
+        } else {
+            try {
+                val intent = Intent(this, MusicService::class.java).apply {
+                    this.action = action
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    startForegroundService(intent)
+                } else {
+                    startService(intent)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
             when (event.keyCode) {
@@ -143,7 +171,7 @@ class MainActivity : ComponentActivity() {
                 KeyEvent.KEYCODE_NAVIGATE_NEXT,
                 KeyEvent.KEYCODE_PAGE_UP,
                 KeyEvent.KEYCODE_BUTTON_R1 -> {
-                    MusicController.playNext()
+                    executeMediaAction(MusicService.ACTION_NEXT)
                     return true
                 }
 
@@ -155,7 +183,7 @@ class MainActivity : ComponentActivity() {
                 KeyEvent.KEYCODE_NAVIGATE_PREVIOUS,
                 KeyEvent.KEYCODE_PAGE_DOWN,
                 KeyEvent.KEYCODE_BUTTON_L1 -> {
-                    MusicController.playPrevious()
+                    executeMediaAction(MusicService.ACTION_PREV)
                     return true
                 }
 
@@ -164,22 +192,22 @@ class MainActivity : ComponentActivity() {
                 KeyEvent.KEYCODE_HEADSETHOOK,
                 KeyEvent.KEYCODE_VOLUME_MUTE,
                 KeyEvent.KEYCODE_MUTE -> {
-                    MusicController.togglePlayPause()
+                    executeMediaAction(MusicService.ACTION_TOGGLE_PAUSE)
                     return true
                 }
 
                 KeyEvent.KEYCODE_MEDIA_PLAY -> {
-                    MusicController.resumePlayback()
+                    executeMediaAction(MusicService.ACTION_PLAY)
                     return true
                 }
 
                 KeyEvent.KEYCODE_MEDIA_PAUSE -> {
-                    MusicController.pausePlayback()
+                    executeMediaAction(MusicService.ACTION_PAUSE)
                     return true
                 }
 
                 KeyEvent.KEYCODE_MEDIA_STOP -> {
-                    MusicController.stopPlayback()
+                    executeMediaAction(MusicService.ACTION_STOP)
                     return true
                 }
             }
@@ -221,7 +249,7 @@ class MainActivity : ComponentActivity() {
             KeyEvent.KEYCODE_NAVIGATE_NEXT,
             KeyEvent.KEYCODE_PAGE_UP,
             KeyEvent.KEYCODE_BUTTON_R1 -> {
-                MusicController.playNext()
+                executeMediaAction(MusicService.ACTION_NEXT)
                 return true
             }
 
@@ -232,7 +260,7 @@ class MainActivity : ComponentActivity() {
             KeyEvent.KEYCODE_NAVIGATE_PREVIOUS,
             KeyEvent.KEYCODE_PAGE_DOWN,
             KeyEvent.KEYCODE_BUTTON_L1 -> {
-                MusicController.playPrevious()
+                executeMediaAction(MusicService.ACTION_PREV)
                 return true
             }
 
@@ -240,22 +268,22 @@ class MainActivity : ComponentActivity() {
             KeyEvent.KEYCODE_HEADSETHOOK,
             KeyEvent.KEYCODE_VOLUME_MUTE,
             KeyEvent.KEYCODE_MUTE -> {
-                MusicController.togglePlayPause()
+                executeMediaAction(MusicService.ACTION_TOGGLE_PAUSE)
                 return true
             }
 
             KeyEvent.KEYCODE_MEDIA_PLAY -> {
-                MusicController.resumePlayback()
+                executeMediaAction(MusicService.ACTION_PLAY)
                 return true
             }
 
             KeyEvent.KEYCODE_MEDIA_PAUSE -> {
-                MusicController.pausePlayback()
+                executeMediaAction(MusicService.ACTION_PAUSE)
                 return true
             }
 
             KeyEvent.KEYCODE_MEDIA_STOP -> {
-                MusicController.stopPlayback()
+                executeMediaAction(MusicService.ACTION_STOP)
                 return true
             }
         }

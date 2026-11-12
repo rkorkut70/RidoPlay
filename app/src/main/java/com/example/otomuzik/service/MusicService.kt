@@ -68,10 +68,17 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
         const val ACTION_PREV = "com.example.otomuzik.ACTION_PREV"
         const val ACTION_STOP = "com.example.otomuzik.ACTION_STOP"
         const val ACTION_TOGGLE_PAUSE = "com.example.otomuzik.ACTION_TOGGLE_PAUSE"
+        const val ACTION_AUTO_START_PLAY = "com.example.otomuzik.ACTION_AUTO_START_PLAY"
     }
 
     private val binder = MusicBinder()
     private var mediaPlayer: MediaPlayer? = null
+
+    // --- Debounce & Hızlı Başlatma Değişkenleri ---
+    private var lastTogglePlayPauseTimeMs: Long = 0L
+    private var lastMuteEventTimeMs: Long = 0L
+    private var isQueuePreloading: Boolean = false
+    private var pendingAutoPlayOnPreload: Boolean = false
 
     // --- Crossfade (Şarkılar Arası Yumuşak Geçiş) ---
     /** Crossfade sırasında yeni şarkıyı çalan ikinci player */
@@ -175,6 +182,10 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
                     pausePlayback()
                 }
                 "com.nwd.ACTION_MUTE_STATE_CHANGE" -> {
+                    val now = android.os.SystemClock.elapsedRealtime()
+                    if (now - lastMuteEventTimeMs < 450L) return
+                    lastMuteEventTimeMs = now
+
                     val state = try {
                         android.provider.Settings.System.getInt(contentResolver, "mcu_mute_state", -1)
                     } catch (e: Exception) {
@@ -258,12 +269,16 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
                     isLoudnessEnhancerEnabled = loudnessEnhancerEnabled
                 )
             }
+
+            // Kütüphaneyi ve son çalınan parçayı anında hazırla (MediaSession & RidoLauncher anında görsün)
+            preloadQueue(autoPlay = false)
         } catch (t: Throwable) {
             android.util.Log.e("MusicService", "Error during onCreate: ${t.message}", t)
         }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        android.util.Log.d("MusicService", "onStartCommand action=${intent?.action}")
         if (_playerState.value.currentSong == null) {
             startStandbyForeground()
         }
@@ -279,7 +294,20 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
             }
         }
         when (intent?.action) {
-            ACTION_PLAY -> resumePlayback()
+            ACTION_AUTO_START_PLAY -> {
+                if (activeQueue.isNotEmpty()) {
+                    resumePlayback()
+                } else {
+                    preloadQueue(autoPlay = true)
+                }
+            }
+            ACTION_PLAY -> {
+                if (activeQueue.isNotEmpty()) {
+                    resumePlayback()
+                } else {
+                    preloadQueue(autoPlay = true)
+                }
+            }
             ACTION_PAUSE -> pausePlayback()
             ACTION_NEXT -> playNext()
             ACTION_PREV -> playPrevious()
@@ -347,6 +375,9 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
             muteObserver = object : android.database.ContentObserver(android.os.Handler(android.os.Looper.getMainLooper())) {
                 override fun onChange(selfChange: Boolean) {
                     super.onChange(selfChange)
+                    val now = android.os.SystemClock.elapsedRealtime()
+                    if (now - lastMuteEventTimeMs < 450L) return
+                    lastMuteEventTimeMs = now
                     try {
                         val state = android.provider.Settings.System.getInt(contentResolver, "mcu_mute_state", 0)
                         android.util.Log.d("MusicService", "mcu_mute_state ContentObserver degisti: $state")
@@ -763,61 +794,164 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
     }
 
 
-    fun resumePlayback() {
-        val player = mediaPlayer
-        if (player != null && !player.isPlaying) {
-            if (requestAudioFocus()) {
-                player.start()
-                _playerState.update { it.copy(isPlaying = true) }
-                _playerState.value.currentSong?.let {
-                    startForegroundServiceWithNotification(it, true)
-                    updateMediaSessionState(PlaybackState.STATE_PLAYING, player.currentPosition.toLong())
-                }
-                startProgressTracker()
+    fun preloadQueue(autoPlay: Boolean = false) {
+        if (activeQueue.isNotEmpty()) {
+            if (autoPlay && !_playerState.value.isPlaying) {
+                resumePlayback()
             }
-        } else if (player == null && activeQueue.isNotEmpty()) {
-            playSongAt(currentIndex.coerceAtLeast(0))
-        } else if (activeQueue.isEmpty()) {
-            serviceScope.launch(Dispatchers.IO) {
-                val songs = repository.getAllSongs()
+            return
+        }
+        if (isQueuePreloading) {
+            if (autoPlay) pendingAutoPlayOnPreload = true
+            return
+        }
+        isQueuePreloading = true
+        if (autoPlay) pendingAutoPlayOnPreload = true
+
+        serviceScope.launch(Dispatchers.IO) {
+            try {
+                val cachedSongs = repository.getSongsFromCacheOnly()
+                val songs = if (cachedSongs.isNotEmpty()) cachedSongs else repository.getAllSongs()
                 if (songs.isNotEmpty()) {
                     val lastPath = repository.getLastPlayedPath()
+                    val lastPos = repository.getLastPlayedPosition()
                     val lastIdx = if (lastPath != null) {
                         songs.indexOfFirst { it.path == lastPath }.takeIf { it != -1 } ?: 0
                     } else 0
+
                     withContext(Dispatchers.Main) {
-                        setQueue(songs, lastIdx, true)
+                        val targetSong = songs.getOrNull(lastIdx) ?: songs[0]
+                        fullQueue = songs
+                        currentIndex = lastIdx
+                        if (_playerState.value.isShuffle) {
+                            buildShuffledQueue(targetSong)
+                        } else {
+                            activeQueue = fullQueue
+                        }
+
+                        _playerState.update {
+                            it.copy(
+                                currentQueue = activeQueue,
+                                currentIndex = currentIndex,
+                                currentSong = targetSong,
+                                currentPositionMs = lastPos,
+                                durationMs = targetSong.durationMs
+                            )
+                        }
+
+                        updateMediaSessionMetadata(targetSong, targetSong.durationMs)
+                        updateMediaSessionState(PlaybackState.STATE_PAUSED, lastPos)
+
+                        isQueuePreloading = false
+                        val shouldAutoPlay = pendingAutoPlayOnPreload || repository.getAutoPlayOnStart()
+                        pendingAutoPlayOnPreload = false
+
+                        if (shouldAutoPlay) {
+                            resumePlayback()
+                        }
+                    }
+                } else {
+                    withContext(Dispatchers.Main) {
+                        isQueuePreloading = false
+                        pendingAutoPlayOnPreload = false
                     }
                 }
+            } catch (e: Exception) {
+                android.util.Log.e("MusicService", "Error during preloadQueue: ${e.message}", e)
+                withContext(Dispatchers.Main) {
+                    isQueuePreloading = false
+                    pendingAutoPlayOnPreload = false
+                }
             }
+        }
+    }
+
+    fun resumePlayback() {
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (now - lastTogglePlayPauseTimeMs < 300L && mediaPlayer?.isPlaying == true) {
+            android.util.Log.d("MusicService", "resumePlayback ignored due to debounce")
+            return
+        }
+        lastTogglePlayPauseTimeMs = now
+        android.util.Log.d("MusicService", "resumePlayback executed, queueSize=${activeQueue.size}, currentSong=${_playerState.value.currentSong?.title}")
+
+        val player = mediaPlayer
+        if (player != null) {
+            val isMpPlaying = try { player.isPlaying } catch (_: Exception) { false }
+            if (!isMpPlaying) {
+                if (requestAudioFocus()) {
+                    try {
+                        player.start()
+                    } catch (e: Exception) {
+                        playSongAt(currentIndex.coerceAtLeast(0))
+                        return
+                    }
+                    _playerState.update { it.copy(isPlaying = true) }
+                    _playerState.value.currentSong?.let {
+                        startForegroundServiceWithNotification(it, true)
+                        val pos = try { player.currentPosition.toLong() } catch (_: Exception) { 0L }
+                        updateMediaSessionState(PlaybackState.STATE_PLAYING, pos)
+                    }
+                    startProgressTracker()
+                }
+            }
+        } else if (activeQueue.isNotEmpty()) {
+            val targetPos = _playerState.value.currentPositionMs
+            playSongAt(currentIndex.coerceAtLeast(0))
+            if (targetPos > 2000L) {
+                try {
+                    mediaPlayer?.seekTo(targetPos.toInt())
+                } catch (_: Exception) {}
+            }
+        } else {
+            preloadQueue(autoPlay = true)
         }
     }
 
     fun pausePlayback() {
-        mediaPlayer?.let {
-            if (it.isPlaying) {
-                it.pause()
-                val currentPos = it.currentPosition.toLong()
-                _playerState.update { state ->
-                    state.copy(isPlaying = false, currentPositionMs = currentPos)
+        android.util.Log.d("MusicService", "pausePlayback executed, mpPlaying=${mediaPlayer?.isPlaying}")
+        val player = mediaPlayer
+        if (player != null) {
+            try {
+                if (player.isPlaying) {
+                    player.pause()
                 }
-                stopProgressTracker()
-                _playerState.value.currentSong?.let { song ->
-                    startForegroundServiceWithNotification(song, false)
-                    updateMediaSessionState(PlaybackState.STATE_PAUSED, currentPos)
-                    repository.saveLastPlaybackState(
-                        song.path,
-                        currentPos,
-                        _playerState.value.isShuffle,
-                        _playerState.value.repeatMode.name
-                    )
-                }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
+        }
+        val currentPos = try {
+            player?.currentPosition?.toLong() ?: _playerState.value.currentPositionMs
+        } catch (_: Exception) {
+            _playerState.value.currentPositionMs
+        }
+        _playerState.update { state ->
+            state.copy(isPlaying = false, currentPositionMs = currentPos)
+        }
+        stopProgressTracker()
+        _playerState.value.currentSong?.let { song ->
+            startForegroundServiceWithNotification(song, false)
+            updateMediaSessionState(PlaybackState.STATE_PAUSED, currentPos)
+            repository.saveLastPlaybackState(
+                song.path,
+                currentPos,
+                _playerState.value.isShuffle,
+                _playerState.value.repeatMode.name
+            )
         }
     }
 
     fun togglePlayPause() {
-        if (_playerState.value.isPlaying) {
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (now - lastTogglePlayPauseTimeMs < 380L) {
+            android.util.Log.d("MusicService", "togglePlayPause ignored due to debounce")
+            return
+        }
+        lastTogglePlayPauseTimeMs = now
+
+        val isCurrentlyPlaying = mediaPlayer?.isPlaying == true || _playerState.value.isPlaying
+        android.util.Log.d("MusicService", "togglePlayPause executed, isCurrentlyPlaying=$isCurrentlyPlaying (mp=${mediaPlayer?.isPlaying}, state=${_playerState.value.isPlaying})")
+        if (isCurrentlyPlaying) {
             pausePlayback()
         } else {
             resumePlayback()

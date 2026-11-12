@@ -21,6 +21,7 @@ class CarMediaButtonReceiver : BroadcastReceiver() {
 
     companion object {
         private const val TAG = "CarMediaButtonReceiver"
+        private var lastActionTimeMs: Long = 0L
     }
 
     override fun onReceive(context: Context, intent: Intent?) {
@@ -155,6 +156,13 @@ class CarMediaButtonReceiver : BroadcastReceiver() {
     }
 
     private fun sendServiceAction(context: Context, action: String) {
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (now - lastActionTimeMs < 350L) {
+            Log.d(TAG, "sendServiceAction yoksayıldı (debounce): $action")
+            return
+        }
+        lastActionTimeMs = now
+
         if (MusicController.isServiceBound) {
             when (action) {
                 MusicService.ACTION_NEXT -> MusicController.playNext()
