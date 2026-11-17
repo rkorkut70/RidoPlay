@@ -77,6 +77,7 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
     // --- Debounce & Hızlı Başlatma Değişkenleri ---
     private var lastTogglePlayPauseTimeMs: Long = 0L
     private var lastMuteEventTimeMs: Long = 0L
+    private var lastSkipEventTimeMs: Long = 0L
     private var isQueuePreloading: Boolean = false
     private var pendingAutoPlayOnPreload: Boolean = false
 
@@ -761,12 +762,13 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
                 )
             }
 
+            val initialArt = if (currentArtworkSongPath == song.path) currentNotificationArtwork else null
             startForegroundServiceWithNotification(song, autoPlay)
             updateMediaSessionState(
                 if (autoPlay) PlaybackState.STATE_PLAYING else PlaybackState.STATE_PAUSED,
                 0L
             )
-            updateMediaSessionMetadata(song, duration)
+            updateMediaSessionMetadata(song, duration, initialArt)
             if (autoPlay) {
                 startProgressTracker()
             } else {
@@ -819,8 +821,17 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
                         songs.indexOfFirst { it.path == lastPath }.takeIf { it != -1 } ?: 0
                     } else 0
 
+                    val targetSong = songs.getOrNull(lastIdx) ?: songs[0]
+                    val preloadedArt = try {
+                        com.example.otomuzik.util.AlbumArtHelper.getArtwork(
+                            applicationContext,
+                            targetSong.path,
+                            targetSong.albumId,
+                            targetSong.uriString
+                        )
+                    } catch (_: Exception) { null }
+
                     withContext(Dispatchers.Main) {
-                        val targetSong = songs.getOrNull(lastIdx) ?: songs[0]
                         fullQueue = songs
                         currentIndex = lastIdx
                         if (_playerState.value.isShuffle) {
@@ -839,7 +850,9 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
                             )
                         }
 
-                        updateMediaSessionMetadata(targetSong, targetSong.durationMs)
+                        currentNotificationArtwork = preloadedArt
+                        currentArtworkSongPath = targetSong.path
+                        updateMediaSessionMetadata(targetSong, targetSong.durationMs, preloadedArt)
                         updateMediaSessionState(PlaybackState.STATE_PAUSED, lastPos)
 
                         isQueuePreloading = false
@@ -959,6 +972,13 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
     }
 
     fun playNext() {
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (now - lastSkipEventTimeMs < 350L) {
+            android.util.Log.d("MusicService", "playNext ignored due to debounce")
+            return
+        }
+        lastSkipEventTimeMs = now
+
         if (activeQueue.isEmpty()) {
             serviceScope.launch(Dispatchers.IO) {
                 val songs = repository.getAllSongs()
@@ -983,6 +1003,13 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
     }
 
     fun playPrevious() {
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (now - lastSkipEventTimeMs < 350L) {
+            android.util.Log.d("MusicService", "playPrevious ignored due to debounce")
+            return
+        }
+        lastSkipEventTimeMs = now
+
         if (activeQueue.isEmpty()) {
             serviceScope.launch(Dispatchers.IO) {
                 val songs = repository.getAllSongs()
@@ -1253,6 +1280,7 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
     private fun updateMediaSessionMetadata(song: Song, duration: Long, artwork: Bitmap? = null) {
         try {
             val builder = MediaMetadata.Builder()
+                .putString(MediaMetadata.METADATA_KEY_MEDIA_ID, song.path)
                 .putString(MediaMetadata.METADATA_KEY_TITLE, song.title)
                 .putString(MediaMetadata.METADATA_KEY_ARTIST, song.artist)
                 .putString(MediaMetadata.METADATA_KEY_ALBUM, song.album)
@@ -1260,6 +1288,15 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
             if (artwork != null) {
                 builder.putBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART, artwork)
                 builder.putBitmap(MediaMetadata.METADATA_KEY_ART, artwork)
+            }
+            if (song.albumId > 0) {
+                builder.putString(
+                    MediaMetadata.METADATA_KEY_ALBUM_ART_URI,
+                    "content://media/external/audio/albumart/${song.albumId}"
+                )
+            }
+            if (song.uriString.isNotEmpty()) {
+                builder.putString(MediaMetadata.METADATA_KEY_DISPLAY_ICON_URI, song.uriString)
             }
             mediaSession?.setMetadata(builder.build())
         } catch (t: Throwable) {
@@ -1353,6 +1390,7 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
             // Bildirimde albüm kapağını göster (LargeIcon)
             if (currentArtworkSongPath == song.path && currentNotificationArtwork != null) {
                 builder.setLargeIcon(currentNotificationArtwork)
+                updateMediaSessionMetadata(song, _playerState.value.durationMs, currentNotificationArtwork)
             } else {
                 // Arka planda kapak resmini yükleyip bildirimi ve mediaSession'ı güncelle
                 serviceScope.launch(Dispatchers.IO) {
@@ -1637,19 +1675,13 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
         crossfadeJob?.cancel()
 
         val crossfadeDuration = repository.getCrossfadeDuration()
+        val actualIndex = activeQueue.indexOfFirst { it.path == song.path || (it.id != 0L && it.id == song.id) }
+        val targetIdx = if (actualIndex != -1) actualIndex else currentIndex
+        currentIndex = targetIdx
+
         if (crossfadeDuration <= 0) {
             isCrossfading = false
             releaseMediaPlayer()
-            try {
-                // crossfadePlayer veya mediaPlayer serbest birakildi ama normal calmaya geciyoruz
-                val actualIndex = activeQueue.indexOfFirst { it.path == song.path || (it.id != 0L && it.id == song.id) }
-                val idx = if (actualIndex != -1) actualIndex else currentIndex
-                
-                // Dikkat: playSongAt(idx) icinde releaseMediaPlayer() bir daha cagriliyor, ama sorun degil.
-                // startCrossfade icinden normal oynatmaya donmek icin yeni MediaPlayer baslatiyoruz:
-                // Ama playSongAt'in ilk basinda eger oynuyorsa tekrar crossfade deniyor, loop olabilir.
-                // Bu yuzden playSongAt yerine direkt oynamasini saglamak icin, playSongAt'in basinda isCrossfading kontrolu var.
-            } catch(e: Exception) {}
             playSongAt(currentIndex)
             return
         }
@@ -1696,9 +1728,10 @@ class MusicService : MediaBrowserServiceCompat(), AudioManager.OnAudioFocusChang
                     currentIndex = currentIndex
                 )
             }
+            val initialArt = if (currentArtworkSongPath == song.path) currentNotificationArtwork else null
             startForegroundServiceWithNotification(song, true)
             updateMediaSessionState(PlaybackState.STATE_PLAYING, 0L)
-            updateMediaSessionMetadata(song, duration)
+            updateMediaSessionMetadata(song, duration, initialArt)
             startProgressTracker()
             repository.saveLastPlaybackState(
                 song.path,
